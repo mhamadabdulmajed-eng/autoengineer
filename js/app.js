@@ -158,7 +158,7 @@ const availLabel=(a,l)=>t(({available:'In stock',order:'On order (2–5 days)',u
 /* ================= ROUTER ================= */
 const VIEWS=['home','shop','wholesale','sell','track','admin','terms'];
 let current='home';
-function route(){let v=(location.hash||'#home').slice(1);if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
+function route(){let v=(location.hash||'#home').slice(1);if(v==='find'){history.replaceState(null,'','#shop');v='shop';setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
   $$('.view').forEach(e=>e.classList.toggle('hidden',e.id!=='view-'+sec));$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===v));$('#navLinks').classList.remove('open');
   window.scrollTo(0,0);renderCurrent();updateNav();if(v==='home'&&window.ScrollTrigger)setTimeout(()=>ScrollTrigger.refresh(),60)}
 function renderCurrent(fromData){
@@ -172,7 +172,7 @@ window.addEventListener('scroll',updateNav,{passive:true});
 
 /* ================= CHROME (nav, language) ================= */
 function buildChrome(){
-  $('#navLinks').innerHTML=`<a href="#shop" data-v="shop">${t('Retail')}</a><a href="#wholesale" data-v="wholesale">${t('Wholesale')}</a><a href="#sell" data-v="sell">${t('Sell your parts')}</a><a href="#track" data-v="track">${t('Track order')}</a><a href="#admin" data-v="admin" class="admin-link">${t('Staff')}</a>`;
+  $('#navLinks').innerHTML=`<a href="#find" class="nav-find">${t('Find my part')}</a><a href="#shop" data-v="shop">${t('Retail')}</a><a href="#wholesale" data-v="wholesale">${t('Wholesale')}</a><a href="#sell" data-v="sell">${t('Sell your parts')}</a><a href="#track" data-v="track">${t('Track order')}</a><a href="#admin" data-v="admin" class="admin-link">${t('Staff')}</a>`;
   $$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===current));
   $('#basketLbl').textContent=t('Basket');$('#langBtn').textContent=LANGS[LANG||'en'].short;$('#brandName').textContent=t('AUTO ENGINEER');
   document.title=t('Auto Engineer — Toyota Spare Parts');
@@ -200,6 +200,7 @@ function buildHome(){
     <div class="hero-inner"><span class="eyebrow">${t('Toyota spare parts specialist')}</span><h1>${h1}</h1>
       <p class="lead">${t('Genuine Toyota parts for Land Cruiser, Hilux, Camry and every Toyota on the road. Search, add to your basket and send your list. We reply with prices, availability and your discount.')}</p>
       <form class="hero-search" id="heroSearch"><input name="q" placeholder="${esc(t('Part name, part number or Toyota model…'))}" autocomplete="off"><button>${t('Search parts')}</button></form>
+      <a class="hero-find" href="#find"><span class="hf-q">${t('No part number?')}</span><b>${t('FIND MY PART')}</b><span class="hf-arrow">→</span></a>
       <div class="hero-tags" id="heroTags">${tags.map(x=>`<button type="button" data-q="${esc(t(x))}">${esc(t(x))}</button>`).join('')}</div></div>
     <div class="engine-caption" id="engineCap">${t('Every part inside your engine. Tap a part to shop it.')}</div>
     <div class="scroll-hint">${t('Scroll')}<i></i></div></section>
@@ -293,14 +294,15 @@ function renderShop(fromData){
         <div class="room-switch"><a href="#shop" class="${r==='retail'?'on':''}">${t('Retail')}</a><a href="#wholesale" class="${r==='wholesale'?'on':''}">${t('Wholesale')}</a></div></div>
       ${r==='wholesale'&&ws?`<div class="ws-bar"><div>${t('Signed in as')} <b>${esc(ws.company||ws.name)}</b> · <span class="ltr">${esc(ws.phone)}</span></div><button class="btn sm ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" id="wsOut">${t('Sign out')}</button></div>`:''}
       <div class="model-strip" id="modelStrip"><button class="mchip" data-m="">${t('All models')}</button>${M.map(m=>`<button class="mchip" data-m="${m.id}">${modelArt(m,{cls:'mchip-art'})}<span>${esc(m.name)}</span></button>`).join('')}</div>
-      <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="${esc(t('Search: brake pads, 04465-0K290, Hilux 2018…'))}" value="${esc(S.q)}"></div></div></div>
+      <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="${esc(t('Search: brake pads, 04465-0K290, Hilux 2018…'))}" value="${esc(S.q)}"></div>
+      ${r==='retail'?`<button class="stage-find" id="stageFind"><span>${t('No part number?')}</span><b>${t('FIND MY PART')}</b></button>`:''}</div></div>
     <div class="filters" id="catChips"></div>
     <div class="filters"><select class="sel" id="fYear"></select><select class="sel" id="fCond"></select><button class="linkbtn" id="fClear">${t('Clear filters')}</button></div>
     <div class="result-meta"><span id="resCount"></span><span>${t('Can’t find it?')} <button class="linkbtn" id="reqBtn">${t('Request a part')}</button></span></div>
     <div class="grid" id="results"></div>`;
     $('#q').oninput=e=>{S.q=e.target.value;if(!S.f.model){const mid=modelIdOf(S.q);setStage(mid&&mid!=='*'?mid:'')}renderResults()};
     $('#fClear').onclick=()=>{S.f={cat:'',model:'',year:'',cond:''};S.q='';$('#q').value='';renderFilters();renderResults()};
-    $('#reqBtn').onclick=openRequestModal;
+    $('#reqBtn').onclick=openRequestModal;if($('#stageFind'))$('#stageFind').onclick=()=>openFindPart({model:S.f.model||''});
     $('#modelStrip').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;S.f.model=b.dataset.m;renderFilters();renderResults();b.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})};
     [['fYear','year'],['fCond','cond']].forEach(([id,k])=>$('#'+id).onchange=e=>{S.f[k]=e.target.value;renderFilters();renderResults()});
     if($('#wsOut'))$('#wsOut').onclick=()=>{S.ws=null;S.wsPrices={};ls('ae:ws',null);renderShop()};
@@ -356,7 +358,7 @@ function renderResults(){
   if(S.mode!=='local'&&!S.loaded.parts){el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Loading catalog…')}</div>`;$('#resCount').textContent='';return}
   const r=room();const list=Store.all('parts').filter(p=>!p.hidden&&(!p.make||/toyota/i.test(p.make))).filter(matches).sort((a,b)=>String(pName(a)).localeCompare(pName(b)));
   $('#resCount').textContent=t('{n} parts',{n:list.length});
-  if(!list.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><h3>${t('No parts found')}</h3><p>${t('Try another search, or send us a request and we’ll find it for you.')}</p><br><button class="btn red" id="reqBtn2">${t('Request this part')}</button></div>`;$('#reqBtn2').onclick=openRequestModal;return}
+  if(!list.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><h3>${t('No parts found')}</h3><p>${t('Try another search, or send us a request and we’ll find it for you.')}</p><br><button class="btn red" id="reqBtn2">${t('Find my part')}</button></div>`;$('#reqBtn2').onclick=()=>openFindPart({model:S.f.model||'',q:S.q});return}
   const inB=new Set(S.basket.map(b=>b.partId));
   el.innerHTML=list.slice(0,240).map((p,i)=>{const pr=priceFor(p,r);const cc=p.condition==='Genuine'?'g':p.condition==='Used'?'u':'a';
     return `<article class="pcard" style="animation-delay:${Math.min(i,16)*25}ms"><div class="pimg">${p.image?`<img src="${esc(p.image)}" alt="">`:icon(p.category,1.2)}${p.condition?`<span class="badge ${cc}">${t(p.condition)}</span>`:''}${p.stock?`<span class="stock">${t(p.stock)}</span>`:''}</div>
@@ -563,7 +565,7 @@ function adminOrders(){
     ${branches().length&&S.role!=='sales'?`<select class="sel" id="oB"><option value="">${t('All branches')}</option>${branches().map(b=>`<option value="${esc(b.id)}" ${S.oBr===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`:''}</div>
     <div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Order')}</th><th>${t('Date')}</th><th>${t('Customer')}</th><th>${t('Room')}</th><th>${t('Branch')}</th><th class="num">${t('Total')}</th><th>${t('Status')}</th></tr></thead><tbody id="oRows"></tbody></table></div></div>`;
   const draw=()=>{const q=(S.adminQ||'').toLowerCase();const rows=all.filter(o=>(!S.oFilter||o.status===S.oFilter)&&(!S.oRoom||o.room===S.oRoom)&&(!S.oBr||o.branch===S.oBr)&&(!S.oPay||payState(o)===S.oPay)&&(!q||[o.no,o.customer?.name,o.customer?.phone,o.customer?.location,o.quoteNo,o.invoiceNo,...(o.lines||[]).map(l=>l.name+' '+l.partNo)].join(' ').toLowerCase().includes(q)));
-    $('#oRows').innerHTML=rows.length?rows.map(o=>{const ps=payState(o);const tt=totals(o);return `<tr class="click" data-o="${esc(o.id)}"><td><b class="ltr">${esc(o.no)}</b>${o.invoiceNo?`<br><span class="mini ltr">${esc(o.invoiceNo)}</span>`:o.quoteNo?`<br><span class="mini ltr">${esc(o.quoteNo)}</span>`:''}</td><td>${dateStr(o.createdAt)}</td><td>${esc(o.customer?.name)}<br><span class="mini"><span class="ltr">${esc(o.customer?.phone)}</span> · ${esc(o.customer?.location)}</span></td><td><span class="room-tag ${o.room==='wholesale'?'ws':''}">${t(o.room==='wholesale'?'Wholesale':'Retail')}</span></td><td class="mini">${o.fulfil==='pickup'?'🏬 ':'🚚 '}${esc(brName(o.branch))}</td><td class="num">${tt.total?money(tt.net):'—'}${ps?`<br><span class="pay ${ps}">${t({unpaid:'Unpaid',partial:'Partly paid',paid:'Paid'}[ps])}</span>`:''}</td><td><span class="st ${o.status}">${stl(o.status)}</span></td></tr>`}).join(''):`<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">${t('No orders yet. New orders from the website appear here.')}</td></tr>`};
+    $('#oRows').innerHTML=rows.length?rows.map(o=>{const ps=payState(o);const tt=totals(o);return `<tr class="click" data-o="${esc(o.id)}"><td><b class="ltr">${esc(o.no)}</b>${o.kind==='find'?` <span class="fp-badge sm">${t('FIND MY PART')}</span>`:''}${o.invoiceNo?`<br><span class="mini ltr">${esc(o.invoiceNo)}</span>`:o.quoteNo?`<br><span class="mini ltr">${esc(o.quoteNo)}</span>`:''}</td><td>${dateStr(o.createdAt)}</td><td>${esc(o.customer?.name)}<br><span class="mini"><span class="ltr">${esc(o.customer?.phone)}</span> · ${esc(o.customer?.location)}</span></td><td><span class="room-tag ${o.room==='wholesale'?'ws':''}">${t(o.room==='wholesale'?'Wholesale':'Retail')}</span></td><td class="mini">${o.fulfil==='pickup'?'🏬 ':'🚚 '}${esc(brName(o.branch))}</td><td class="num">${tt.total?money(tt.net):'—'}${ps?`<br><span class="pay ${ps}">${t({unpaid:'Unpaid',partial:'Partly paid',paid:'Paid'}[ps])}</span>`:''}</td><td><span class="st ${o.status}">${stl(o.status)}</span></td></tr>`}).join(''):`<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">${t('No orders yet. New orders from the website appear here.')}</td></tr>`};
   draw();bindSearch(draw);
   [['oF','oFilter'],['oR','oRoom'],['oB','oBr'],['oP','oPay']].forEach(([id,k])=>{if($('#'+id))$('#'+id).onchange=e=>{S[k]=e.target.value;draw()}});
   $('#oRows').onclick=e=>{const r=e.target.closest('[data-o]');if(r)openOrder(r.dataset.o)};
@@ -579,7 +581,7 @@ function drawOrderModal(){
     <div class="row3"><div class="f"><label>${t('Fulfilment')}</label><select id="o_ful"><option value="delivery" ${o.fulfil!=='pickup'?'selected':''}>${t('Delivery')}</option><option value="pickup" ${o.fulfil==='pickup'?'selected':''}>${t('Pick up from branch')}</option></select></div>
       <div class="f"><label>${t('Branch')}</label><select id="o_br" ${S.role==='sales'?'disabled':''}><option value="">—</option>${branches().map(b=>`<option value="${esc(b.id)}" ${o.branch===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>
       <div class="f"><label>${t('Status')}</label><select id="o_status">${Object.keys(STATUS_LABEL).map(k=>`<option value="${k}" ${o.status===k?'selected':''}>${stl(k)}</option>`).join('')}</select></div></div>
-    ${o.comment?`<div class="panel" style="padding:12px 14px;margin-bottom:14px;background:#FFF8E6;box-shadow:none"><b class="mini" style="color:#8a5a00">${t('CUSTOMER COMMENT')}</b><div style="margin-top:4px">${esc(o.comment)}</div></div>`:''}
+    ${findInfoHtml(o)}${o.comment&&o.kind!=='find'?`<div class="panel" style="padding:12px 14px;margin-bottom:14px;background:#FFF8E6;box-shadow:none"><b class="mini" style="color:#8a5a00">${t('CUSTOMER COMMENT')}</b><div style="margin-top:4px">${esc(o.comment)}</div></div>`:''}
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part')}</th><th style="width:80px">${t('Qty')}</th><th style="width:170px">${t('Availability')}</th><th style="width:150px">${t('Unit price')}</th><th class="num">${t('Line total')}</th><th></th></tr></thead><tbody>
     ${o.lines.map((l,i)=>`<tr><td><input data-l="${i}" data-k="name" value="${esc(l.name)}" style="font-weight:600"><div class="mini" style="margin-top:4px"><input data-l="${i}" data-k="partNo" value="${esc(l.partNo||'')}" placeholder="${esc(t('Part number'))}" dir="ltr" style="width:48%;display:inline-block;padding:4px 7px;font-size:12px"> ${esc(l.fit||'')}${l.custom?' · <b>'+t('custom request')+'</b>':''}</div></td>
       <td><input type="number" min="0" data-l="${i}" data-k="qty" value="${l.qty}"></td>
