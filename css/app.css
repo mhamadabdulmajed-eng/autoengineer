@@ -343,3 +343,84 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:56px clamp(16px,
 .terms ul{padding-inline-start:20px}
 .login{max-width:420px;margin:30px auto}
 .agree{font-size:12px;color:var(--muted);margin:-4px 0 12px}
+
+/* ---------- TOYOTA: exploding engine hero ---------- */
+.hero-engine{align-items:center}
+.engine-wrap{position:absolute;right:-2vw;top:50%;width:min(64vw,980px);transform:translateY(-50%);z-index:1}
+.engine-svg{width:100%;height:auto;overflow:visible;display:block}
+.engine-svg .ep{cursor:pointer;transition:filter .2s}
+.engine-svg .ep:hover{filter:brightness(1.25) drop-shadow(0 0 12px rgba(255,59,31,.6))}
+.engine-svg .ep-block{cursor:default}
+.ep-lbl{opacity:0;cursor:pointer}
+.ep-pill{fill:rgba(10,12,15,.82);stroke:rgba(255,255,255,.22);stroke-width:1.5;transition:fill .2s,stroke .2s}
+.ep-lbl:hover .ep-pill{fill:#FF3B1F;stroke:#FF3B1F}
+.ep-txt{fill:#fff;font:600 15px Inter,'Noto Sans Arabic',sans-serif}
+.engine-caption{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:3;opacity:0;color:rgba(255,255,255,.75);font-size:14px;background:rgba(255,255,255,.06);border:1px solid var(--line);padding:9px 16px;border-radius:999px;white-space:nowrap}
+.hero-engine .hero-inner{max-width:560px}
+[dir=rtl] .engine-wrap{right:auto;left:-2vw}
+@media(max-width:860px){
+  .hero-engine{flex-direction:column;justify-content:flex-start;padding-top:96px}
+  .engine-wrap{position:relative;right:auto;left:auto;top:auto;transform:none;width:110%;margin:10px -5% 0;order:2}
+  [dir=rtl] .engine-wrap{left:auto}
+  .hero-engine .hero-inner{order:1}
+  .engine-caption{bottom:20px;white-space:normal;text-align:center;width:88%}
+  .ep-txt{font-size:20px}
+}
+
+/* ---------- TOYOTA: model artwork ---------- */
+.mart{position:relative;display:block}
+.mart .carsvg{width:100%;height:auto;display:block}
+.mart .mphoto{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .4s}
+.mart.has-photo .mphoto{opacity:1}
+.mart.has-photo .carsvg{visibility:hidden}
+
+/* model cards on home (horizontal scroll) */
+.model-card{flex:0 0 min(420px,80vw);height:min(66vh,520px);border-radius:24px;position:relative;overflow:hidden;padding:30px;display:flex;flex-direction:column;justify-content:flex-end;border:1px solid var(--line);background:radial-gradient(120% 80% at 50% 30%,#232a33,#0d1014);text-decoration:none;transition:border-color .3s,transform .3s}
+.model-card:hover{border-color:rgba(255,59,31,.6);transform:translateY(-4px)}
+.model-card .num{position:absolute;top:24px;left:30px;font-family:var(--display);font-weight:800;font-size:14px;color:rgba(255,255,255,.35)}
+[dir=rtl] .model-card .num{left:auto;right:30px}
+.mc-art{position:absolute;left:4%;right:4%;top:18%}
+.mc-art.has-photo{top:0;left:0;right:0;bottom:0}
+.mc-art.has-photo .mphoto{object-fit:cover}
+.mc-txt{position:relative;z-index:2}
+.mc-txt small{color:var(--red);font-weight:700;letter-spacing:.14em;font-size:11px;text-transform:uppercase}
+.mc-txt h3{font-family:var(--display);font-stretch:80%;font-weight:850;font-size:clamp(34px,4vw,50px);text-transform:uppercase;line-height:1;margin:4px 0 6px}
+.mc-txt p{color:rgba(255,255,255,.6);margin-bottom:16px}
+.mc-txt .go{display:inline-flex;background:#fff;color:var(--ink);padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px}
+.model-card .mart.has-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,12,15,0) 30%,rgba(10,12,15,.9))}
+@media(max-width:860px){.model-card{flex:none;height:380px}}
+
+/* ---------- TOYOTA: shop model stage ---------- */
+#view-shop .page{padding-top:0}
+.stage{position:relative;margin:0 calc(50% - 50vw) 22px;padding:96px calc(50vw - 50% + clamp(16px,4vw,40px)) 26px;background:#0b0d10;color:#fff;overflow:hidden;min-height:520px}
+.stage-bg{position:absolute;inset:0;z-index:0}
+.stage-layer{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding:60px 4vw 120px}
+[dir=rtl] .stage-layer{justify-content:flex-start}
+.stage-art{width:min(62vw,900px);opacity:.95}
+.stage-art.has-photo{position:absolute;inset:0;width:auto}
+.stage-art.has-photo .mphoto{object-fit:cover}
+.stage-default{width:min(50vw,680px);opacity:.35}
+.stage::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(11,13,16,.96) 0%,rgba(11,13,16,.75) 38%,rgba(11,13,16,.15) 70%,rgba(11,13,16,.35) 100%),linear-gradient(0deg,rgba(11,13,16,.95),rgba(11,13,16,0) 40%);pointer-events:none}
+[dir=rtl] .stage::after{background:linear-gradient(270deg,rgba(11,13,16,.96) 0%,rgba(11,13,16,.75) 38%,rgba(11,13,16,.15) 70%,rgba(11,13,16,.35) 100%),linear-gradient(0deg,rgba(11,13,16,.95),rgba(11,13,16,0) 40%)}
+.stage-name{position:absolute;right:3vw;top:84px;z-index:1;font-family:var(--display);font-stretch:70%;font-weight:900;font-size:clamp(70px,13vw,220px);line-height:.85;text-transform:uppercase;color:rgba(255,255,255,.06);white-space:nowrap;pointer-events:none}
+[dir=rtl] .stage-name{right:auto;left:3vw}
+.stage-inner{position:relative;z-index:2;max-width:1280px;margin:0 auto}
+.stage .page-head p{color:rgba(255,255,255,.7)}
+.stage .room-switch{background:rgba(255,255,255,.1)}
+.stage .room-switch a{color:rgba(255,255,255,.7)}
+.stage .room-switch a.on{background:#fff;color:var(--ink)}
+.stage .ws-bar{background:rgba(255,255,255,.08)}
+.stage .searchbar{margin:18px 0 0;max-width:760px}
+.model-strip{display:flex;gap:10px;overflow-x:auto;padding:6px 2px 12px;scrollbar-width:thin;scroll-snap-type:x proximity;margin-top:6px}
+.mchip{flex:0 0 auto;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:4px;width:122px;padding:10px 8px 10px;border-radius:14px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:#fff;font-size:13px;font-weight:600;transition:all .2s}
+.mchip:first-child{justify-content:center;min-height:86px}
+.mchip:hover{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.08)}
+.mchip.on{background:#FF3B1F;border-color:#FF3B1F}
+.mchip-art{width:100%}
+.mchip-art.has-photo{height:46px;border-radius:8px;overflow:hidden}
+@media(max-width:860px){.stage{min-height:0}.stage-art{width:92vw;opacity:.35}.stage-layer{align-items:flex-start;padding-top:120px}}
+.hero-engine .hero-inner h1{font-size:clamp(48px,7.2vw,112px)}
+.hero-engine .hero-inner{max-width:min(520px,42vw)}
+.engine-wrap{width:min(58vw,900px);right:0}
+[dir=rtl] .engine-wrap{left:0}
+@media(max-width:860px){.hero-engine{align-items:stretch}.hero-engine .hero-inner{max-width:none}.hero-engine .hero-inner h1{font-size:clamp(44px,13vw,70px)}.engine-wrap{width:118%;margin:6px -9% 0}}

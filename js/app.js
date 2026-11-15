@@ -36,7 +36,7 @@ const STOCKS=['In stock','On order','Ask','Out of stock'];
 const PAY_METHODS=['Cash','Bank transfer','FIB','ZainCash','Card','Other'];
 const ROLES={admin:'Admin',manager:'Manager',sales:'Sales'};
 const PERMS={admin:['orders','customers','parts','sell','wholesalers','staff','settings','delete'],manager:['orders','customers','parts','sell','wholesalers','delete'],sales:['orders','customers','sell']};
-const DEFAULT_SETTINGS={company:'Auto Engineer',tagline:'Automotive Spare Parts',phone:'',whatsapp:'',email:'',address:'',currency:'IQD',quoteValidity:7,invoiceNote:'Thank you for your business.',quoteNote:'Prices are valid for the period shown. Availability is confirmed at the time of order.',branches:[],logo:''};
+const DEFAULT_SETTINGS={company:'Auto Engineer',tagline:'Toyota Spare Parts',phone:'',whatsapp:'',email:'',address:'',currency:'IQD',quoteValidity:7,invoiceNote:'Thank you for your business.',quoteNote:'Prices are valid for the period shown. Availability is confirmed at the time of order.',branches:[],logo:''};
 
 /* sample data — only used in local preview (no database) */
 const SAMPLE_PARTS=[
@@ -158,7 +158,7 @@ const availLabel=(a,l)=>t(({available:'In stock',order:'On order (2–5 days)',u
 /* ================= ROUTER ================= */
 const VIEWS=['home','shop','wholesale','sell','track','admin','terms'];
 let current='home';
-function route(){let v=(location.hash||'#home').slice(1);if(!VIEWS.includes(v))v='home';current=v;const sec=v==='wholesale'?'shop':v;
+function route(){let v=(location.hash||'#home').slice(1);if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
   $$('.view').forEach(e=>e.classList.toggle('hidden',e.id!=='view-'+sec));$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===v));$('#navLinks').classList.remove('open');
   window.scrollTo(0,0);renderCurrent();updateNav();if(v==='home'&&window.ScrollTrigger)setTimeout(()=>ScrollTrigger.refresh(),60)}
 function renderCurrent(fromData){
@@ -175,7 +175,7 @@ function buildChrome(){
   $('#navLinks').innerHTML=`<a href="#shop" data-v="shop">${t('Retail')}</a><a href="#wholesale" data-v="wholesale">${t('Wholesale')}</a><a href="#sell" data-v="sell">${t('Sell your parts')}</a><a href="#track" data-v="track">${t('Track order')}</a><a href="#admin" data-v="admin" class="admin-link">${t('Staff')}</a>`;
   $$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===current));
   $('#basketLbl').textContent=t('Basket');$('#langBtn').textContent=LANGS[LANG||'en'].short;$('#brandName').textContent=t('AUTO ENGINEER');
-  document.title=t('Auto Engineer — Automotive Spare Parts');
+  document.title=t('Auto Engineer — Toyota Spare Parts');
 }
 $('#menuBtn').onclick=()=>$('#navLinks').classList.toggle('open');
 $('#langBtn').onclick=e=>{e.stopPropagation();const m=$('#langMenu');m.classList.toggle('hidden');m.innerHTML=Object.entries(LANGS).map(([k,v])=>`<button data-l="${k}" class="${k===LANG?'on':''}">${v.native}${k!=='en'?' · '+v.name:''}</button>`).join('')};
@@ -186,28 +186,28 @@ function showLangPicker(){const el=document.createElement('div');el.className='l
   el.onclick=e=>{const b=e.target.closest('[data-l]');if(!b)return;setLang(b.dataset.l);el.remove()};document.body.appendChild(el)}
 
 /* ================= HOME ================= */
-function buildDisc(){let h='',s='',l='';
-  for(let ring=0;ring<3;ring++){const r=104+ring*22;for(let i=0;i<18;i++){const a=(i/18)*Math.PI*2+ring*0.12;h+=`<circle cx="${(200+r*Math.cos(a)).toFixed(1)}" cy="${(200+r*Math.sin(a)).toFixed(1)}" r="4.2" fill="#07090b"/>`}}
-  for(let i=0;i<6;i++)s+=`<path d="M200 38 q30 6 44 30" stroke="rgba(255,255,255,.08)" stroke-width="3" fill="none" transform="rotate(${i*60} 200 200)"/>`;
-  for(let i=0;i<5;i++){const a=i/5*Math.PI*2;l+=`<circle cx="${(200+46*Math.cos(a)).toFixed(1)}" cy="${(200+46*Math.sin(a)).toFixed(1)}" r="7" fill="#0a0c0f" stroke="rgba(255,255,255,.25)"/>`}
-  return `<svg viewBox="0 0 400 400" fill="none"><defs><radialGradient id="dg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#2b323b"/><stop offset=".7" stop-color="#1a1f25"/><stop offset="1" stop-color="#0f1216"/></radialGradient><linearGradient id="cal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff5a3f"/><stop offset="1" stop-color="#c81f08"/></linearGradient></defs>
-  <g id="discRot"><circle cx="200" cy="200" r="180" fill="url(#dg)" stroke="rgba(255,255,255,.12)"/><circle cx="200" cy="200" r="168" stroke="rgba(255,255,255,.05)" stroke-width="10"/>${h}${s}<circle cx="200" cy="200" r="78" fill="#0d1014" stroke="rgba(255,255,255,.15)"/><circle cx="200" cy="200" r="70" fill="#151a20"/>${l}<circle cx="200" cy="200" r="22" fill="#0a0c0f" stroke="rgba(255,255,255,.2)"/></g>
-  <path d="M318 92 a160 160 0 0 1 52 108 l-26 2 a134 134 0 0 0 -44 -92z" fill="url(#cal)"/></svg>`}
 let mm=null;
 function buildHome(){
-  const tags=['Brake pads','Oil filter','Hilux','Land Cruiser','Shock absorber'];
-  const makes=['Toyota','Lexus','Nissan','Hyundai','Kia','Mitsubishi','Honda','Chevrolet','Ford','Mercedes','BMW'];const mk=makes.map((m,i)=>`<span>${i%2?'<b>'+m+'</b>':m}</span>`).join('');
+  const M=window.TOYOTA_MODELS||[];
+  const tags=['Land Cruiser','Hilux','Camry','Brake pads','Oil filter'];
+  const mk=M.map((m,i)=>`<span>${i%2?'<b>'+m.name+'</b>':m.name}</span>`).join('');
   const stmt=t('Send us your parts list. We reply with [prices], availability and your [discount], then issue your [quotation] and [invoice].');
   const stmtHtml=stmt.split(/\s+/).map(w=>{const red=/\[|\]/.test(w);return `<span class="w${red?' r':''}">${esc(w.replace(/[\[\]]/g,''))}</span>`}).join(' ');
   const h1=t('Every part.|[One] search.').split('|').map(x=>`<span class="ln"><span>${esc(x).replace(/\[(.*?)\]/,'<em>$1</em>')}</span></span>`).join('');
   $('#view-home').innerHTML=`<div class="dark-zone">
-  <section class="hero" id="hero"><div class="hero-grid"></div><div class="hero-glow"></div><div class="disc-wrap" id="disc">${buildDisc()}</div>
-    <div class="hero-inner"><span class="eyebrow">${t('Automotive spare parts')}</span><h1>${h1}</h1>
-      <p class="lead">${t('Genuine, aftermarket and used spare parts for drivers, workshops and wholesalers. Search, add to your basket, and send your list. We reply with prices, availability and your discount.')}</p>
-      <form class="hero-search" id="heroSearch"><input name="q" placeholder="${esc(t('Part name, part number or car model…'))}" autocomplete="off"><button>${t('Search parts')}</button></form>
+  <section class="hero hero-engine" id="hero"><div class="hero-grid"></div><div class="hero-glow"></div>
+    <div class="engine-wrap" id="engine">${engineSVG()}</div>
+    <div class="hero-inner"><span class="eyebrow">${t('Toyota spare parts specialist')}</span><h1>${h1}</h1>
+      <p class="lead">${t('Genuine Toyota parts for Land Cruiser, Hilux, Camry and every Toyota on the road. Search, add to your basket and send your list. We reply with prices, availability and your discount.')}</p>
+      <form class="hero-search" id="heroSearch"><input name="q" placeholder="${esc(t('Part name, part number or Toyota model…'))}" autocomplete="off"><button>${t('Search parts')}</button></form>
       <div class="hero-tags" id="heroTags">${tags.map(x=>`<button type="button" data-q="${esc(t(x))}">${esc(t(x))}</button>`).join('')}</div></div>
+    <div class="engine-caption" id="engineCap">${t('Every part inside your engine. Tap a part to shop it.')}</div>
     <div class="scroll-hint">${t('Scroll')}<i></i></div></section>
   <div class="marquee"><div class="marquee-track" id="marquee">${mk+mk}</div></div>
+  <section class="rooms models-sec" id="modelsSec"><div class="rooms-pin"><div class="rooms-track" id="modelsTrack">
+    <div class="rooms-intro"><span class="eyebrow">${t('Choose your Toyota')}</span><h2>${t('Parts for every Toyota')}</h2><p>${t('Pick your model to see the parts that fit it.')}</p></div>
+    ${M.map((m,i)=>`<a class="model-card" href="#shop" data-model="${m.id}"><span class="num">${String(i+1).padStart(2,'0')}</span>${modelArt(m,{cls:'mc-art'})}<div class="mc-txt"><small>Toyota</small><h3>${esc(m.name)}</h3><p>${t(m.tag)}</p><span class="go">${t('Shop parts')} →</span></div></a>`).join('')}
+  </div></div></section>
   <section class="rooms" id="rooms"><div class="rooms-pin"><div class="rooms-track" id="roomsTrack">
     <div class="rooms-intro"><span class="eyebrow">${t('Three rooms')}</span><h2>${t('Built for how you buy')}</h2><p>${t('Retail customers, trade buyers and people with parts to sell each get their own space, with their own prices.')}</p></div>
     <a class="room-card r1" href="#shop"><span class="num">01 / ${t('RETAIL')}</span><svg class="art" viewBox="0 0 520 560" preserveAspectRatio="xMidYMid slice"><circle cx="400" cy="140" r="160" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="40"/><circle cx="400" cy="140" r="60" fill="none" stroke="rgba(255,59,31,.5)" stroke-width="2"/></svg><h3>${t('Retail room')}</h3><p>${t('For drivers and car owners. Search by part or car, see public prices, and order in a few taps.')}</p><span class="go">${t('Enter retail')} →</span></a>
@@ -216,41 +216,56 @@ function buildHome(){
   </div></div></section>
   <section class="steps" id="steps"><div class="sec-head"><span class="eyebrow">${t('Ordering')}</span><h2>${t('Four steps. No account needed.')}</h2></div>
     <div class="steps-grid"><svg class="steps-line" viewBox="0 0 1000 4" preserveAspectRatio="none" style="${isRTL()?'transform:scaleX(-1)':''}"><line x1="40" y1="2" x2="960" y2="2" stroke="rgba(255,255,255,.1)" stroke-width="2"/><line id="stepsLine" x1="40" y1="2" x2="960" y2="2" stroke="#FF3B1F" stroke-width="2" stroke-dasharray="920" stroke-dashoffset="920"/></svg>
-    ${[['Search','Find parts by name, number, car make, model or year.'],['Add to basket','Pick quantities. Can’t find it? Add a free-text request.'],['Send','Just your name, phone, location and an optional comment.'],['Get your price','We confirm prices, availability and discount, and send your quotation.']].map((s,i)=>`<div class="step"><div class="dot">${i+1}</div><h4>${t(s[0])}</h4><p>${t(s[1])}</p></div>`).join('')}</div></section></div>
+    ${[['Search','Find parts by name, number, Toyota model or year.'],['Add to basket','Pick quantities. Can’t find it? Add a free-text request.'],['Send','Just your name, phone, location and an optional comment.'],['Get your price','We confirm prices, availability and discount, and send your quotation.']].map((s,i)=>`<div class="step"><div class="dot">${i+1}</div><h4>${t(s[0])}</h4><p>${t(s[1])}</p></div>`).join('')}</div></section></div>
   <section class="cats" id="cats"><div class="sec-head"><span class="eyebrow">${t('Categories')}</span><h2>${t('Shop by system')}</h2></div><div class="cat-grid" id="catGrid">${CATS.map(([c,d])=>`<button class="cat-tile" data-cat="${esc(c)}">${icon(c)}<div><b>${t(c)}</b><small>${t(d)}</small></div></button>`).join('')}</div></section>
   <div class="dark-zone"><section class="statement"><p id="statement">${stmtHtml}</p></section>
-    <div class="stats">${[[3,'','Rooms: retail, wholesale & sell'],[4,'','Fields to place an order'],[10,'','Part categories'],[24,'h','Target reply time (hours)']].map(([n,s,l])=>`<div class="stat"><b data-count="${n}" data-suffix="${s}">0</b><span>${t(l)}</span></div>`).join('')}</div></div>
+    <div class="stats">${[[M.length,'','Toyota models covered'],[4,'','Fields to place an order'],[10,'','Part categories'],[24,'h','Target reply time (hours)']].map(([n,s,l])=>`<div class="stat"><b data-count="${n}" data-suffix="${s}">0</b><span>${t(l)}</span></div>`).join('')}</div></div>
   <section class="cta"><h2>${t('Find your part today')}</h2><div class="btns"><a class="btn-w" href="#shop">${t('Browse parts')}</a><a class="btn-o" href="#wholesale">${t('Wholesale account')}</a></div></section>
-  <footer><div class="foot"><div><div class="brand"><span class="brand-mark">AE</span>${t('AUTO ENGINEER')}</div><div id="footContact" style="line-height:1.8"></div></div>
+  <footer><div class="foot"><div><div class="brand"><span class="brand-mark">AE</span>${t('AUTO ENGINEER')}</div><div style="opacity:.7;margin:-4px 0 10px">${t('Toyota spare parts specialist')}</div><div id="footContact" style="line-height:1.8"></div></div>
     <div><a href="#shop">${t('Retail room')}</a><a href="#wholesale">${t('Wholesale room')}</a><a href="#sell">${t('Sell your parts')}</a><a href="#track">${t('Track order')}</a><a href="#terms">${t('Terms & privacy')}</a></div>
     <div id="footBranches" style="line-height:1.8"></div></div>
-    <div class="foot" style="margin-top:36px;font-size:12px;opacity:.6"><span>© ${new Date().getFullYear()} ${t('Auto Engineer')}. ${t('All rights reserved.')}</span></div></footer>`;
-  $('#heroTags').onclick=e=>{const b=e.target.closest('button');if(b){S.q=b.dataset.q;location.hash='shop'}};
+    <div class="foot" style="margin-top:36px;font-size:12px;opacity:.6"><span>© ${new Date().getFullYear()} ${t('Auto Engineer')}. ${t('All rights reserved.')} ${t('Toyota and model names are trademarks of Toyota Motor Corporation.')}</span></div></footer>`;
+  $$('#engine .ep-txt').forEach(x=>x.textContent=t(x.dataset.label));
+  $('#heroTags').onclick=e=>{const b=e.target.closest('button');if(b){const mid=modelIdOf(b.dataset.q);if(mid&&mid!=='*'){S.f.model=mid;S.q=''}else S.q=b.dataset.q;location.hash='shop'}};
   $('#heroSearch').onsubmit=e=>{e.preventDefault();S.q=e.target.q.value.trim();location.hash='shop'};
-  $('#catGrid').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){S.f={cat:b.dataset.cat,make:'',model:'',year:'',cond:''};S.q='';location.hash='shop'}};
+  $('#catGrid').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){S.f={cat:b.dataset.cat,model:S.f.model||'',year:'',cond:''};S.q='';location.hash='shop'}};
+  $('#engine').onclick=e=>{const g=e.target.closest('[data-cat]');if(g){S.f={cat:g.dataset.cat,model:'',year:'',cond:''};S.q='';location.hash='shop'}};
+  $('#modelsTrack').onclick=e=>{const a=e.target.closest('[data-model]');if(a){S.f.model=a.dataset.model;S.f.cat='';S.q=''}};
   renderFoot();applyLogo();initMotion();
 }
 function renderFoot(){const s=settings();const fc=$('#footContact');if(!fc)return;
-  fc.innerHTML=[s.address,s.phone&&(t('Phone')+': <span class="ltr">'+esc(s.phone)+'</span>'),s.whatsapp&&('WhatsApp: <span class="ltr">'+esc(s.whatsapp)+'</span>'),s.email].filter(Boolean).map(x=>x.includes('<span')?x:esc(x)).join('<br>')||t('Automotive spare parts');
+  fc.innerHTML=[s.address,s.phone&&(t('Phone')+': <span class="ltr">'+esc(s.phone)+'</span>'),s.whatsapp&&('WhatsApp: <span class="ltr">'+esc(s.whatsapp)+'</span>'),s.email].filter(Boolean).map(x=>x.includes('<span')?x:esc(x)).join('<br>');
   $('#footBranches').innerHTML=branches().length?`<b style="color:#fff">${t('Branches')}</b><br>`+branches().map(b=>`${esc(b.name)}${b.phone?' · <span class="ltr">'+esc(b.phone)+'</span>':''}`).join('<br>'):''}
+function engineExplode(tl,rtl){
+  // every part flies out along its own vector; the block stays put
+  $$('#engine .ep[data-v]').forEach(g=>{const [dx,dy,r]=g.dataset.v.split(',').map(Number);tl.to(g,{x:rtl?-dx:dx,y:dy,rotation:r,transformOrigin:'50% 50%',ease:'power2.inOut',duration:1},0)});
+  tl.to('#engine .ep-glow',{scale:1.25,opacity:.5,transformOrigin:'50% 50%',duration:1},0);
+  tl.fromTo('#engine .ep-lbl',{opacity:0,y:10},{opacity:1,y:0,stagger:.03,duration:.35},.72);
+  tl.to('#engine',{scale:.98,duration:1},0);
+}
 function initMotion(){
   if(mm){mm.revert();mm=null}
   const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(!window.gsap||!window.ScrollTrigger||reduce){$$('.statement .w').forEach(w=>w.style.opacity=1);$$('[data-count]').forEach(b=>b.textContent=b.dataset.count+(b.dataset.suffix||''));$$('.step').forEach(s=>s.classList.add('on'));return}
+  if(!window.gsap||!window.ScrollTrigger||reduce){$$('.statement .w').forEach(w=>w.style.opacity=1);$$('[data-count]').forEach(b=>b.textContent=b.dataset.count+(b.dataset.suffix||''));$$('.step').forEach(s=>s.classList.add('on'));$$('#engine .ep-lbl').forEach(l=>l.style.opacity=1);return}
   gsap.registerPlugin(ScrollTrigger);const rtl=isRTL();
   mm=gsap.matchMedia();
   mm.add({desk:'(min-width: 861px)',mob:'(max-width: 860px)'},ctx=>{
     const {desk}=ctx.conditions;
     gsap.from('.hero h1 .ln span',{yPercent:110,duration:1,ease:'power4.out',stagger:.12});
     gsap.from('.hero .lead,.hero-search,.hero-tags,.hero .eyebrow',{y:24,opacity:0,duration:.9,delay:.3,stagger:.08,ease:'power3.out'});
-    gsap.from('#disc',{scale:.7,opacity:0,rotate:rtl?60:-60,duration:1.6,ease:'power3.out'});
-    gsap.to('#discRot',{rotation:rtl?-540:540,transformOrigin:'200px 200px',ease:'none',scrollTrigger:{trigger:'#hero',start:'top top',end:'bottom top',scrub:.6}});
-    gsap.to('#disc',{yPercent:-20,xPercent:rtl?18:-18,scale:1.25,ease:'none',scrollTrigger:{trigger:'#hero',start:'top top',end:'bottom top',scrub:.6}});
-    gsap.to('.hero-inner',{y:-120,opacity:0,ease:'none',scrollTrigger:{trigger:'#hero',start:'20% top',end:'bottom top',scrub:true}});
+    gsap.from('#engine .ep',{y:-40,opacity:0,duration:.9,stagger:.05,ease:'back.out(1.6)',delay:.2});
+    // pinned hero: scrolling down takes the engine apart, scrolling up puts it back together
+    const tl=gsap.timeline({scrollTrigger:{trigger:'#hero',start:'top top',end:desk?'+=140%':'+=110%',pin:true,scrub:.7,anticipatePin:1}});
+    engineExplode(tl,rtl);
+    tl.to('.hero-inner',{opacity:desk?.12:0,x:desk?(rtl?40:-40):0,duration:.6},.15);
+    tl.fromTo('#engineCap',{opacity:0,y:20},{opacity:1,y:0,duration:.3},.75);
+    tl.to('.scroll-hint',{opacity:0,duration:.2},0);
     gsap.fromTo('#marquee',{xPercent:0},{xPercent:-35,ease:'none',scrollTrigger:{trigger:'.marquee',start:'top bottom',end:'bottom top',scrub:.4}});
-    if(desk){const track=$('#roomsTrack');const dist=()=>Math.max(0,track.scrollWidth-innerWidth);
-      gsap.to(track,{x:()=>rtl?dist():-dist(),ease:'none',scrollTrigger:{trigger:'#rooms',start:'top top',end:()=>'+='+dist(),pin:true,scrub:.8,invalidateOnRefresh:true}})}
-    else $$('.room-card').forEach(c=>gsap.from(c,{y:60,opacity:0,duration:.8,scrollTrigger:{trigger:c,start:'top 85%'}}));
+    const hscroll=(sec,track)=>{const tr=$(track);if(!tr)return;const dist=()=>Math.max(0,tr.scrollWidth-innerWidth);
+      gsap.to(tr,{x:()=>rtl?dist():-dist(),ease:'none',scrollTrigger:{trigger:sec,start:'top top',end:()=>'+='+dist(),pin:true,scrub:.8,invalidateOnRefresh:true}})};
+    if(desk){hscroll('#modelsSec','#modelsTrack');hscroll('#rooms','#roomsTrack');
+      $$('.model-card .carsvg').forEach(c=>gsap.fromTo(c,{x:rtl?80:-80},{x:rtl?-30:30,ease:'none',scrollTrigger:{trigger:'#modelsSec',start:'top top',end:()=>'+='+Math.max(1,$('#modelsTrack').scrollWidth-innerWidth),scrub:true}}))}
+    else $$('.room-card,.model-card').forEach(c=>gsap.from(c,{y:60,opacity:0,duration:.8,scrollTrigger:{trigger:c,start:'top 88%'}}));
     gsap.to('#stepsLine',{strokeDashoffset:0,ease:'none',scrollTrigger:{trigger:'.steps-grid',start:'top 75%',end:'bottom 45%',scrub:true,onUpdate:self=>{$$('.step').forEach((s,i)=>s.classList.toggle('on',self.progress>=i/4+.02))}}});
     gsap.from('.step',{y:40,opacity:0,stagger:.12,duration:.8,scrollTrigger:{trigger:'.steps-grid',start:'top 80%'}});
     $$('.sec-head h2').forEach(h=>gsap.from(h,{y:50,opacity:0,duration:1,ease:'power3.out',scrollTrigger:{trigger:h,start:'top 88%'}}));
@@ -268,47 +283,74 @@ const room=()=>current==='wholesale'?'wholesale':'retail';
 function restoreWs(){const w=ls('ae:ws');if(w&&w.pk&&w.pin){API.wsLogin(w.pk,w.pin).then(r=>{if(r&&r.profile){S.ws=r.profile;S.wsPrices=r.prices||{};renderCurrent()}}).catch(()=>{})}}
 function renderShop(fromData){
   const r=room(),page=$('#shopPage');
-  if(r==='wholesale'&&!S.ws){shopBuiltFor=null;if(!fromData||!$('#wsLogin'))renderWsGate(page);return}
+  if(r==='wholesale'&&!S.ws){shopBuiltFor=null;setStage('');if(!fromData||!$('#wsLogin'))renderWsGate(page);return}
   const key=r+LANG;
   if(shopBuiltFor!==key||!fromData||!$('#results')){
-    shopBuiltFor=key;const ws=S.ws;
-    page.innerHTML=`<div class="page-head"><div><span class="eyebrow">${r==='wholesale'?t('Wholesale room'):t('Retail room')}</span><h1>${r==='wholesale'?t('Trade catalog'):t('Find your part')}</h1>
-      <p>${r==='wholesale'?t('Trade prices for approved workshops and resellers. Send your list and we confirm stock and your discount.'):t('Search by part name, part number or vehicle. Add to your basket and send. We reply with price and availability.')}</p></div>
-      <div class="room-switch"><a href="#shop" class="${r==='retail'?'on':''}">${t('Retail')}</a><a href="#wholesale" class="${r==='wholesale'?'on':''}">${t('Wholesale')}</a></div></div>
-    ${r==='wholesale'&&ws?`<div class="ws-bar"><div>${t('Signed in as')} <b>${esc(ws.company||ws.name)}</b> · <span class="ltr">${esc(ws.phone)}</span></div><button class="btn sm ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" id="wsOut">${t('Sign out')}</button></div>`:''}
-    <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="${esc(t('Search: brake pads, 04465-0K290, Hilux 2018…'))}" value="${esc(S.q)}"></div>
+    shopBuiltFor=key;const ws=S.ws;const M=window.TOYOTA_MODELS||[];
+    page.innerHTML=`<div class="stage" id="stage"><div class="stage-bg" id="stageBg"></div><div class="stage-name" id="stageName"></div>
+      <div class="stage-inner"><div class="page-head"><div><span class="eyebrow">${r==='wholesale'?t('Wholesale room'):t('Retail room')} · Toyota</span><h1 id="stageTitle">${r==='wholesale'?t('Trade catalog'):t('Find your part')}</h1>
+        <p id="stageSub">${r==='wholesale'?t('Trade prices for approved workshops and resellers. Send your list and we confirm stock and your discount.'):t('Choose your Toyota, then search by part name or part number. We reply with price and availability.')}</p></div>
+        <div class="room-switch"><a href="#shop" class="${r==='retail'?'on':''}">${t('Retail')}</a><a href="#wholesale" class="${r==='wholesale'?'on':''}">${t('Wholesale')}</a></div></div>
+      ${r==='wholesale'&&ws?`<div class="ws-bar"><div>${t('Signed in as')} <b>${esc(ws.company||ws.name)}</b> · <span class="ltr">${esc(ws.phone)}</span></div><button class="btn sm ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" id="wsOut">${t('Sign out')}</button></div>`:''}
+      <div class="model-strip" id="modelStrip"><button class="mchip" data-m="">${t('All models')}</button>${M.map(m=>`<button class="mchip" data-m="${m.id}">${modelArt(m,{cls:'mchip-art'})}<span>${esc(m.name)}</span></button>`).join('')}</div>
+      <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="${esc(t('Search: brake pads, 04465-0K290, Hilux 2018…'))}" value="${esc(S.q)}"></div></div></div>
     <div class="filters" id="catChips"></div>
-    <div class="filters"><select class="sel" id="fMake"></select><select class="sel" id="fModel"></select><select class="sel" id="fYear"></select><select class="sel" id="fCond"></select><button class="linkbtn" id="fClear">${t('Clear filters')}</button></div>
+    <div class="filters"><select class="sel" id="fYear"></select><select class="sel" id="fCond"></select><button class="linkbtn" id="fClear">${t('Clear filters')}</button></div>
     <div class="result-meta"><span id="resCount"></span><span>${t('Can’t find it?')} <button class="linkbtn" id="reqBtn">${t('Request a part')}</button></span></div>
     <div class="grid" id="results"></div>`;
-    $('#q').oninput=e=>{S.q=e.target.value;renderResults()};
-    $('#fClear').onclick=()=>{S.f={cat:'',make:'',model:'',year:'',cond:''};S.q='';$('#q').value='';renderFilters();renderResults()};
+    $('#q').oninput=e=>{S.q=e.target.value;if(!S.f.model){const mid=modelIdOf(S.q);setStage(mid&&mid!=='*'?mid:'')}renderResults()};
+    $('#fClear').onclick=()=>{S.f={cat:'',model:'',year:'',cond:''};S.q='';$('#q').value='';renderFilters();renderResults()};
     $('#reqBtn').onclick=openRequestModal;
-    [['fMake','make'],['fModel','model'],['fYear','year'],['fCond','cond']].forEach(([id,k])=>$('#'+id).onchange=e=>{S.f[k]=e.target.value;if(k==='make')S.f.model='';renderFilters();renderResults()});
+    $('#modelStrip').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;S.f.model=b.dataset.m;renderFilters();renderResults();b.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})};
+    [['fYear','year'],['fCond','cond']].forEach(([id,k])=>$('#'+id).onchange=e=>{S.f[k]=e.target.value;renderFilters();renderResults()});
     if($('#wsOut'))$('#wsOut').onclick=()=>{S.ws=null;S.wsPrices={};ls('ae:ws',null);renderShop()};
+    stageParallax();
   }
   renderFilters();renderResults();
 }
+/* the big model backdrop at the top of the shop: changes with the chosen Toyota */
+let stageCur=null;
+function setStage(id){
+  const bg=$('#stageBg'),nm=$('#stageName');if(!bg)return;
+  if(stageCur===id&&bg.childElementCount)return;stageCur=id;
+  const m=modelById(id);
+  const old=bg.firstElementChild;
+  const layer=document.createElement('div');layer.className='stage-layer';
+  layer.innerHTML=m?modelArt(m,{cls:'stage-art'}):`<div class="stage-art stage-default">${engineSVG()}</div>`;
+  bg.appendChild(layer);
+  if(window.gsap){gsap.fromTo(layer,{opacity:0,x:isRTL()?-120:120,scale:1.04},{opacity:1,x:0,scale:1,duration:.8,ease:'power3.out'});
+    if(old)gsap.to(old,{opacity:0,x:isRTL()?120:-120,duration:.6,ease:'power2.in',onComplete:()=>old.remove()})}
+  else{if(old)old.remove()}
+  nm.textContent=m?m.name:'TOYOTA';
+  if(window.gsap)gsap.fromTo(nm,{opacity:0,y:30},{opacity:1,y:0,duration:.7,ease:'power3.out'});
+  $('#stage').classList.toggle('has-model',!!m);
+  const st=$('#stageTitle');if(st&&room()==='retail')st.textContent=m?t('Parts for Toyota {m}',{m:m.name}):t('Find your part');
+}
+function stageParallax(){
+  if(!window.gsap||!window.ScrollTrigger)return;
+  ScrollTrigger.getAll().filter(x=>x.vars&&x.vars.id==='stagePx').forEach(x=>x.kill());
+  gsap.to('#stageBg',{yPercent:18,scale:1.06,ease:'none',scrollTrigger:{id:'stagePx',trigger:'#stage',start:'top top',end:'bottom top',scrub:true}});
+}
 function renderFilters(){
-  const parts=Store.all('parts');
   $('#catChips').innerHTML=`<button class="chip ${!S.f.cat?'on':''}" data-c="">${t('All')}</button>`+CATS.map(([c])=>`<button class="chip ${S.f.cat===c?'on':''}" data-c="${esc(c)}">${t(c)}</button>`).join('');
   $('#catChips').onclick=e=>{const b=e.target.closest('[data-c]');if(b){S.f.cat=b.dataset.c;renderFilters();renderResults()}};
-  const uniq=a=>[...new Set(a.filter(Boolean))].sort();
-  const makes=uniq(parts.map(p=>p.make)),models=uniq(parts.filter(p=>!S.f.make||p.make===S.f.make).map(p=>p.model));
   const years=[];for(let y=new Date().getFullYear()+1;y>=1990;y--)years.push(y);
-  $('#fMake').innerHTML=`<option value="">${t('All makes')}</option>`+makes.map(m=>`<option value="${esc(m)}" ${S.f.make===m?'selected':''}>${esc(m)}</option>`).join('');
-  $('#fModel').innerHTML=`<option value="">${t('All models')}</option>`+models.map(m=>`<option value="${esc(m)}" ${S.f.model===m?'selected':''}>${esc(m)}</option>`).join('');
   $('#fYear').innerHTML=`<option value="">${t('Any year')}</option>`+years.map(y=>`<option ${String(S.f.year)===String(y)?'selected':''}>${y}</option>`).join('');
   $('#fCond').innerHTML=`<option value="">${t('Any condition')}</option>`+CONDS.map(c=>`<option value="${c}" ${S.f.cond===c?'selected':''}>${t(c)}</option>`).join('');
+  $$('#modelStrip [data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===(S.f.model||'')));
+  setStage(S.f.model||(()=>{const mid=modelIdOf(S.q);return mid&&mid!=='*'?mid:''})());
 }
 function matches(p){const f=S.f;
-  if(f.cat&&p.category!==f.cat)return false;if(f.make&&p.make!==f.make)return false;if(f.model&&p.model!==f.model)return false;if(f.cond&&p.condition!==f.cond)return false;
+  if(f.cat&&p.category!==f.cat)return false;if(f.cond&&p.condition!==f.cond)return false;
+  if(f.model){const pm=modelIdOf(p.model);if(pm!=='*'&&pm!==f.model)return false}
   if(f.year){const y=+f.year;if(p.yearFrom&&y<p.yearFrom)return false;if(p.yearTo&&y>p.yearTo)return false}
   const q=S.q.trim().toLowerCase();if(!q)return true;
-  const hay=[p.partNo,p.name,p.nameAr,p.nameKu,p.brand,p.make,p.model,p.category,t(p.category||''),p.condition,p.desc].join(' ').toLowerCase();const hayNo=String(p.partNo||'').toLowerCase().replace(/[^a-z0-9]/g,'');
-  return q.split(/\s+/).every(w=>{if(/^\d{4}$/.test(w)&&(p.yearFrom||p.yearTo)){const y=+w;if((!p.yearFrom||y>=p.yearFrom)&&(!p.yearTo||y<=p.yearTo))return true}const wn=w.replace(/[^a-z0-9]/g,'');return hay.includes(w)||(wn.length>2&&hayNo.includes(wn))})}
+  const hay=[p.partNo,p.name,p.nameAr,p.nameKu,p.brand,'toyota',p.model,p.category,t(p.category||''),p.condition,p.desc].join(' ').toLowerCase();const hayNo=String(p.partNo||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  return q.split(/\s+/).every(w=>{if(/^\d{4}$/.test(w)&&(p.yearFrom||p.yearTo)){const y=+w;if((!p.yearFrom||y>=p.yearFrom)&&(!p.yearTo||y<=p.yearTo))return true}const wn=w.replace(/[^a-z0-9]/g,'');
+    if(wn.length>2&&modelIdOf(wn)&&modelIdOf(wn)!=='*'){const pm=modelIdOf(p.model);return pm==='*'||pm===modelIdOf(wn)}
+    return hay.includes(w)||(wn.length>2&&hayNo.includes(wn))})}
 const pName=p=>(LANG==='ar'&&p.nameAr)||(LANG==='ku'&&p.nameKu)||p.name;
-function fitText(p){const yrs=p.yearFrom||p.yearTo?` ${p.yearFrom||''}–${p.yearTo||''}`:'';return [p.make,p.model==='All models'?t('All models'):p.model].filter(Boolean).join(' ')+yrs}
+function fitText(p){const yrs=p.yearFrom||p.yearTo?` ${p.yearFrom||''}–${p.yearTo||''}`:'';const pm=modelIdOf(p.model);const mn=pm==='*'?t('All models'):(modelById(pm)?.name||p.model||'');return ('Toyota '+mn).trim()+yrs}
 function renderResults(){
   const el=$('#results');if(!el)return;
   if(S.mode!=='local'&&!S.loaded.parts){el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Loading catalog…')}</div>`;$('#resCount').textContent='';return}
@@ -474,7 +516,7 @@ function checkAlerts(){if(!S.admin)return;const ids=new Set(Object.keys(S.data.o
   const fresh=[...ids].filter(id=>!S.seenOrders.has(id));S.seenOrders=ids;if(!fresh.length)return;
   S.alerts+=fresh.length;document.title=`(${S.alerts}) ${t('New order')} — ${t('Auto Engineer')}`;toast(t('New order received: {n}',{n:fresh[0]}));beep()}
 function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();[0,.18].forEach(d=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.15,a.currentTime+d);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d+.15);o.start(a.currentTime+d);o.stop(a.currentTime+d+.16)})}catch(e){}}
-window.addEventListener('focus',()=>{if(S.alerts){S.alerts=0;document.title=t('Auto Engineer — Automotive Spare Parts')}});
+window.addEventListener('focus',()=>{if(S.alerts){S.alerts=0;document.title=t('Auto Engineer — Toyota Spare Parts')}});
 
 /* ================= ADMIN ================= */
 function renderAdmin(fromData){
@@ -648,17 +690,17 @@ function adminParts(){
 }
 function confirmBox(msg,fn){openModal(mHead(t('Are you sure?'))+`<div class="modal-body"><p style="margin-bottom:18px">${esc(msg)}</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" data-mclose>${t('Cancel')}</button><button class="btn red" id="cfOk">${t('Confirm')}</button></div></div>`);$$('#modalBox [data-mclose]').forEach(b=>b.onclick=closeModal);$('#cfOk').onclick=()=>{closeModal();fn()}}
 function openPart(id,prefill){
-  const p=id?Store.get('parts',id):(prefill||{condition:'Genuine',stock:'In stock'});let img=p.image||'';const v=k=>esc(p[k]??'');
+  const p=id?Store.get('parts',id):(prefill||{make:'Toyota',condition:'Genuine',stock:'In stock'});let img=p.image||'';const v=k=>esc(p[k]??'');
   openModal(mHead(id?t('Edit part'):t('Add part'))+`<div class="modal-body"><form id="pF">
     <div class="row2"><div class="f"><label>${t('Part number')}</label><input name="partNo" required value="${v('partNo')}" dir="ltr"></div><div class="f"><label>${t('Name')} (English)</label><input name="name" required value="${v('name')}"></div></div>
     <div class="row2"><div class="f"><label>${t('Name')} (العربية)</label><input name="nameAr" value="${v('nameAr')}" dir="rtl"></div><div class="f"><label>${t('Name')} (کوردی)</label><input name="nameKu" value="${v('nameKu')}" dir="rtl"></div></div>
-    <div class="row3"><div class="f"><label>${t('Make')}</label><input name="make" value="${v('make')}" list="makesL"></div><div class="f"><label>${t('Model')}</label><input name="model" value="${v('model')}"></div><div class="f"><label>${t('Brand')}</label><input name="brand" value="${v('brand')}" placeholder="Toyota Genuine, Denso…"></div></div>
+    <div class="row3"><div class="f"><label>${t('Make')}</label><input name="make" value="${v('make')}" list="makesL"></div><div class="f"><label>${t('Model')}</label><input name="model" value="${v('model')}" list="modelsL"></div><div class="f"><label>${t('Brand')}</label><input name="brand" value="${v('brand')}" placeholder="Toyota Genuine, Denso…"></div></div>
     <div class="row3"><div class="f"><label>${t('Year from')}</label><input name="yearFrom" type="number" value="${v('yearFrom')}"></div><div class="f"><label>${t('Year to')}</label><input name="yearTo" type="number" value="${v('yearTo')}"></div><div class="f"><label>${t('Category')}</label><select name="category">${CATS.map(([c])=>`<option value="${c}" ${p.category===c?'selected':''}>${t(c)}</option>`).join('')}</select></div></div>
     <div class="row3"><div class="f"><label>${t('Condition')}</label><select name="condition">${CONDS.map(c=>`<option value="${c}" ${p.condition===c?'selected':''}>${t(c)}</option>`).join('')}</select></div><div class="f"><label>${t('Retail price')} <i>(${t('empty = on request')})</i></label><input name="retailPrice" type="number" step="any" value="${v('retailPrice')}"></div><div class="f"><label>${t('Wholesale price')}</label><input name="wholesalePrice" type="number" step="any" value="${v('wholesalePrice')}"></div></div>
     <div class="row2"><div class="f"><label>${t('Stock')}</label><select name="stock">${STOCKS.map(c=>`<option value="${c}" ${p.stock===c?'selected':''}>${t(c)}</option>`).join('')}</select></div><div class="f"><label>${t('Visibility')}</label><select name="hidden"><option value="">${t('Shown on website')}</option><option value="1" ${p.hidden?'selected':''}>${t('Hidden')}</option></select></div></div>
     <div class="f"><label>${t('Description')} <i>(${t('optional')})</i></label><textarea name="desc">${v('desc')}</textarea></div>
     <div class="f"><label>${t('Photo')}</label><input type="file" accept="image/*" id="pImg"><div class="thumbs" id="pThumb">${img?`<img src="${esc(img)}">`:''}</div></div>
-    <button class="btn red block">${t('Save part')}</button></form><datalist id="makesL">${['Toyota','Lexus','Nissan','Hyundai','Kia','Mitsubishi','Honda','Chevrolet','Ford'].map(m=>`<option value="${m}">`).join('')}</datalist></div>`);
+    <button class="btn red block">${t('Save part')}</button></form><datalist id="makesL"><option value="Toyota"></datalist><datalist id="modelsL"><option value="All models">${(window.TOYOTA_MODELS||[]).map(m=>`<option value="${m.name}">`).join('')}</datalist></div>`);
   $('#pImg').onchange=async e=>{if(e.target.files[0]){img=await compressImg(e.target.files[0],700,.7);$('#pThumb').innerHTML=`<img src="${img}">`}};
   $('#pF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));const num=x=>x===''||x==null?null:Number(x);
     const data={...fd,yearFrom:num(fd.yearFrom),yearTo:num(fd.yearTo),retailPrice:num(fd.retailPrice),wholesalePrice:num(fd.wholesalePrice),hidden:!!fd.hidden,image:img,updatedAt:Date.now(),createdAt:p.createdAt||Date.now()};const nid=id||partId(fd.partNo);
@@ -677,7 +719,7 @@ async function importParts(file){
   closeModal();toast(t('Imported {n} parts',{n}));
 }
 function buildPart(it,ex,num){const cat=CATS.find(([c])=>c.toLowerCase()===String(it.category||'').toLowerCase());const cond=CONDS.find(c=>c.toLowerCase()===String(it.condition||'').toLowerCase());
-  return {...ex,...it,category:cat?cat[0]:(ex.category||'Engine'),yearFrom:num(it.yearFrom),yearTo:num(it.yearTo),retailPrice:num(it.retailPrice),wholesalePrice:num(it.wholesalePrice),condition:cond||ex.condition||'Genuine',stock:STOCKS.find(s=>s.toLowerCase()===String(it.stock||'').toLowerCase())||ex.stock||'Ask',updatedAt:Date.now(),createdAt:ex.createdAt||Date.now()}}
+  return {...ex,...it,make:it.make||ex.make||'Toyota',category:cat?cat[0]:(ex.category||'Engine'),yearFrom:num(it.yearFrom),yearTo:num(it.yearTo),retailPrice:num(it.retailPrice),wholesalePrice:num(it.wholesalePrice),condition:cond||ex.condition||'Genuine',stock:STOCKS.find(s=>s.toLowerCase()===String(it.stock||'').toLowerCase())||ex.stock||'Ask',updatedAt:Date.now(),createdAt:ex.createdAt||Date.now()}}
 
 /* sell requests */
 function adminSell(){
