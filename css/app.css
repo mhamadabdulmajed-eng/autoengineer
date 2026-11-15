@@ -432,3 +432,34 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:56px clamp(16px,
   .hero-engine .hero-tags{display:none}
   .hero-engine .lead{font-size:15px}
 }
+
+/* ---------- real model photos (white background) ---------- */
+.mart.has-photo .mphoto{object-fit:contain;background:#fff}
+/* home model cards become white "showroom" cards when a photo exists */
+.model-card:has(.mart.has-photo){background:#fff;border-color:#e7e7e7}
+.model-card:has(.mart.has-photo) .num{color:#b5b9bf}
+.model-card:has(.mart.has-photo) .mc-txt h3{color:#101318}
+.model-card:has(.mart.has-photo) .mc-txt p{color:#69717C}
+.model-card:has(.mart.has-photo) .mc-txt .go{background:#101318;color:#fff}
+.model-card .mart.has-photo::after{display:none}
+.mc-art.has-photo{top:8%;left:4%;right:4%;bottom:auto;height:46%}
+/* model picker chips */
+.mchip .mart.has-photo{height:52px;border-radius:8px;overflow:hidden;background:#fff}
+/* shop stage turns light when the chosen model has a photo */
+.stage:has(.stage-art.has-photo){background:#fff;color:#101318}
+.stage:has(.stage-art.has-photo)::after{background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.92) 34%,rgba(255,255,255,0) 58%),linear-gradient(0deg,#fff,rgba(255,255,255,0) 30%)}
+[dir=rtl] .stage:has(.stage-art.has-photo)::after{background:linear-gradient(270deg,#fff 0%,rgba(255,255,255,.92) 34%,rgba(255,255,255,0) 58%),linear-gradient(0deg,#fff,rgba(255,255,255,0) 30%)}
+.stage:has(.stage-art.has-photo) .stage-name{color:rgba(16,19,24,.05)}
+.stage:has(.stage-art.has-photo) .page-head p{color:#4b525b}
+.stage:has(.stage-art.has-photo) .room-switch{background:#eceae4}
+.stage:has(.stage-art.has-photo) .room-switch a{color:#69717C}
+.stage:has(.stage-art.has-photo) .room-switch a.on{background:#101318;color:#fff}
+.stage:has(.stage-art.has-photo) .mchip{color:#101318;border-color:#e2e2e2;background:#fafafa}
+.stage:has(.stage-art.has-photo) .mchip.on{background:#FF3B1F;border-color:#FF3B1F;color:#fff}
+.stage:has(.stage-art.has-photo) .searchbar{box-shadow:0 2px 6px rgba(0,0,0,.06),0 12px 30px rgba(0,0,0,.08);border:1px solid #eee}
+.stage:has(.stage-art.has-photo) .ws-bar{background:#101318}
+.stage-art.has-photo{position:absolute;top:70px;bottom:40px;right:0;left:auto;width:min(64vw,1000px)}
+[dir=rtl] .stage-art.has-photo{right:auto;left:0}
+.stage-art.has-photo .mphoto{object-position:center bottom}
+.stage:has(.stage-art.has-photo) .stage-layer{padding:0}
+@media(max-width:860px){.stage-art.has-photo{width:100vw;opacity:.28;top:60px}}

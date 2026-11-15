@@ -5,6 +5,7 @@
 
 window.TOYOTA_MODELS = [
   {id:'land-cruiser', name:'Land Cruiser', body:'suv',     tag:'Legendary 4x4'},
+  {id:'prado',        name:'Land Cruiser Prado', body:'suv', tag:'Land Cruiser 250 Series', alias:['prado','lc250','landcruiser250']},
   {id:'hilux',        name:'Hilux',        body:'pickup',  tag:'Unbreakable pickup'},
   {id:'camry',        name:'Camry',        body:'sedan',   tag:'Executive sedan'},
   {id:'corolla',      name:'Corolla',      body:'sedan',   tag:'World favourite'},
@@ -20,6 +21,8 @@ window.TOYOTA_MODELS = [
   {id:'supra',        name:'GR Supra',     body:'sports',  tag:'Sports car', alias:['supra']}
 ];
 window.MODEL_PHOTO_EXT = ['webp','jpg','png'];
+/* models that have a photo in img/models/ (add the id here when you add a photo) */
+window.MODEL_PHOTOS = ['land-cruiser','prado','hilux','camry','corolla','rav4','tacoma'];
 
 const _norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 /* which model does a part (or a search text) belong to? '' = none, '*' = all models */
@@ -65,7 +68,8 @@ window.carSVG = function(body, opts={}){
 window.modelArt = function(m, opts={}){
   if(!m) return '';
   const src = `img/models/${m.id}.`;
-  return `<div class="mart ${opts.cls||''}" data-model="${m.id}">${carSVG(m.body, opts)}<img class="mphoto" alt="${m.name}" data-src-base="${src}" data-ext="0" src="${src}${MODEL_PHOTO_EXT[0]}" onload="this.parentNode.classList.add('has-photo')" onerror="nextModelPhoto(this)"></div>`;
+  if(!MODEL_PHOTOS.includes(m.id)) return `<div class="mart ${opts.cls||''}" data-model="${m.id}">${carSVG(m.body, opts)}</div>`;
+  return `<div class="mart ${opts.cls||''}" data-model="${m.id}">${carSVG(m.body, opts)}<img loading="lazy" class="mphoto" alt="${m.name}" data-src-base="${src}" data-ext="0" src="${src}${MODEL_PHOTO_EXT[0]}" onload="this.parentNode.classList.add('has-photo')" onerror="nextModelPhoto(this)"></div>`;
 };
 window.nextModelPhoto = function(img){
   const i = (+img.dataset.ext||0) + 1;
