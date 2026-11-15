@@ -21,6 +21,7 @@ window.TOYOTA_MODELS = [
   {id:'supra',        name:'GR Supra',     body:'sports',  tag:'Sports car', alias:['supra']}
 ];
 window.MODEL_PHOTO_EXT = ['webp','jpg','png'];
+window.MODEL_PHOTO_V = '202611152049';
 /* models that have a photo in img/models/ (add the id here when you add a photo) */
 window.MODEL_PHOTOS = ['land-cruiser','prado','hilux','camry','corolla','rav4','tacoma','avalon','coaster','4runner','yaris','supra','tundra','hiace','sequoia'];
 
@@ -69,12 +70,12 @@ window.modelArt = function(m, opts={}){
   if(!m) return '';
   const src = `img/models/${m.id}.`;
   if(!MODEL_PHOTOS.includes(m.id)) return `<div class="mart ${opts.cls||''}" data-model="${m.id}">${carSVG(m.body, opts)}</div>`;
-  return `<div class="mart has-photo ${opts.cls||''}" data-model="${m.id}">${carSVG(m.body, opts)}<img class="mphoto" decoding="async" alt="${m.name}" data-src-base="${src}" data-ext="0" src="${src}${MODEL_PHOTO_EXT[0]}" onload="this.parentNode.classList.add('has-photo')" onerror="nextModelPhoto(this)"></div>`;
+  return `<div class="mart has-photo ${opts.cls||''}" data-model="${m.id}">${carSVG(m.body, opts)}<img class="mphoto" decoding="async" alt="${m.name}" data-src-base="${src}" data-ext="0" src="${src}${MODEL_PHOTO_EXT[0]}?v=${MODEL_PHOTO_V}" onload="this.parentNode.classList.add('has-photo')" onerror="nextModelPhoto(this)"></div>`;
 };
 window.nextModelPhoto = function(img){
   const i = (+img.dataset.ext||0) + 1;
   if(i >= MODEL_PHOTO_EXT.length){ img.parentNode&&img.parentNode.classList.remove('has-photo'); img.remove(); return; }
-  img.dataset.ext = i; img.src = img.dataset.srcBase + MODEL_PHOTO_EXT[i];
+  img.dataset.ext = i; img.src = img.dataset.srcBase + MODEL_PHOTO_EXT[i] + '?v=' + MODEL_PHOTO_V;
 };
 
 /* ---------- the exploding engine (original illustration) ---------- */
