@@ -2,6 +2,7 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Next part.|[Smarter] part.":"القطعة التالية.|القطعة [الأذكى].",
 "Auto Engineer — Toyota Spare Parts":"Auto Engineer — قطع غيار تويوتا",
 "Toyota Spare Parts":"قطع غيار تويوتا",
 "Toyota spare parts specialist":"متخصصون في قطع غيار تويوتا",
@@ -142,6 +143,7 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Next part.|[Smarter] part.":"پارچەی داهاتوو.|پارچەی [زیرەکتر].",
 "Auto Engineer — Toyota Spare Parts":"Auto Engineer — پارچەی یەدەگی تۆیۆتا",
 "Toyota Spare Parts":"پارچەی یەدەگی تۆیۆتا",
 "Toyota spare parts specialist":"پسپۆڕی پارچەی یەدەگی تۆیۆتا",

@@ -193,7 +193,7 @@ function buildHome(){
   const mk=M.map((m,i)=>`<span>${i%2?'<b>'+m.name+'</b>':m.name}</span>`).join('');
   const stmt=t('Send us your parts list. We reply with [prices], availability and your [discount], then issue your [quotation] and [invoice].');
   const stmtHtml=stmt.split(/\s+/).map(w=>{const red=/\[|\]/.test(w);return `<span class="w${red?' r':''}">${esc(w.replace(/[\[\]]/g,''))}</span>`}).join(' ');
-  const h1=t('Every part.|[One] search.').split('|').map(x=>`<span class="ln"><span>${esc(x).replace(/\[(.*?)\]/,'<em>$1</em>')}</span></span>`).join('');
+  const h1=t('Next part.|[Smarter] part.').split('|').map(x=>`<span class="ln"><span>${esc(x).replace(/\[(.*?)\]/,'<em>$1</em>')}</span></span>`).join('');
   $('#view-home').innerHTML=`<div class="dark-zone">
   <section class="hero hero-engine" id="hero"><div class="hero-grid"></div><div class="hero-glow"></div>
     <div class="engine-wrap" id="engine">${engineSVG()}</div>
@@ -354,7 +354,7 @@ function fitText(p){const yrs=p.yearFrom||p.yearTo?` ${p.yearFrom||''}–${p.yea
 function renderResults(){
   const el=$('#results');if(!el)return;
   if(S.mode!=='local'&&!S.loaded.parts){el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Loading catalog…')}</div>`;$('#resCount').textContent='';return}
-  const r=room();const list=Store.all('parts').filter(p=>!p.hidden).filter(matches).sort((a,b)=>String(pName(a)).localeCompare(pName(b)));
+  const r=room();const list=Store.all('parts').filter(p=>!p.hidden&&(!p.make||/toyota/i.test(p.make))).filter(matches).sort((a,b)=>String(pName(a)).localeCompare(pName(b)));
   $('#resCount').textContent=t('{n} parts',{n:list.length});
   if(!list.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><h3>${t('No parts found')}</h3><p>${t('Try another search, or send us a request and we’ll find it for you.')}</p><br><button class="btn red" id="reqBtn2">${t('Request this part')}</button></div>`;$('#reqBtn2').onclick=openRequestModal;return}
   const inB=new Set(S.basket.map(b=>b.partId));

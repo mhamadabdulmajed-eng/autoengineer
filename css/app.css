@@ -424,3 +424,11 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:56px clamp(16px,
 .engine-wrap{width:min(58vw,900px);right:0}
 [dir=rtl] .engine-wrap{left:0}
 @media(max-width:860px){.hero-engine{align-items:stretch}.hero-engine .hero-inner{max-width:none}.hero-engine .hero-inner h1{font-size:clamp(44px,13vw,70px)}.engine-wrap{width:118%;margin:6px -9% 0}}
+@media(max-width:860px){
+  .hero-engine{padding-top:76px}
+  .engine-wrap{order:0 !important;width:112%;margin:0 -6% -10px}
+  .hero-engine .hero-inner{order:1 !important}
+  .hero-engine .hero-inner h1{font-size:clamp(40px,11.5vw,64px);margin:10px 0 14px}
+  .hero-engine .hero-tags{display:none}
+  .hero-engine .lead{font-size:15px}
+}
