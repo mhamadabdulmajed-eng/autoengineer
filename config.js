@@ -1,8 +1,6 @@
-/* Auto Engineer — site configuration.
-   For the live site on autoengineer.iq, paste your Supabase project URL and
-   "anon public" key below (Supabase → Project Settings → API).
-   Leave them empty to run in preview mode. */
+/* Auto Engineer — site configuration (live database).
+   The publishable key is designed to be public; the database security rules protect the data. */
 window.AE_CONFIG = {
-  supabaseUrl: '',
-  supabaseKey: ''
+  supabaseUrl: 'https://qkrjvbpdhaqukzbhpeqg.supabase.co',
+  supabaseKey: 'sb_publishable_ZpCOArZh0pjeJY3l8LBAkw_rG4fHlDa'
 };
