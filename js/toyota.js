@@ -76,18 +76,18 @@ window.nextModelPhoto = function(img){
 /* ---------- the exploding engine (original illustration) ---------- */
 /* each part: assembled drawing + explode vector [dx, dy, rotate] + label + category */
 window.ENGINE_PARTS = [
-  {k:'cover',  cat:'Engine',        label:'Valve cover',     v:[0,-230,-4],  lx:400, ly:118},
-  {k:'plugs',  cat:'Engine',        label:'Spark plugs',     v:[0,-120,0],   lx:400, ly:142},
-  {k:'head',   cat:'Engine',        label:'Cylinder head',   v:[0,-70,0],    lx:620, ly:220},
-  {k:'pistons',cat:'Engine',        label:'Pistons & rods',  v:[0,-18,0],    lx:620, ly:300},
-  {k:'crank',  cat:'Engine',        label:'Crankshaft',      v:[0,110,0],    lx:400, ly:520},
-  {k:'pan',    cat:'Oils & Fluids', label:'Oil pan',         v:[0,200,0],    lx:400, ly:676},
-  {k:'belt',   cat:'Engine',        label:'Timing belt',     v:[-170,0,-6],  lx:30,  ly:300},
-  {k:'pump',   cat:'Cooling',       label:'Water pump',      v:[-250,-90,0], lx:-60, ly:200},
-  {k:'starter',cat:'Electrical',    label:'Starter motor',   v:[-220,140,8], lx:-40, ly:560},
-  {k:'alt',    cat:'Electrical',    label:'Alternator',      v:[210,-120,10],lx:850, ly:130},
-  {k:'filter', cat:'Filters',       label:'Oil filter',      v:[230,110,-10],lx:870, ly:520},
-  {k:'intake', cat:'Filters',       label:'Air intake',      v:[150,-210,0], lx:770, ly:-10}
+  {k:'cover',  cat:'Engine',        label:'Valve cover',     v:[0,-230,-4],  lx:400, ly:-2},
+  {k:'plugs',  cat:'Engine',        label:'Spark plugs',     v:[0,-120,0],   lx:400, ly:108},
+  {k:'head',   cat:'Engine',        label:'Cylinder head',   v:[0,-70,0],    lx:640, ly:162},
+  {k:'pistons',cat:'Engine',        label:'Pistons & rods',  v:[0,-18,0],    lx:640, ly:300},
+  {k:'crank',  cat:'Engine',        label:'Crankshaft',      v:[0,110,0],    lx:400, ly:574},
+  {k:'pan',    cat:'Oils & Fluids', label:'Oil pan',         v:[0,200,0],    lx:400, ly:720},
+  {k:'belt',   cat:'Engine',        label:'Timing belt',     v:[-170,0,-6],  lx:28,  ly:462},
+  {k:'pump',   cat:'Cooling',       label:'Water pump',      v:[-250,-90,0], lx:-100, ly:264},
+  {k:'starter',cat:'Electrical',    label:'Starter motor',   v:[-220,140,8], lx:-50, ly:634},
+  {k:'alt',    cat:'Electrical',    label:'Alternator',      v:[210,-120,10],lx:838, ly:182},
+  {k:'filter', cat:'Filters',       label:'Oil filter',      v:[230,110,-10],lx:870, ly:570},
+  {k:'intake', cat:'Filters',       label:'Air intake',      v:[150,-210,0], lx:860, ly:24}
 ];
 window.engineSVG = function(){
   const M='url(#emet)', D='url(#edark)', R='url(#ered)';
@@ -112,7 +112,7 @@ window.engineSVG = function(){
     const p = ENGINE_PARTS.find(x=>x.k===k);
     return `<g class="ep" data-k="${k}" data-cat="${p.cat}" data-v="${p.v.join(',')}"><g class="ep-art">${piece[k]}</g></g>`;
   }).join('');
-  const labels = ENGINE_PARTS.map(p=>`<g class="ep-lbl" data-k="${p.k}" data-cat="${p.cat}" transform="translate(${p.lx} ${p.ly})"><rect class="ep-pill" x="-70" y="-17" width="140" height="34" rx="17"/><text text-anchor="middle" y="5" class="ep-txt" data-label="${p.label}">${p.label}</text></g>`).join('');
+  const labels = ENGINE_PARTS.map(p=>`<g transform="translate(${p.lx} ${p.ly})"><g class="ep-lbl" data-k="${p.k}" data-cat="${p.cat}"><rect class="ep-pill" x="-70" y="-17" width="140" height="34" rx="17"/><text text-anchor="middle" y="5" class="ep-txt" data-label="${p.label}">${p.label}</text></g></g>`).join('');
   return `<svg viewBox="-140 -80 1080 820" class="engine-svg" aria-label="Engine"><defs>
     <linearGradient id="emet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6e9ec"/><stop offset=".5" stop-color="#a7afb8"/><stop offset="1" stop-color="#6d7680"/></linearGradient>
     <linearGradient id="edark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a424c"/><stop offset="1" stop-color="#15191e"/></linearGradient>
