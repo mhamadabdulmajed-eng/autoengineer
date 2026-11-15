@@ -205,10 +205,9 @@ function buildHome(){
     <div class="engine-caption" id="engineCap">${t('Every part inside your engine. Tap a part to shop it.')}</div>
     <div class="scroll-hint">${t('Scroll')}<i></i></div></section>
   <div class="marquee"><div class="marquee-track" id="marquee">${mk+mk}</div></div>
-  <section class="rooms models-sec" id="modelsSec"><div class="rooms-pin"><div class="rooms-track" id="modelsTrack">
-    <div class="rooms-intro"><span class="eyebrow">${t('Choose your Toyota')}</span><h2>${t('Parts for every Toyota')}</h2><p>${t('Pick your model to see the parts that fit it.')}</p></div>
-    ${M.map((m,i)=>`<a class="model-card" href="#shop" data-model="${m.id}"><span class="num">${String(i+1).padStart(2,'0')}</span>${modelArt(m,{cls:'mc-art'})}<div class="mc-txt"><small>Toyota</small><h3>${esc(m.name)}</h3><p>${t(m.tag)}</p><span class="go">${t('Shop parts')} →</span></div></a>`).join('')}
-  </div></div></section>
+  <section class="models-sec" id="modelsSec"><div class="ms-head"><span class="eyebrow">${t('Choose your Toyota')}</span><h2>${t('Parts for every Toyota')}</h2><p>${t('Pick your model to see the parts that fit it.')}</p></div>
+    <div class="mtiles">${M.map(m=>`<a class="mtile" href="#shop" data-model="${m.id}">${modelArt(m,{cls:'mt-art'})}<b>${esc(m.name)}</b></a>`).join('')}</div>
+  </section>
   <section class="rooms" id="rooms"><div class="rooms-pin"><div class="rooms-track" id="roomsTrack">
     <div class="rooms-intro"><span class="eyebrow">${t('Three rooms')}</span><h2>${t('Built for how you buy')}</h2><p>${t('Retail customers, trade buyers and people with parts to sell each get their own space, with their own prices.')}</p></div>
     <a class="room-card r1" href="#shop"><span class="num">01 / ${t('RETAIL')}</span><svg class="art" viewBox="0 0 520 560" preserveAspectRatio="xMidYMid slice"><circle cx="400" cy="140" r="160" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="40"/><circle cx="400" cy="140" r="60" fill="none" stroke="rgba(255,59,31,.5)" stroke-width="2"/></svg><h3>${t('Retail room')}</h3><p>${t('For drivers and car owners. Search by part or car, see public prices, and order in a few taps.')}</p><span class="go">${t('Enter retail')} →</span></a>
@@ -231,7 +230,7 @@ function buildHome(){
   $('#heroSearch').onsubmit=e=>{e.preventDefault();S.q=e.target.q.value.trim();location.hash='shop'};
   $('#catGrid').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){S.f={cat:b.dataset.cat,model:S.f.model||'',year:'',cond:''};S.q='';location.hash='shop'}};
   $('#engine').onclick=e=>{const g=e.target.closest('[data-cat]');if(g){S.f={cat:g.dataset.cat,model:'',year:'',cond:''};S.q='';location.hash='shop'}};
-  $('#modelsTrack').onclick=e=>{const a=e.target.closest('[data-model]');if(a){S.f.model=a.dataset.model;S.f.cat='';S.q=''}};
+  $('#modelsSec').onclick=e=>{const a=e.target.closest('[data-model]');if(a){S.f.model=a.dataset.model;S.f.cat='';S.q=''}};
   renderFoot();applyLogo();initMotion();
 }
 function renderFoot(){const s=settings();const fc=$('#footContact');if(!fc)return;
@@ -264,9 +263,9 @@ function initMotion(){
     gsap.fromTo('#marquee',{xPercent:0},{xPercent:-35,ease:'none',scrollTrigger:{trigger:'.marquee',start:'top bottom',end:'bottom top',scrub:.4}});
     const hscroll=(sec,track)=>{const tr=$(track);if(!tr)return;const dist=()=>Math.max(0,tr.scrollWidth-innerWidth);
       gsap.to(tr,{x:()=>rtl?dist():-dist(),ease:'none',scrollTrigger:{trigger:sec,start:'top top',end:()=>'+='+dist(),pin:true,scrub:.8,invalidateOnRefresh:true}})};
-    if(desk){hscroll('#modelsSec','#modelsTrack');hscroll('#rooms','#roomsTrack');
-      $$('.model-card .carsvg').forEach(c=>gsap.fromTo(c,{x:rtl?80:-80},{x:rtl?-30:30,ease:'none',scrollTrigger:{trigger:'#modelsSec',start:'top top',end:()=>'+='+Math.max(1,$('#modelsTrack').scrollWidth-innerWidth),scrub:true}}))}
-    else $$('.room-card,.model-card').forEach(c=>gsap.from(c,{y:60,opacity:0,duration:.8,scrollTrigger:{trigger:c,start:'top 88%'}}));
+    if(desk){hscroll('#rooms','#roomsTrack')}
+    else $$('.room-card').forEach(c=>gsap.from(c,{y:60,opacity:0,duration:.8,scrollTrigger:{trigger:c,start:'top 88%'}}));
+    gsap.from('.mtile',{y:24,opacity:0,duration:.5,stagger:.03,scrollTrigger:{trigger:'#modelsSec',start:'top 85%'}});
     gsap.to('#stepsLine',{strokeDashoffset:0,ease:'none',scrollTrigger:{trigger:'.steps-grid',start:'top 75%',end:'bottom 45%',scrub:true,onUpdate:self=>{$$('.step').forEach((s,i)=>s.classList.toggle('on',self.progress>=i/4+.02))}}});
     gsap.from('.step',{y:40,opacity:0,stagger:.12,duration:.8,scrollTrigger:{trigger:'.steps-grid',start:'top 80%'}});
     $$('.sec-head h2').forEach(h=>gsap.from(h,{y:50,opacity:0,duration:1,ease:'power3.out',scrollTrigger:{trigger:h,start:'top 88%'}}));

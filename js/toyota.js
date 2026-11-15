@@ -69,11 +69,11 @@ window.modelArt = function(m, opts={}){
   if(!m) return '';
   const src = `img/models/${m.id}.`;
   if(!MODEL_PHOTOS.includes(m.id)) return `<div class="mart ${opts.cls||''}" data-model="${m.id}">${carSVG(m.body, opts)}</div>`;
-  return `<div class="mart ${opts.cls||''}" data-model="${m.id}">${carSVG(m.body, opts)}<img loading="lazy" class="mphoto" alt="${m.name}" data-src-base="${src}" data-ext="0" src="${src}${MODEL_PHOTO_EXT[0]}" onload="this.parentNode.classList.add('has-photo')" onerror="nextModelPhoto(this)"></div>`;
+  return `<div class="mart has-photo ${opts.cls||''}" data-model="${m.id}">${carSVG(m.body, opts)}<img class="mphoto" decoding="async" alt="${m.name}" data-src-base="${src}" data-ext="0" src="${src}${MODEL_PHOTO_EXT[0]}" onload="this.parentNode.classList.add('has-photo')" onerror="nextModelPhoto(this)"></div>`;
 };
 window.nextModelPhoto = function(img){
   const i = (+img.dataset.ext||0) + 1;
-  if(i >= MODEL_PHOTO_EXT.length){ img.remove(); return; }
+  if(i >= MODEL_PHOTO_EXT.length){ img.parentNode&&img.parentNode.classList.remove('has-photo'); img.remove(); return; }
   img.dataset.ext = i; img.src = img.dataset.srcBase + MODEL_PHOTO_EXT[i];
 };
 
