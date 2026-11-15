@@ -22,7 +22,7 @@ window.TOYOTA_MODELS = [
 ];
 window.MODEL_PHOTO_EXT = ['webp','jpg','png'];
 /* models that have a photo in img/models/ (add the id here when you add a photo) */
-window.MODEL_PHOTOS = ['land-cruiser','prado','hilux','camry','corolla','rav4','tacoma'];
+window.MODEL_PHOTOS = ['land-cruiser','prado','hilux','camry','corolla','rav4','tacoma','avalon','coaster','4runner','yaris','supra','tundra'];
 
 const _norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 /* which model does a part (or a search text) belong to? '' = none, '*' = all models */
