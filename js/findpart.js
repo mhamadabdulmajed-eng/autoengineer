@@ -5,30 +5,30 @@
 
 /* common parts in plain words (English / Arabic / Kurdish + everyday names) → our catalog */
 const COMMON_PARTS = [
-  {en:'Front brake pads', ar:'فحمات فرامل أمامية', ku:'پاتی برێکی پێشەوە', cat:'Brakes', kw:['brake pad','pad'], syn:['فحمات','فحمة','قماش','پات','پاتی برێک','brake']},
-  {en:'Rear brake pads', ar:'فحمات فرامل خلفية', ku:'پاتی برێکی دواوە', cat:'Brakes', kw:['brake pad','rear pad','brake shoe'], syn:['فحمات خلفية','پاتی دواوە']},
-  {en:'Brake discs', ar:'أقراص الفرامل (هوبات)', ku:'دیسکی برێک', cat:'Brakes', kw:['disc','rotor'], syn:['هوب','هوبات','ديسك','دیسک','rotor']},
-  {en:'Oil filter', ar:'فلتر زيت', ku:'فلتەری زەیت', cat:'Filters', kw:['oil filter'], syn:['فلتر زيت','فلتەری زەیت','فلتر دهن']},
-  {en:'Air filter', ar:'فلتر هواء', ku:'فلتەری هەوا', cat:'Filters', kw:['air filter','air cleaner'], syn:['فلتر هوا','فلتر هواء','فلتەری هەوا']},
-  {en:'AC / cabin filter', ar:'فلتر مكيف', ku:'فلتەری سپلیت', cat:'Filters', kw:['cabin filter','a/c filter','air conditioner filter'], syn:['فلتر مكيف','فلتر سبلت','فلتەری سپلیت','cabin']},
-  {en:'Fuel filter', ar:'فلتر بنزين / ديزل', ku:'فلتەری بەنزین', cat:'Filters', kw:['fuel filter'], syn:['فلتر بنزين','فلتر ديزل','فلتەری بەنزین','فلتەری گازوایل']},
-  {en:'Spark plugs', ar:'بواجي', ku:'پلاک', cat:'Engine', kw:['spark plug','plug'], syn:['بواجي','بوجي','پلاک','بلاك']},
-  {en:'Timing belt / chain', ar:'سير تايمن', ku:'قایشی تایمین', cat:'Engine', kw:['timing belt','timing chain'], syn:['تايمن','تایمین','قشاط']},
-  {en:'Drive belt', ar:'سير المحرك', ku:'قایشی بزوێنەر', cat:'Engine', kw:['v-ribbed belt','drive belt','fan belt','belt'], syn:['سير','قشاط','قایش']},
-  {en:'Engine oil', ar:'زيت محرك', ku:'زەیتی بزوێنەر', cat:'Oils & Fluids', kw:['engine oil','oil'], syn:['دهن','زيت','زەیت','ڕۆن']},
+  {en:'Front brake pads', ar:'فحمات فرامل أمامية', ku:'پاتی برێکی پێشەوە', cat:'Brakes', kw:['brake pad', 'فحمات بريك'], syn:['فحمات','فحمة','قماش','پات','پاتی برێک','brake']},
+  {en:'Rear brake pads', ar:'فحمات فرامل خلفية', ku:'پاتی برێکی دواوە', cat:'Brakes', kw:['brake pad', 'brake shoe', 'فحمات درم'], syn:['فحمات خلفية','پاتی دواوە']},
+  {en:'Brake discs', ar:'أقراص الفرامل (هوبات)', ku:'دیسکی برێک', cat:'Brakes', kw:['front disc', 'rear disc', 'ديسك بريك'], syn:['هوب','هوبات','ديسك','دیسک','rotor']},
+  {en:'Oil filter', ar:'فلتر زيت', ku:'فلتەری زەیت', cat:'Filters', kw:['oil filter', 'فلتر دهن'], syn:['فلتر زيت','فلتەری زەیت','فلتر دهن']},
+  {en:'Air filter', ar:'فلتر هواء', ku:'فلتەری هەوا', cat:'Filters', kw:['air filter', 'air element', 'فلتر هواء'], syn:['فلتر هوا','فلتر هواء','فلتەری هەوا']},
+  {en:'AC / cabin filter', ar:'فلتر مكيف', ku:'فلتەری سپلیت', cat:'Filters', kw:['air refiner', 'فلتر مكيف'], syn:['فلتر مكيف','فلتر سبلت','فلتەری سپلیت','cabin']},
+  {en:'Fuel filter', ar:'فلتر بنزين / ديزل', ku:'فلتەری بەنزین', cat:'Filters', kw:['fuel filter', 'فلتر بانزين'], syn:['فلتر بنزين','فلتر ديزل','فلتەری بەنزین','فلتەری گازوایل']},
+  {en:'Spark plugs', ar:'بواجي', ku:'پلاک', cat:'Engine', kw:['spark plug', 'plug, spark'], syn:['بواجي','بوجي','پلاک','بلاك']},
+  {en:'Timing belt / chain', ar:'سير تايمن', ku:'قایشی تایمین', cat:'Engine', kw:['timing belt', 'timing chain', 'جنزير تايمن', 'سير تايمن'], syn:['تايمن','تایمین','قشاط']},
+  {en:'Drive belt', ar:'سير المحرك', ku:'قایشی بزوێنەر', cat:'Engine', kw:['v-ribbed', 'سير دينمو'], syn:['سير','قشاط','قایش']},
+  {en:'Engine oil', ar:'زيت محرك', ku:'زەیتی بزوێنەر', cat:'Oils & Fluids', kw:['tgmo', 'engine oil', 'دهن مكينة'], syn:['دهن','زيت','زەیت','ڕۆن']},
   {en:'Coolant', ar:'ماء رديتر', ku:'ئاوی ڕادیەیتەر', cat:'Oils & Fluids', kw:['coolant'], syn:['ماي رديتر','كولنت','ئاوی ڕادیەیتەر']},
-  {en:'Radiator', ar:'رديتر', ku:'ڕادیەیتەر', cat:'Cooling', kw:['radiator'], syn:['رديتر','راديتر','ڕادیەیتەر']},
-  {en:'Water pump', ar:'مضخة ماء (واتر بمب)', ku:'پەمپی ئاو', cat:'Cooling', kw:['water pump'], syn:['واتر بمب','ماطور ماي','پەمپی ئاو']},
+  {en:'Radiator', ar:'رديتر', ku:'ڕادیەیتەر', cat:'Cooling', kw:['radiator assy'], syn:['رديتر','راديتر','ڕادیەیتەر']},
+  {en:'Water pump', ar:'مضخة ماء (واتر بمب)', ku:'پەمپی ئاو', cat:'Cooling', kw:['water pump', 'pump assy, water'], syn:['واتر بمب','ماطور ماي','پەمپی ئاو']},
   {en:'Battery', ar:'بطارية', ku:'پاتری', cat:'Electrical', kw:['battery'], syn:['بطارية','باتري','پاتری','باتری']},
-  {en:'Alternator', ar:'داينمو', ku:'داینەمۆ', cat:'Electrical', kw:['alternator'], syn:['داينمو','دينمو','داینەمۆ']},
-  {en:'Starter motor', ar:'سلف', ku:'سەلف', cat:'Electrical', kw:['starter'], syn:['سلف','سەلف']},
-  {en:'Headlight', ar:'ضوء أمامي (فنر)', ku:'گڵۆپی پێشەوە', cat:'Lighting', kw:['headlamp','headlight'], syn:['فنر','فنر امامي','ضوء امامي','لايت','گڵۆپی پێشەوە','فەنەر']},
-  {en:'Tail light', ar:'ضوء خلفي', ku:'گڵۆپی دواوە', cat:'Lighting', kw:['tail lamp','rear lamp','tail light'], syn:['فنر خلفي','ستوب','گڵۆپی دواوە']},
-  {en:'Side mirror', ar:'مراية جانبية', ku:'ئاوێنەی تەنیشت', cat:'Body', kw:['mirror'], syn:['مراية','مرايه','ئاوێنە','مەرایە']},
-  {en:'Front bumper', ar:'دعامية أمامية', ku:'دەعامیەی پێشەوە', cat:'Body', kw:['bumper'], syn:['دعامية','صدام','دەعامیە']},
-  {en:'Wiper blades', ar:'مساحات', ku:'مەسحە', cat:'Body', kw:['wiper'], syn:['مساحات','مساحة','مەسحە']},
-  {en:'Shock absorber', ar:'ممتص صدمات (دبل)', ku:'سەدمە', cat:'Suspension', kw:['shock absorber','absorber','strut'], syn:['دبل','دبلات','ممتص','سەدمە','ئەمۆرتیسەر']},
-  {en:'Control arm', ar:'مقص', ku:'مقەس', cat:'Suspension', kw:['control arm','arm'], syn:['مقص','مقصات','مقەس']},
+  {en:'Alternator', ar:'داينمو', ku:'داینەمۆ', cat:'Electrical', kw:['alternator assy', 'alternator'], syn:['داينمو','دينمو','داینەمۆ']},
+  {en:'Starter motor', ar:'سلف', ku:'سەلف', cat:'Electrical', kw:['starter assy'], syn:['سلف','سەلف']},
+  {en:'Headlight', ar:'ضوء أمامي (فنر)', ku:'گڵۆپی پێشەوە', cat:'Lighting', kw:['headlamp'], syn:['فنر','فنر امامي','ضوء امامي','لايت','گڵۆپی پێشەوە','فەنەر']},
+  {en:'Tail light', ar:'ضوء خلفي', ku:'گڵۆپی دواوە', cat:'Lighting', kw:['lamp assy, rr', 'lens & body', 'ضوء خلفي'], syn:['فنر خلفي','ستوب','گڵۆپی دواوە']},
+  {en:'Side mirror', ar:'مراية جانبية', ku:'ئاوێنەی تەنیشت', cat:'Body', kw:['mirror assy, outer', 'مراية جانبية'], syn:['مراية','مرايه','ئاوێنە','مەرایە']},
+  {en:'Front bumper', ar:'دعامية أمامية', ku:'دەعامیەی پێشەوە', cat:'Body', kw:['cover, fr bumper', 'دعامية أمامية'], syn:['دعامية','صدام','دەعامیە']},
+  {en:'Wiper blades', ar:'مساحات', ku:'مەسحە', cat:'Body', kw:['wiper blade', 'blade, fr wiper', 'blade, rr wiper'], syn:['مساحات','مساحة','مەسحە']},
+  {en:'Shock absorber', ar:'ممتص صدمات (دبل)', ku:'سەدمە', cat:'Suspension', kw:['absorber assy', 'shock absorber', 'absorber, shock', 'دبل'], syn:['دبل','دبلات','ممتص','سەدمە','ئەمۆرتیسەر']},
+  {en:'Control arm', ar:'مقص', ku:'مقەس', cat:'Suspension', kw:['arm assy', 'arm sub-assy'], syn:['مقص','مقصات','مقەس']},
   {en:'Clutch kit', ar:'طقم كلتش', ku:'کلەچ', cat:'Transmission', kw:['clutch'], syn:['كلتش','كلج','کلەچ']}
 ];
 const fpNorm = s => String(s||'').toLowerCase().replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/[ًٌٍَُِّْـ]/g,'').replace(/\s+/g,' ').trim();
@@ -65,7 +65,7 @@ async function fpSearch(F){
   const cp = commonPartOf(F.q);
   const cat = F.cat || (cp && cp.cat) || '';
   if(!F.q && !cat) return [];
-  const o = cp ? {anyw:[...cp.kw, ...(cp.syn||[]), cp.ar, cp.ku].filter(Boolean), cat}
+  const o = cp ? {anyw:cp.kw, cat}
                : {q:F.q, cat:F.cat||''};
   Object.assign(o, {model:F.model||'', year:F.year||'', lim:30});
   try{ return (await PartsAPI.search(o)).rows; }catch(e){ return []; }

@@ -54,7 +54,10 @@ language sql stable security definer set search_path = public as $$
   where not exists (select 1 from words where not (p.hay like '%' || words.w || '%' or p.pn like public.ae_pn(words.w) || '%' and length(public.ae_pn(words.w)) > 2))
     and (anyw is null or exists (select 1 from unnest(anyw) a where p.hay like '%' || public.ae_txt(a) || '%'))
   order by (p.pn = public.ae_pn(q)) desc, (p.pn like public.ae_pn(q) || '%' and length(public.ae_pn(q)) > 2) desc,
-           p.data->>'name'
+           -- names that start with what was typed come first, then shorter (simpler) names
+           (coalesce(q,'') <> '' and (public.ae_txt(p.data->>'nameAr') like public.ae_txt(q) || '%'
+              or public.ae_txt(p.data->>'nameKu') like public.ae_txt(q) || '%' or lower(p.data->>'name') like lower(q) || '%')) desc,
+           length(p.data->>'name'), p.data->>'name'
   limit least(coalesce(lim,60), 500) offset coalesce(off,0)
 $$;
 grant execute on function public.search_parts(text, text, text, int, text[], int, int) to anon, authenticated;

@@ -377,7 +377,8 @@ const PartsAPI={
     return {rows:(data||[]).map(r=>({...r.data,id:r.id})),total:data&&data.length?+data[0].total:0}}
 };
 // shop search words: a known local word (e.g. فحمات) also searches its English catalog words
-function shopQuery(q){const cp=window.commonPartOf&&/[^\x00-\x7f]/.test(q)?commonPartOf(q):null;if(cp&&!/[0-9]{4}/.test(q))return {q:'',anyw:[...cp.kw,...(cp.syn||[]),cp.en,cp.ar,cp.ku].filter(Boolean),cat:cp.cat};return {q}}
+// fallback when a plain search finds nothing: a known local word (e.g. فحمة, قماش) searches its catalog keywords
+function shopQuery(q){const cp=window.commonPartOf?commonPartOf(q):null;if(cp&&!/[0-9]{4}/.test(q))return {q:'',anyw:cp.kw,cat:cp.cat};return null}
 let resTimer=null,resSeq=0;
 function renderResults(more){
   const el=$('#results');if(!el)return;
@@ -385,9 +386,10 @@ function renderResults(more){
 }
 async function drawResults(more){
   const el=$('#results');if(!el)return;const seq=++resSeq;const r=room();
-  const sq=shopQuery(S.q.trim());const o={q:sq.q,anyw:sq.anyw,cat:S.f.cat||(sq.anyw?'':''),model:S.f.model,year:S.f.year,lim:60,off:more?S.resRows.length:0};
+  const o={q:S.q.trim(),cat:S.f.cat,model:S.f.model,year:S.f.year,lim:60,off:more?S.resRows.length:0};if(more&&S.resAlt)Object.assign(o,S.resAlt);
   if(!more){S.resRows=[];if(PartsAPI.remote())el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Searching…')}</div>`}
   let res;try{res=await PartsAPI.search(o)}catch(e){if(seq===resSeq)el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Could not load data.')}</div>`;return}
+  if(!more){S.resAlt=null;const alt=o.q&&!res.total?shopQuery(o.q):null;if(alt){try{const r2=await PartsAPI.search({...o,...alt});if(r2.total){res=r2;S.resAlt=alt}}catch(e){}}}
   if(seq!==resSeq)return;
   let list=res.rows;if(S.f.cond)list=list.filter(p=>p.condition===S.f.cond);
   S.resRows=more?S.resRows.concat(list):list;S.resTotal=res.total;list=S.resRows;
