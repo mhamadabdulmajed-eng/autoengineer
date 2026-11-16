@@ -131,6 +131,7 @@ out = []; nop = []; seen_ids = {}
 for pn, (desc, pr) in best.items():
     no = fmt_pn(pn)
     if no.startswith('0400'): continue   # owner's rule: part numbers starting with 0400 are not sold online
+    if no.endswith('S'): continue        # owner's rule: part numbers ending with S carry wholesale prices (added later)
     if desc.upper().strip() == pn.upper() or not desc: desc = ''
     ar, ku = translate(desc) if desc else (None, None)
     name = english(desc) if desc else no
