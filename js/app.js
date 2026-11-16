@@ -257,7 +257,8 @@ function initMotion(){
     // pinned hero: scrolling down takes the engine apart, scrolling up puts it back together
     const tl=gsap.timeline({scrollTrigger:{trigger:'#hero',start:'top top',end:desk?'+=140%':'+=110%',pin:true,scrub:.7,anticipatePin:1}});
     engineExplode(tl,rtl);
-    tl.to('.hero-inner',{opacity:desk?.12:0,x:desk?(rtl?40:-40):0,duration:.6},.15);
+    // fade only the headline and text; the search box, Find My Part and quick tags stay fully usable
+    tl.to('.hero-inner .eyebrow,.hero-inner h1,.hero-inner .lead',{opacity:desk?.1:.15,duration:.6},.15);
     tl.fromTo('#engineCap',{opacity:0,y:20},{opacity:1,y:0,duration:.3},.75);
     tl.to('.scroll-hint',{opacity:0,duration:.2},0);
     gsap.fromTo('#marquee',{xPercent:0},{xPercent:-35,ease:'none',scrollTrigger:{trigger:'.marquee',start:'top bottom',end:'bottom top',scrub:.4}});
