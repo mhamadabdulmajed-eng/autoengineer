@@ -2,6 +2,11 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Add margin to imported prices":"إضافة هامش ربح على الأسعار المستوردة",
+"{n} new":"{n} جديدة",
+"{n} skipped (0400 / S)":"تم تخطي {n} (0400 / S)",
+"{n} new part numbers skipped: no name":"تم تخطي {n} رقم جديد: بدون اسم",
+"No rows with a part number found":"لم يتم العثور على صفوف تحتوي رقم قطعة",
 "Owner":"المالك",
 "Owner: everything, including adding and removing Admins. Admin: everything except Owner and Admin accounts. Manager: orders, customers, parts, sellers, wholesalers. Sales: orders and customers for their branch.":"المالك: كل الصلاحيات بما فيها إضافة وحذف المدراء. المدير العام (Admin): كل شيء عدا حسابات المالك والمدراء. المدير: الطلبات والزبائن والقطع والبائعين وتجار الجملة. المبيعات: الطلبات والزبائن لفرعهم.",
 "Welcome to Auto Engineer":"أهلاً بك في أوتو إنجنير",
@@ -221,6 +226,11 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Add margin to imported prices":"زیادکردنی قازانج بۆ نرخە هاوردەکراوەکان",
+"{n} new":"{n} نوێ",
+"{n} skipped (0400 / S)":"{n} تێپەڕێنران (0400 / S)",
+"{n} new part numbers skipped: no name":"{n} ژمارەی نوێ تێپەڕێنران: ناویان نییە",
+"No rows with a part number found":"هیچ ڕیزێک بە ژمارەی پارچە نەدۆزرایەوە",
 "Owner":"خاوەن",
 "Owner: everything, including adding and removing Admins. Admin: everything except Owner and Admin accounts. Manager: orders, customers, parts, sellers, wholesalers. Sales: orders and customers for their branch.":"خاوەن: هەموو دەسەڵاتێک، لەوانە زیادکردن و لابردنی ئەدمینەکان. ئەدمین: هەموو شتێک جگە لە هەژماری خاوەن و ئەدمینەکان. بەڕێوەبەر: داواکاری، کڕیار، پارچە، فرۆشیار و جوملەفرۆش. فرۆشتن: داواکاری و کڕیاری لقەکەی خۆیان.",
 "Welcome to Auto Engineer":"بەخێربێیت بۆ ئۆتۆ ئەندازیار",

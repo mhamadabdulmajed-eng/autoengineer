@@ -30,9 +30,10 @@ create index if not exists docs_parts_cat on public.docs ((data->>'category')) w
 -- q:    words typed by the customer (all must match)
 -- anyw: optional list of alternative words (any one must match), used by Find My Part quick buttons
 drop function if exists public.search_parts(text, text, text, int, text[], int, int);
+drop function if exists public.search_parts(text, text, text, int, text[], int, int, boolean);
 create or replace function public.search_parts(
   q text default '', cat text default '', model text default '', yr int default null,
-  anyw text[] default null, lim int default 60, off int default 0)
+  anyw text[] default null, lim int default 60, off int default 0, staff boolean default false)
 returns table(id text, data jsonb, total bigint)
 language sql stable security definer set search_path = public as $$
   with words as (
@@ -41,7 +42,8 @@ language sql stable security definer set search_path = public as $$
     select d.id, d.data, d.hay, d.pn
     from docs d
     where d.col = 'parts'
-      and coalesce((d.data->>'hidden')::boolean, false) = false
+      -- hidden parts: only staff see them (in Staff > Parts catalog)
+      and (coalesce((d.data->>'hidden')::boolean, false) = false or (staff and public.my_staff() is not null))
       and (coalesce(cat,'') = '' or d.data->>'category' = cat)
       and (coalesce(model,'') = '' or coalesce(d.data->>'modelId','') in ('', '*', model))
       and (yr is null or ((d.data->>'yearFrom') is null or (d.data->>'yearFrom')::int <= yr)
@@ -60,7 +62,7 @@ language sql stable security definer set search_path = public as $$
            length(p.data->>'name'), p.data->>'name'
   limit least(coalesce(lim,60), 500) offset coalesce(off,0)
 $$;
-grant execute on function public.search_parts(text, text, text, int, text[], int, int) to anon, authenticated;
+grant execute on function public.search_parts(text, text, text, int, text[], int, int, boolean) to anon, authenticated;
 
 -- count of parts (for the home page stats)
 create or replace function public.parts_count() returns bigint

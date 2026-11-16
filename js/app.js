@@ -393,7 +393,7 @@ const PartsAPI={
   remote(){return S.mode==='supabase'},
   local(o){const cp=window.commonPartOf?commonPartOf(o.q||''):null;const nq=s=>String(s||'').toLowerCase();
     const words=nq(o.q).trim().split(/\s+/).filter(Boolean);
-    let rows=Store.all('parts').filter(p=>{if(p.hidden||(p.make&&!/toyota/i.test(p.make)))return false;
+    let rows=Store.all('parts').filter(p=>{if((p.hidden&&!o.staff)||(p.make&&!/toyota/i.test(p.make)))return false;
       if(o.cat&&p.category!==o.cat)return false;
       if(o.model){const pm=modelIdOf(p.model);if(pm&&pm!=='*'&&pm!==o.model)return false}
       if(o.year){const y=+o.year;if(p.yearFrom&&y<p.yearFrom)return false;if(p.yearTo&&y>p.yearTo)return false}
@@ -404,7 +404,7 @@ const PartsAPI={
     return {rows:rows.slice(o.off||0,(o.off||0)+(o.lim||60)),total:rows.length}},
   async search(o){
     if(!this.remote())return this.local(o);
-    const {data,error}=await S.sb.rpc('search_parts',{q:o.q||'',cat:o.cat||'',model:o.model||'',yr:o.year?+o.year:null,anyw:o.anyw&&o.anyw.length?o.anyw:null,lim:o.lim||60,off:o.off||0});
+    const {data,error}=await S.sb.rpc('search_parts',{q:o.q||'',cat:o.cat||'',model:o.model||'',yr:o.year?+o.year:null,anyw:o.anyw&&o.anyw.length?o.anyw:null,lim:o.lim||60,off:o.off||0,staff:!!o.staff});
     if(error)throw error;(data||[]).forEach(r=>{S.data.parts[r.id]=r.data});
     return {rows:(data||[]).map(r=>({...r.data,id:r.id})),total:data&&data.length?+data[0].total:0}}
 };
@@ -778,10 +778,10 @@ function openCustomer(id){
 /* parts */
 function adminParts(){
   const body=$('#adminBody');
-  body.innerHTML=`<div class="toolbar">${searchBox(t('Search part number, name, model…'))}<button class="btn red" id="pAddB">+ ${t('Add part')}</button><label class="btn ghost" style="cursor:pointer">${t('Import Excel / CSV')}<input type="file" id="pImp" accept=".xlsx,.xls,.csv" hidden></label></div>
+  body.innerHTML=`<div class="toolbar">${searchBox(t('Search part number, name, model…'))}<button class="btn red" id="pAddB">+ ${t('Add part')}</button><label class="btn ghost" style="cursor:pointer">${t('Import Excel / CSV')}<input type="file" id="pImp" accept=".xlsx,.xls,.csv" hidden></label><label class="mini" style="display:flex;align-items:center;gap:6px">${t('Add margin to imported prices')} <input id="pMargin" type="number" min="0" max="300" value="20" style="width:70px" class="sel"> %</label></div>
     <p class="mini" style="margin:-6px 0 14px">${t('Import columns')}: <b class="ltr">PartNo, Name, NameAr, NameKu, Brand, Make, Model, YearFrom, YearTo, Category, Condition, RetailPrice, WholesalePrice, Stock</b>. ${t('Existing part numbers are updated. Leave prices empty to show “Price on request”.')}</p>
     <p class="mini" id="pCount" style="margin:0 0 8px"></p><div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Name')}</th><th>${t('Fits')}</th><th>${t('Category')}</th><th class="num">${t('Retail')}</th><th class="num">${t('Wholesale')}</th><th>${t('Stock')}</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div></div>`;
-  let pSeq=0;const draw=async()=>{const seq=++pSeq;let rows=[],total=0;try{const r=await PartsAPI.search({q:S.adminQ||'',lim:200});rows=r.rows;total=r.total}catch(e){}if(seq!==pSeq||!$('#pRows'))return;$('#pCount').textContent=total>rows.length?t('Showing {a} of {n} parts',{a:rows.length,n:total.toLocaleString('en')}):t('{n} parts',{n:total.toLocaleString('en')});
+  let pSeq=0;const draw=async()=>{const seq=++pSeq;let rows=[],total=0;try{const r=await PartsAPI.search({q:S.adminQ||'',lim:200,staff:true});rows=r.rows;total=r.total}catch(e){}if(seq!==pSeq||!$('#pRows'))return;$('#pCount').textContent=total>rows.length?t('Showing {a} of {n} parts',{a:rows.length,n:total.toLocaleString('en')}):t('{n} parts',{n:total.toLocaleString('en')});
     $('#pRows').innerHTML=rows.length?rows.map(p=>`<tr class="click" data-p="${esc(p.id)}"><td class="mini ltr"><b>${esc(p.partNo)}</b></td><td>${esc(pName(p))}${p.hidden?` <span class="mini">(${t('hidden')})</span>`:''}</td><td class="mini">${esc(fitText(p))}</td><td>${t(p.category||'')}</td><td class="num">${nz(p.retailPrice)?money(p.retailPrice):'—'}</td><td class="num">${nz(p.wholesalePrice)?money(p.wholesalePrice):'—'}</td><td class="mini">${t(p.stock||'')}</td><td>${can('delete')?`<button class="rm" data-pdel="${esc(p.id)}">${t('Delete')}</button>`:''}</td></tr>`).join(''):`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">${t('No parts yet. Add one or import your Excel list.')}</td></tr>`};
   let pT;const drawD=()=>{clearTimeout(pT);pT=setTimeout(draw,250)};draw();bindSearch(drawD);$('#pAddB').onclick=()=>openPart();
   $('#pRows').onclick=e=>{const d=e.target.closest('[data-pdel]');if(d){e.stopPropagation();confirmBox(t('Delete this part from the catalog?'),async()=>{await Store.del('parts',d.dataset.pdel).catch(()=>{});toast(t('Part deleted'))});return}const r=e.target.closest('[data-p]');if(r)openPart(r.dataset.p)};
@@ -802,23 +802,45 @@ function openPart(id,prefill){
     <button class="btn red block">${t('Save part')}</button></form><datalist id="makesL"><option value="Toyota"></datalist><datalist id="modelsL"><option value="All models">${(window.TOYOTA_MODELS||[]).map(m=>`<option value="${m.name}">`).join('')}</datalist></div>`);
   $('#pImg').onchange=async e=>{if(e.target.files[0]){img=await compressImg(e.target.files[0],700,.7);$('#pThumb').innerHTML=`<img src="${img}">`}};
   $('#pF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));const num=x=>x===''||x==null?null:Number(x);
-    const data={...fd,yearFrom:num(fd.yearFrom),yearTo:num(fd.yearTo),retailPrice:num(fd.retailPrice),wholesalePrice:num(fd.wholesalePrice),hidden:!!fd.hidden,image:img,updatedAt:Date.now(),createdAt:p.createdAt||Date.now()};const nid=id||partId(fd.partNo);
+    const data={...(id?p:{}),...fd,modelId:modelIdOf(fd.model||'')||'',yearFrom:num(fd.yearFrom),yearTo:num(fd.yearTo),retailPrice:num(fd.retailPrice),wholesalePrice:num(fd.wholesalePrice),hidden:!!fd.hidden,image:img,updatedAt:Date.now(),createdAt:p.createdAt||Date.now()};const nid=id||partId(fd.partNo);
     try{await Store.set('parts',nid,data);if(prefill&&prefill._sellId){const s=Store.get('sellRequests',prefill._sellId);if(s)await Store.set('sellRequests',s.id,{...s,status:'bought',listedPart:nid})}closeModal();toast(t('Part saved'))}catch(_){}};
 }
+// owner's part number rules: remove the leading T, dash after the 5th character
+function fmtPartNo(raw){let s=String(raw||'').trim().toUpperCase().replace(/\s+/g,'');if(!s.includes('-')){if(/^T[0-9A-Z]{9,}$/.test(s))s=s.slice(1);if(s.length>5)s=s.slice(0,5)+'-'+s.slice(5)}return s}
 async function importParts(file){
   if(!file)return;if(!window.XLSX){toast(t('Excel reader still loading. Try again in a moment.'));return}
+  const margin=Math.max(0,Number(($('#pMargin')||{}).value||0))||0;
   const wb=XLSX.read(await file.arrayBuffer());const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});const norm=s=>String(s).toLowerCase().replace(/[^a-z]/g,'');
-  const map={partno:'partNo',partnumber:'partNo',number:'partNo',pn:'partNo',name:'name',description:'name',partname:'name',namear:'nameAr',arabic:'nameAr',nameku:'nameKu',kurdish:'nameKu',brand:'brand',make:'make',model:'model',yearfrom:'yearFrom',from:'yearFrom',yearto:'yearTo',to:'yearTo',category:'category',condition:'condition',retailprice:'retailPrice',retail:'retailPrice',price:'retailPrice',wholesaleprice:'wholesalePrice',wholesale:'wholesalePrice',stock:'stock'};
-  const items=rows.map(r=>{const o={};Object.entries(r).forEach(([k,v])=>{const f=map[norm(k)];if(f)o[f]=typeof v==='string'?v.trim():v});return o}).filter(o=>o.partNo&&o.name);
-  if(!items.length){toast(t('No rows with PartNo and Name found'));return}
+  const map={partno:'partNo',partnumber:'partNo',number:'partNo',pn:'partNo',name:'name',description:'name',partname:'name',desc:'name',namear:'nameAr',arabic:'nameAr',nameku:'nameKu',kurdish:'nameKu',brand:'brand',make:'make',model:'model',yearfrom:'yearFrom',from:'yearFrom',yearto:'yearTo',to:'yearTo',category:'category',condition:'condition',retailprice:'retailPrice',retail:'retailPrice',price:'retailPrice',wholesaleprice:'wholesalePrice',wholesale:'wholesalePrice',stock:'stock',availability:'stock'};
+  let skipped=0;const seen=new Map();
+  rows.forEach(r=>{const o={};Object.entries(r).forEach(([k,v])=>{const f=map[norm(k)];if(f&&!(f in o))o[f]=typeof v==='string'?v.trim():v});
+    if(!o.partNo)return;o.partNo=fmtPartNo(o.partNo);
+    if(o.partNo.startsWith('0400')||/S$/.test(o.partNo)){skipped++;return}
+    seen.set(o.partNo,o)});
+  const items=[...seen.values()];
+  if(!items.length){toast(t('No rows with a part number found'));return}
   openModal(mHead(t('Importing parts'))+`<div class="modal-body"><p id="impP">0 / ${items.length}</p></div>`);
-  const num=x=>x===''||x==null?null:(Number(String(x).replace(/[^0-9.]/g,''))||null);let n=0;
-  if(S.mode==='supabase'){for(let i=0;i<items.length;i+=500){const batch=items.slice(i,i+500).map(it=>{const id=partId(it.partNo);const ex=Store.get('parts',id)||{};return {col:'parts',id,data:buildPart(it,ex,num)}});const {error}=await S.sb.from('docs').upsert(batch);if(error){toast(error.message);break}n+=batch.length;$('#impP').textContent=`${n} / ${items.length}`}Store.emit('parts')}
-  else for(const it of items){const id=partId(it.partNo);const ex=Store.get('parts',id)||{};try{await Store.set('parts',id,buildPart(it,ex,num))}catch(e){break}n++;if(n%10===0)$('#impP').textContent=`${n} / ${items.length}`}
-  closeModal();toast(t('Imported {n} parts',{n}));
+  const num=x=>x===''||x==null?null:(Number(String(x).replace(/[^0-9.]/g,''))||null);
+  const priced=x=>{const v=num(x);return v==null?null:(margin?Math.ceil(v*(1+margin/100)/250)*250:v)};
+  let n=0,added=0,noName=0;
+  if(S.mode==='supabase'){for(let i=0;i<items.length;i+=500){const chunk=items.slice(i,i+500);const ids=chunk.map(it=>partId(it.partNo));
+      // read the existing parts first, so names/translations not in the file are kept
+      const {data:exRows}=await S.sb.from('docs').select('id,data').eq('col','parts').in('id',ids);const exMap=Object.fromEntries((exRows||[]).map(r=>[r.id,r.data]));
+      const batch=chunk.map(it=>{const id=partId(it.partNo);return {col:'parts',id,isNew:!exMap[id],data:buildPart(it,exMap[id]||{},num,priced)}}).filter(r=>{if(!r.data.name){noName++;return false}if(r.isNew)added++;delete r.isNew;return true});
+      const {error}=await S.sb.from('docs').upsert(batch);if(error){toast(error.message);break}n+=batch.length;$('#impP').textContent=`${n} / ${items.length}`}Store.emit('parts')}
+  else for(const it of items){const id=partId(it.partNo);const ex=Store.get('parts',id)||{};const d=buildPart(it,ex,num,priced);if(!d.name){noName++;continue}if(!Store.get('parts',id))added++;try{await Store.set('parts',id,d)}catch(e){break}n++;if(n%10===0)$('#impP').textContent=`${n} / ${items.length}`}
+  closeModal();toast(t('Imported {n} parts',{n})+(added?` · ${t('{n} new',{n:added})}`:'')+(skipped?` · ${t('{n} skipped (0400 / S)',{n:skipped})}`:'')+(noName?` · ${t('{n} new part numbers skipped: no name',{n:noName})}`:''));
 }
-function buildPart(it,ex,num){const cat=CATS.find(([c])=>c.toLowerCase()===String(it.category||'').toLowerCase());const cond=CONDS.find(c=>c.toLowerCase()===String(it.condition||'').toLowerCase());
-  const mid=modelIdOf(it.model||ex.model||'');return {...ex,...it,modelId:mid||'',make:it.make||ex.make||'Toyota',category:cat?cat[0]:(ex.category||'Engine'),yearFrom:num(it.yearFrom),yearTo:num(it.yearTo),retailPrice:num(it.retailPrice),wholesalePrice:num(it.wholesalePrice),condition:cond||ex.condition||'Genuine',stock:STOCKS.find(s=>s.toLowerCase()===String(it.stock||'').toLowerCase())||ex.stock||'Ask',updatedAt:Date.now(),createdAt:ex.createdAt||Date.now()}}
+// only the columns that are in the file change; everything else (translations, photo…) is kept
+function buildPart(it,ex,num,priced){const has=k=>k in it;const val=k=>has(k)&&it[k]!==''&&it[k]!=null;
+  const cat=CATS.find(([c])=>c.toLowerCase()===String(it.category||'').toLowerCase());const cond=CONDS.find(c=>c.toLowerCase()===String(it.condition||'').toLowerCase());const stock=STOCKS.find(s=>s.toLowerCase()===String(it.stock||'').toLowerCase());
+  const d={...ex,partNo:it.partNo};['name','nameAr','nameKu','brand','make','model'].forEach(k=>{if(val(k))d[k]=String(it[k])});
+  if(!d.nameAr)d.nameAr=d.name;if(!d.nameKu)d.nameKu=d.name;
+  if(val('yearFrom'))d.yearFrom=num(it.yearFrom);if(val('yearTo'))d.yearTo=num(it.yearTo);
+  if(has('retailPrice'))d.retailPrice=(priced||num)(it.retailPrice);if(has('wholesalePrice'))d.wholesalePrice=num(it.wholesalePrice);
+  if(cat)d.category=cat[0];else if(!d.category)d.category='Engine';if(cond)d.condition=cond;else if(!d.condition)d.condition='Genuine';
+  if(stock)d.stock=stock;else if(!d.stock)d.stock='Ask';d.make=d.make||'Toyota';d.modelId=modelIdOf(d.model||'')||'';
+  d.updatedAt=Date.now();d.createdAt=ex.createdAt||Date.now();return d}
 
 /* sell requests */
 function adminSell(){
