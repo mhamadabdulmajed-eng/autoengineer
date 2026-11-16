@@ -34,8 +34,8 @@ const stl=s=>t(STATUS_LABEL[s]||s);
 const CONDS=['Genuine','Aftermarket','Used'];
 const STOCKS=['In stock','On order','Ask','Out of stock'];
 const PAY_METHODS=['Cash','Bank transfer','FIB','ZainCash','Card','Other'];
-const ROLES={admin:'Admin',manager:'Manager',sales:'Sales'};
-const PERMS={admin:['orders','customers','parts','sell','wholesalers','staff','settings','delete'],manager:['orders','customers','parts','sell','wholesalers','delete'],sales:['orders','customers','sell']};
+const ROLES={owner:'Owner',admin:'Admin',manager:'Manager',sales:'Sales'};
+const PERMS={owner:['orders','customers','parts','sell','wholesalers','staff','settings','delete','owners'],admin:['orders','customers','parts','sell','wholesalers','staff','settings','delete'],manager:['orders','customers','parts','sell','wholesalers','delete'],sales:['orders','customers','sell']};
 const DEFAULT_SETTINGS={company:'Auto Engineer',tagline:'Toyota Spare Parts',phone:'',whatsapp:'',email:'',address:'',currency:'IQD',quoteValidity:7,invoiceNote:'Thank you for your business.',quoteNote:'Prices are valid for the period shown. Availability is confirmed at the time of order.',branches:[],logo:''};
 
 /* sample data — only used in local preview (no database) */
@@ -102,13 +102,13 @@ async function initStore(){
     let owner=false,editor=false;try{owner=!!(user&&await user.isOwner());editor=!!(user&&await user.canEdit())}catch(e){}
     try{const me=user&&await user.me();S.me=me&&me.email?String(me.email).toLowerCase():null}catch(e){}
     try{const cw=user?await user.can('data.write'):null;if(cw===false)S.canWrite=false}catch(e){}
-    S.admin=owner||editor;S.role=owner?'admin':'manager';
+    S.admin=owner||editor;S.role=owner?'owner':'manager';
     const timer=setTimeout(()=>{if(!S.loaded.parts)toast(t('Still connecting…'))},10000);
     COLS.forEach(col=>{db.collection(col).onSnapshot(snap=>{const o={};snap.docs.forEach(d=>{o[d.id]=d.data()});S.data[col]=o;
       if(!snap.metadata.fromCache||Object.keys(o).length){S.loaded[col]=true;if(col==='parts')clearTimeout(timer)}
       if(col==='staff')applyStaffRole(owner);Store.emit(col)},()=>{S.loaded[col]=true;Store.emit(col)})});
   }else{
-    S.mode='local';S.admin=true;S.role='admin';
+    S.mode='local';S.admin=true;S.role='owner';
     COLS.forEach(c=>{S.data[c]=ls('ae:data:'+c)||{};S.loaded[c]=true});
     if(!Object.keys(S.data.parts).length&&!ls('ae:seeded')){SAMPLE_PARTS.forEach(p=>{S.data.parts[partId(p.partNo)]={...p,createdAt:Date.now()}});ls('ae:data:parts',S.data.parts);ls('ae:seeded',true)}
     const b=$('#modeBanner');b.textContent=t('Preview mode: data is saved in this browser only');b.classList.remove('hidden');setTimeout(()=>b.classList.add('hidden'),7000);
@@ -856,11 +856,12 @@ function adminWs(){
 /* staff */
 function adminStaff(){
   const body=$('#adminBody');
+  const isOwner=can('owners');const giveable=Object.keys(ROLES).filter(r=>isOwner||(r!=='owner'&&r!=='admin'));const locked=s=>!isOwner&&(s.role==='owner'||s.role==='admin');
   body.innerHTML=`<div class="panel" style="margin-bottom:16px"><h3>${t('Add a staff member')}</h3><p class="sub">${S.mode==='supabase'?t('Add their email here, then they open Staff on the website, choose “Create your password” and sign in.'):t('On the shared version, also share the page with them as an Editor. Their email decides their role.')}</p>
-    <form id="stF"><div class="row3"><div class="f"><label>${t('Name')}</label><input name="name" required></div><div class="f"><label>${t('Email')}</label><input name="email" type="email" required dir="ltr"></div><div class="f"><label>${t('Role')}</label><select name="role">${Object.keys(ROLES).map(r=>`<option value="${r}">${t(ROLES[r])}</option>`).join('')}</select></div></div>
+    <form id="stF"><div class="row3"><div class="f"><label>${t('Name')}</label><input name="name" required></div><div class="f"><label>${t('Email')}</label><input name="email" type="email" required dir="ltr"></div><div class="f"><label>${t('Role')}</label><select name="role">${giveable.slice().reverse().map(r=>`<option value="${r}">${t(ROLES[r])}</option>`).join('')}</select></div></div>
     <div class="row2"><div class="f"><label>${t('Branch')}</label><select name="branch"><option value="">${t('All branches')}</option>${branches().map(b=>`<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('')}</select></div><div class="f"><label>&nbsp;</label><button class="btn red">${t('Add staff member')}</button></div></div></form>
-    <p class="mini">${t('Admin: everything. Manager: orders, customers, parts, sellers, wholesalers. Sales: orders and customers for their branch.')}</p></div>
-    <div class="panel" style="padding:8px"><table class="tbl"><thead><tr><th>${t('Name')}</th><th>${t('Email')}</th><th>${t('Role')}</th><th>${t('Branch')}</th><th>${t('Status')}</th><th></th></tr></thead><tbody>${Store.all('staff').map(s=>`<tr><td><b>${esc(s.name)}</b></td><td class="ltr">${esc(s.id)}</td><td><select class="sel" data-sr="${esc(s.id)}">${Object.keys(ROLES).map(r=>`<option value="${r}" ${s.role===r?'selected':''}>${t(ROLES[r])}</option>`).join('')}</select></td><td><select class="sel" data-sb="${esc(s.id)}"><option value="">${t('All branches')}</option>${branches().map(b=>`<option value="${esc(b.id)}" ${s.branch===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></td><td><span class="st ${s.active===false?'rejected':'approved'}">${s.active===false?t('Disabled'):t('Active')}</span></td><td>${s.id!==S.me?`<button class="btn sm ghost" data-st="${esc(s.id)}">${s.active===false?t('Enable'):t('Disable')}</button>`:''}</td></tr>`).join('')||`<tr><td colspan="6" class="mini" style="padding:20px;text-align:center">${t('No staff added yet.')}</td></tr>`}</tbody></table></div>`;
+    <p class="mini">${t('Owner: everything, including adding and removing Admins. Admin: everything except Owner and Admin accounts. Manager: orders, customers, parts, sellers, wholesalers. Sales: orders and customers for their branch.')}</p></div>
+    <div class="panel" style="padding:8px"><table class="tbl"><thead><tr><th>${t('Name')}</th><th>${t('Email')}</th><th>${t('Role')}</th><th>${t('Branch')}</th><th>${t('Status')}</th><th></th></tr></thead><tbody>${Store.all('staff').sort((a,b)=>Object.keys(ROLES).indexOf(a.role)-Object.keys(ROLES).indexOf(b.role)).map(s=>`<tr><td><b>${esc(s.name)}</b></td><td class="ltr">${esc(s.id)}</td><td>${locked(s)||s.id===S.me?`<b>${t(ROLES[s.role]||s.role)}</b>`:`<select class="sel" data-sr="${esc(s.id)}">${giveable.map(r=>`<option value="${r}" ${s.role===r?'selected':''}>${t(ROLES[r])}</option>`).join('')}</select>`}</td><td>${locked(s)?esc((branches().find(b=>b.id===s.branch)||{}).name||t('All branches')):`<select class="sel" data-sb="${esc(s.id)}"><option value="">${t('All branches')}</option>${branches().map(b=>`<option value="${esc(b.id)}" ${s.branch===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`}</td><td><span class="st ${s.active===false?'rejected':'approved'}">${s.active===false?t('Disabled'):t('Active')}</span></td><td>${s.id!==S.me&&!locked(s)?`<button class="btn sm ghost" data-st="${esc(s.id)}">${s.active===false?t('Enable'):t('Disable')}</button>`:''}</td></tr>`).join('')||`<tr><td colspan="6" class="mini" style="padding:20px;text-align:center">${t('No staff added yet.')}</td></tr>`}</tbody></table></div>`;
   $('#stF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));const id=fd.email.trim().toLowerCase();try{await Store.set('staff',id,{name:fd.name,role:fd.role,branch:fd.branch,active:true,addedAt:Date.now()});toast(t('Staff member added'))}catch(_){}};
   body.onchange=async e=>{const el=e.target;const id=el.dataset.sr||el.dataset.sb;if(!id)return;const s=Store.get('staff',id);if(el.dataset.sr)s.role=el.value;else s.branch=el.value;try{await Store.set('staff',id,s);toast(t('Updated'))}catch(_){}};
   body.onclick=async e=>{const b=e.target.closest('[data-st]');if(!b)return;const s=Store.get('staff',b.dataset.st);s.active=s.active===false;try{await Store.set('staff',s.id,s)}catch(_){}};
