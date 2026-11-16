@@ -90,6 +90,15 @@ def translate(desc):
     ku = ' '.join(w + ('ی' if j < len(kuw) - 1 and not w.endswith('ی') else '') for j, w in enumerate(kuw))
     return ar.strip() or None, ku.strip() or None
 
+def pad_fix(ar, ku):
+    # brake pads are "فحمات" / "پاتی", not "لبادة" / "پاد" (a rubber pad)
+    import re as _re
+    if ar and _re.search('(لبادة بريك|طقم لبادة ديسك|تآكل لبادة|ساند لبادة)', ar):
+        for a, b in (('لبادة بريك', 'فحمات بريك'), ('طقم لبادة ديسك', 'طقم فحمات ديسك'), ('تآكل لبادة', 'تآكل فحمات'), ('ساند لبادة', 'ساند فحمات')):
+            ar = ar.replace(a, b)
+        ku = _re.sub('پاد(ی?)', r'پات\1', ku or '')
+    return ar, ku
+
 def english(desc):
     toks, _ = tokens(desc)
     groups = collections.defaultdict(list)
@@ -135,6 +144,7 @@ for pn, (desc, pr) in best.items():
     if no.endswith('S'): continue        # owner's rule: part numbers ending with S carry wholesale prices (added later)
     if desc.upper().strip() == pn.upper() or not desc: desc = ''
     ar, ku = translate(desc) if desc else (None, None)
+    ar, ku = pad_fix(ar, ku)
     name = english(desc) if desc else no
     pid = part_id(no)
     if pid in seen_ids: continue

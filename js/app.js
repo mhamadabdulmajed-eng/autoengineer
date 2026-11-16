@@ -184,7 +184,7 @@ $('#langBtn').onclick=e=>{e.stopPropagation();const m=$('#langMenu');m.classList
 $('#langMenu').onclick=e=>{const b=e.target.closest('[data-l]');if(b){$('#langMenu').classList.add('hidden');setLang(b.dataset.l)}};
 document.addEventListener('click',()=>$('#langMenu').classList.add('hidden'));
 function showLangPicker(){const el=document.createElement('div');el.className='langpick';
-  el.innerHTML=`<div class="brand"><span class="brand-mark">AE</span>AUTO ENGINEER</div><h2>زمانێک هەڵبژێرە · اختر اللغة · Choose your language</h2><div class="opts">${['ku','ar','en'].map(k=>`<button data-l="${k}"><b>${LANGS[k].native}</b><span>${LANGS[k].name}</span></button>`).join('')}</div>`;
+  el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>AUTO ENGINEER</div><h2>زمانێک هەڵبژێرە · اختر اللغة · Choose your language</h2><div class="opts">${['ku','ar','en'].map(k=>`<button data-l="${k}"><b>${LANGS[k].native}</b><span>${LANGS[k].name}</span></button>`).join('')}</div>`;
   el.onclick=e=>{const b=e.target.closest('[data-l]');if(!b)return;setLang(b.dataset.l);el.remove();if(needsPhone())showPhoneGate()};document.body.appendChild(el)}
 
 /* ================= HOME ================= */
@@ -223,7 +223,7 @@ function buildHome(){
   <div class="dark-zone"><section class="statement"><p id="statement">${stmtHtml}</p></section>
     <div class="stats">${[[M.length,'','Toyota models covered'],[4,'','Fields to place an order'],[10,'','Part categories'],[24,'h','Target reply time (hours)']].map(([n,s,l])=>`<div class="stat"><b data-count="${n}" data-suffix="${s}">0</b><span>${t(l)}</span></div>`).join('')}</div></div>
   <section class="cta"><h2>${t('Find your part today')}</h2><div class="btns"><a class="btn-w" href="#shop">${t('Browse parts')}</a><a class="btn-o" href="#wholesale">${t('Wholesale account')}</a></div></section>
-  <footer><div class="foot"><div><div class="brand"><span class="brand-mark">AE</span>${t('AUTO ENGINEER')}</div><div style="opacity:.7;margin:-4px 0 10px">${t('Toyota spare parts specialist')}</div><div id="footContact" style="line-height:1.8"></div></div>
+  <footer><div class="foot"><div><div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>${t('AUTO ENGINEER')}</div><div style="opacity:.7;margin:-4px 0 10px">${t('Toyota spare parts specialist')}</div><div id="footContact" style="line-height:1.8"></div></div>
     <div><a href="#shop">${t('Retail room')}</a><a href="#wholesale">${t('Wholesale room')}</a><a href="#sell">${t('Sell your parts')}</a><a href="#track">${t('Track order')}</a><a href="#terms">${t('Terms & privacy')}</a></div>
     <div id="footBranches" style="line-height:1.8"></div></div>
     <div class="foot" style="margin-top:36px;font-size:12px;opacity:.6"><span>© ${new Date().getFullYear()} ${t('Auto Engineer')}. ${t('All rights reserved.')} ${t('Toyota and model names are trademarks of Toyota Motor Corporation.')}</span></div></footer>`;
@@ -375,7 +375,7 @@ const Visitor={
 function showPhoneGate(){
   if(Visitor.get()||$('.phonegate'))return;
   const el=document.createElement('div');el.className='langpick phonegate';
-  el.innerHTML=`<div class="brand"><span class="brand-mark">AE</span>AUTO ENGINEER</div>
+  el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>AUTO ENGINEER</div>
     <div class="pg-box"><h2>${t('Welcome to Auto Engineer')}</h2><p>${t('Enter your mobile number to see genuine Toyota parts and prices.')}</p>
     <form class="pg-form" novalidate><input name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" placeholder="0750 123 4567" required><button class="btn red">${t('Continue')} →</button></form>
     <p class="pg-err hidden">${t('Please enter a valid mobile number, for example 0750 123 4567.')}</p>
@@ -908,7 +908,7 @@ function adminSettings(){
   let logo=s.logo||'';$('#logoIn').onchange=async e=>{if(e.target.files[0]){logo=await compressImg(e.target.files[0],500,.85);$('#logoTh').innerHTML=`<img src="${logo}" style="object-fit:contain;background:#fff">`}};
   $('#setF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));try{await Store.set('config','settings',{...fd,quoteValidity:+fd.quoteValidity||7,logo,branches:brs.filter(b=>b.name)});toast(t('Settings saved'))}catch(_){}};
 }
-function applyLogo(){const s=settings();$$('.brand-mark').forEach(m=>{m.innerHTML=s.logo?`<img src="${esc(s.logo)}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;background:#fff">`:'AE'})}
+function applyLogo(){const s=settings();$$('.brand-mark').forEach(m=>{m.innerHTML=s.logo?`<img src="${esc(s.logo)}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;background:#fff">`:'<img src="img/logo-mark.svg" alt="">'})}
 
 /* ================= PDF (quotation / invoice / credit note) ================= */
 function docHtml(o,kind,cn){
@@ -925,7 +925,7 @@ function docHtml(o,kind,cn){
     if(kind==='invoice'&&(x.paid||x.credit))tot+=(x.credit?row(T('Credit notes'),'−'+money(x.credit,L)):'')+row(T('Paid'),money(x.paid,L))+row(T('Balance due'),money(Math.max(0,x.balance),L),1)}
   return `<div class="doc" dir="${rtl?'rtl':'ltr'}" style="width:794px;min-height:1123px;padding:56px 56px 60px;font-family:${fontB};color:#101318;background:#fff;font-size:12px;position:relative;text-align:${st}">
    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #101318;padding-bottom:20px">
-     <div style="display:flex;gap:14px;align-items:center">${s.logo?`<img src="${s.logo}" style="width:64px;height:64px;object-fit:contain">`:`<div style="width:56px;height:56px;border-radius:12px;background:#FF3B1F;color:#fff;display:flex;align-items:center;justify-content:center;font-family:Archivo,Inter,sans-serif;font-weight:800;font-size:20px">AE</div>`}
+     <div style="display:flex;gap:14px;align-items:center">${`<img src="${s.logo||(location.origin+'/img/logo-mark.png')}" style="width:64px;height:64px;object-fit:contain">`}
        <div><div style="font-family:${fontD};font-weight:800;font-size:22px;text-transform:uppercase">${esc(s.company)}</div><div style="color:#69717C">${esc(T(s.tagline))}</div><div style="color:#69717C;margin-top:4px;line-height:1.6">${[s.address,s.phone&&(T('Phone')+': <span dir="ltr">'+esc(s.phone)+'</span>'),s.whatsapp&&('WhatsApp: <span dir="ltr">'+esc(s.whatsapp)+'</span>'),s.email].filter(Boolean).map(z=>z.includes('<span')?z:esc(z)).join('<br>')}</div></div></div>
      <div style="text-align:${al}"><div style="font-family:${fontD};font-weight:900;font-size:32px;color:${kind==='invoice'?'#FF3B1F':kind==='credit'?'#18A35A':'#101318'};text-transform:uppercase;line-height:1.1">${T(title)}</div>
        <table style="margin-${rtl?'right':'left'}:auto;margin-top:10px;font-size:12px"><tr><td style="color:#69717C;padding:2px 10px">${T('No.')}</td><td style="font-weight:700" dir="ltr">${esc(no)}</td></tr><tr><td style="color:#69717C;padding:2px 10px">${T('Date')}</td><td>${dateStr(dt,L)}</td></tr>${valid?`<tr><td style="color:#69717C;padding:2px 10px">${T('Valid until')}</td><td>${dateStr(valid,L)}</td></tr>`:''}${kind==='credit'?`<tr><td style="color:#69717C;padding:2px 10px">${T('Invoice')}</td><td dir="ltr">${esc(o.invoiceNo)}</td></tr>`:''}<tr><td style="color:#69717C;padding:2px 10px">${T('Order')}</td><td dir="ltr">${esc(o.no)}</td></tr></table></div></div>
