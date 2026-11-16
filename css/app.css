@@ -537,3 +537,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:56px clamp(16px,
 .mt-art{width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden}
 .mt-art .carsvg{height:100%}
 @media(max-width:560px){.mtiles{grid-template-columns:repeat(3,1fr);gap:8px}.mtile{border-radius:12px;padding:6px}.mtile b{font-size:11px}.models-sec{padding:44px 14px 36px}}
+
+/* search boxes are white: always show dark text (it was white-on-white inside the dark Retail header) */
+.searchbar input{color:#101318;-webkit-text-fill-color:#101318;caret-color:var(--red)}
+.searchbar input::placeholder{color:#8a919a;-webkit-text-fill-color:#8a919a;opacity:1}
