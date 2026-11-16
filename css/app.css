@@ -541,3 +541,21 @@ footer{background:var(--ink);color:rgba(255,255,255,.6);padding:56px clamp(16px,
 /* search boxes are white: always show dark text (it was white-on-white inside the dark Retail header) */
 .searchbar input{color:#101318;-webkit-text-fill-color:#101318;caret-color:var(--red)}
 .searchbar input::placeholder{color:#8a919a;-webkit-text-fill-color:#8a919a;opacity:1}
+
+/* phone step after choosing a language */
+.phonegate .pg-box{max-width:460px;width:100%}
+.phonegate h2{font-size:26px;opacity:1;color:#fff;margin-bottom:8px}
+.phonegate p{color:rgba(255,255,255,.7);line-height:1.6}
+.pg-form{display:flex;gap:10px;margin:22px 0 10px;background:#fff;border-radius:16px;padding:8px}
+.pg-form input{flex:1;min-width:0;border:0;outline:0;font-size:20px;padding:10px 14px;color:#101318;-webkit-text-fill-color:#101318;background:transparent;letter-spacing:.5px}
+.pg-form input::placeholder{color:#9aa1a9;-webkit-text-fill-color:#9aa1a9}
+.pg-form .btn{white-space:nowrap}
+.pg-err{color:#ff8a75!important;font-size:14px}
+.pg-note{font-size:13px;opacity:.75}
+@media(max-width:480px){.pg-form{flex-direction:column}.pg-form .btn{width:100%}}
+/* staff › visitors */
+.vst{display:inline-block;padding:3px 9px;border-radius:99px;font-size:12px;font-weight:700}
+.vst.new{background:#ffe3dd;color:#c4200b}.vst.cust{background:#dcf5e6;color:#11753d}.vst.vis{background:#eef0f3;color:#55606b}
+.vq{display:inline-block;background:#f2f3f5;border-radius:8px;padding:2px 8px;margin:2px 2px 2px 0;font-size:12.5px}
+.vq.miss{background:#fff1d6;color:#8a5a00}
+a.btn{text-decoration:none}

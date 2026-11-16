@@ -73,7 +73,7 @@ async function fpSearch(F){
 let fpSeq=0, fpT=null;
 function fpRefresh(delay){
   clearTimeout(fpT);
-  fpT=setTimeout(async()=>{const seq=++fpSeq;const res=await fpSearch(FP);if(seq!==fpSeq||!$('#fpRes'))return;$('#fpRes').innerHTML=fpResults(res,commonPartOf(FP.q))},delay||0);
+  fpT=setTimeout(async()=>{const seq=++fpSeq;const res=await fpSearch(FP);if(seq!==fpSeq||!$('#fpRes'))return;{const cp=commonPartOf(FP.q);const lbl=[FP.q||(cp&&cpName(cp))||FP.cat||'',FP.model&&modelById(FP.model)?'('+modelById(FP.model).name+(FP.year?' '+FP.year:'')+')':''].join(' ').trim();if(FP.q||FP.cat)Visitor.search(lbl,res.length,'find')}$('#fpRes').innerHTML=fpResults(res,commonPartOf(FP.q))},delay||0);
 }
 
 let FP = null;

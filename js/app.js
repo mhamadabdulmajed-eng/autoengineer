@@ -185,7 +185,7 @@ $('#langMenu').onclick=e=>{const b=e.target.closest('[data-l]');if(b){$('#langMe
 document.addEventListener('click',()=>$('#langMenu').classList.add('hidden'));
 function showLangPicker(){const el=document.createElement('div');el.className='langpick';
   el.innerHTML=`<div class="brand"><span class="brand-mark">AE</span>AUTO ENGINEER</div><h2>زمانێک هەڵبژێرە · اختر اللغة · Choose your language</h2><div class="opts">${['ku','ar','en'].map(k=>`<button data-l="${k}"><b>${LANGS[k].native}</b><span>${LANGS[k].name}</span></button>`).join('')}</div>`;
-  el.onclick=e=>{const b=e.target.closest('[data-l]');if(!b)return;setLang(b.dataset.l);el.remove()};document.body.appendChild(el)}
+  el.onclick=e=>{const b=e.target.closest('[data-l]');if(!b)return;setLang(b.dataset.l);el.remove();if(needsPhone())showPhoneGate()};document.body.appendChild(el)}
 
 /* ================= HOME ================= */
 let mm=null;
@@ -315,7 +315,7 @@ function renderShop(fromData){
 }
 /* the big model backdrop at the top of the shop: changes with the chosen Toyota */
 let stageCur=null;
-function setStage(id){
+function setStage(id){if(id&&window.modelById&&modelById(id))Visitor.search(modelById(id).name,0,'model');
   const bg=$('#stageBg'),nm=$('#stageName');if(!bg)return;
   if(stageCur===id&&bg.childElementCount)return;stageCur=id;
   const m=modelById(id);
@@ -356,6 +356,38 @@ function matches(p){const f=S.f;
     return hay.includes(w)||(wn.length>2&&hayNo.includes(wn))})}
 const pName=p=>(LANG==='ar'&&p.nameAr)||(LANG==='ku'&&p.nameKu)||p.name;
 function fitText(p){const yrs=p.yearFrom||p.yearTo?` ${p.yearFrom||''}–${p.yearTo||''}`:'';const pm=modelIdOf(p.model);const mn=(pm==='*'||!pm)?t('All models'):(modelById(pm)?.name||p.model||'');return ('Toyota '+mn).trim()+yrs}
+/* ---------- visitors: phone number on first visit + what they search ---------- */
+const Visitor={
+  get(){return ls('ae:visitor')},
+  valid(raw,pk){return /^9647\d{9}$/.test(pk)||(/^\s*(\+|00)/.test(raw)&&/^\d{10,15}$/.test(pk))},
+  async visit(){const v=this.get();if(!v||S.admin)return;try{
+    if(S.mode==='supabase'){await S.sb.rpc('track_visit',{pk:v.pk,phone:v.phone,lang:LANG||'',ua:navigator.userAgent})}
+    else{const id='v_'+v.pk,ex=Store.get('visitors',id),now=Date.now();
+      await Store.set('visitors',id,{...(ex||{phone:v.phone,phoneKey:v.pk,firstAt:now,visits:0,searches:[],searchCount:0}),lastAt:now,lang:LANG,device:navigator.userAgent.slice(0,160),visits:ex?(ex.visits||0)+(now-(ex.lastAt||0)>18e5?1:0):1})}
+  }catch(e){}},
+  logT:null,last:'',
+  search(q,n,kind){const v=this.get();q=String(q||'').trim();if(!v||q.length<2||S.admin)return;clearTimeout(this.logT);
+    this.logT=setTimeout(async()=>{const key=kind+':'+q;if(key===this.last)return;this.last=key;try{
+      if(S.mode==='supabase')await S.sb.rpc('track_search',{pk:v.pk,q,n:n||0,kind:kind||'search'});
+      else{const id='v_'+v.pk,ex=Store.get('visitors',id);if(ex)await Store.set('visitors',id,{...ex,lastAt:Date.now(),searchCount:(ex.searchCount||0)+1,searches:[{q,n:n||0,k:kind||'search',at:Date.now()},...(ex.searches||[])].slice(0,100)})}
+    }catch(e){}},1500)}
+};
+function showPhoneGate(){
+  if(Visitor.get()||$('.phonegate'))return;
+  const el=document.createElement('div');el.className='langpick phonegate';
+  el.innerHTML=`<div class="brand"><span class="brand-mark">AE</span>AUTO ENGINEER</div>
+    <div class="pg-box"><h2>${t('Welcome to Auto Engineer')}</h2><p>${t('Enter your mobile number to see genuine Toyota parts and prices.')}</p>
+    <form class="pg-form" novalidate><input name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" placeholder="0750 123 4567" required><button class="btn red">${t('Continue')} →</button></form>
+    <p class="pg-err hidden">${t('Please enter a valid mobile number, for example 0750 123 4567.')}</p>
+    <p class="pg-note">${t('We use your number only to send you prices, offers and order updates.')}</p></div>`;
+  document.body.appendChild(el);const f=el.querySelector('form');setTimeout(()=>f.phone.focus(),50);
+  f.onsubmit=e=>{e.preventDefault();const raw=f.phone.value.trim(),pk=phoneKey(raw);
+    if(!Visitor.valid(raw,pk)){el.querySelector('.pg-err').classList.remove('hidden');f.phone.focus();return}
+    ls('ae:visitor',{phone:raw,pk,at:Date.now()});ls('ae:me',{...(ls('ae:me')||{}),phone:raw});
+    el.remove();storeReady.then(()=>Visitor.visit())};
+}
+const needsPhone=()=>!Visitor.get()&&!/^#admin/.test(location.hash);
+
 /* ---------- parts search: on the server for the live site, in the browser for preview ---------- */
 const PartsAPI={
   remote(){return S.mode==='supabase'},
@@ -392,6 +424,7 @@ async function drawResults(more){
   if(!more){S.resAlt=null;const alt=o.q&&!res.total?shopQuery(o.q):null;if(alt){try{const r2=await PartsAPI.search({...o,...alt});if(r2.total){res=r2;S.resAlt=alt}}catch(e){}}}
   if(seq!==resSeq)return;
   let list=res.rows;if(S.f.cond)list=list.filter(p=>p.condition===S.f.cond);
+  if(!more&&o.q)Visitor.search(o.q,res.total,'search');
   S.resRows=more?S.resRows.concat(list):list;S.resTotal=res.total;list=S.resRows;
   $('#resCount').textContent=res.total>list.length?t('Showing {a} of {n} parts',{a:list.length,n:res.total.toLocaleString('en')}):t('{n} parts',{n:res.total.toLocaleString('en')});
   if(!list.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><h3>${t('No parts found')}</h3><p>${t('Try another search, or send us a request and we’ll find it for you.')}</p><br><button class="btn red" id="reqBtn2">${t('Find my part')}</button></div>`;$('#reqBtn2').onclick=()=>openFindPart({model:S.f.model||'',q:S.q});return}
@@ -563,7 +596,7 @@ function renderAdmin(fromData){
   if(!S.admin){if(S.mode==='supabase'){if(!fromData||!$('#loginF'))renderLogin(page)}else page.innerHTML=`<div class="lock panel"><h3>${t('Staff only')}</h3><p class="sub">${t('This area is for the Auto Engineer team. Ask the owner to give you access.')}</p><a class="btn" href="#home">${t('Back to home')}</a></div>`;return}
   if(S.seenOrders===null)S.seenOrders=new Set(Object.keys(S.data.orders||{}));
   const orders=visibleOrders(),sells=Store.all('sellRequests'),wss=Store.all('wholesalers');
-  const tabs=[['orders','Orders',orders.filter(o=>o.status==='new'||o.status==='accepted').length,'orders'],['customers','Customers',0,'customers'],['parts','Parts catalog',0,'parts'],['sell','Sell requests',sells.filter(s=>s.status==='new').length,'sell'],['wholesalers','Wholesalers',wss.filter(w=>w.status==='pending').length,'wholesalers'],['staff','Staff',0,'staff'],['settings','Settings',0,'settings']].filter(x=>can(x[3]));
+  const tabs=[['orders','Orders',orders.filter(o=>o.status==='new'||o.status==='accepted').length,'orders'],['customers','Customers',0,'customers'],['visitors','Visitors',Store.all('visitors').filter(v=>Date.now()-(v.firstAt||0)<864e5).length,'customers'],['parts','Parts catalog',0,'parts'],['sell','Sell requests',sells.filter(s=>s.status==='new').length,'sell'],['wholesalers','Wholesalers',wss.filter(w=>w.status==='pending').length,'wholesalers'],['staff','Staff',0,'staff'],['settings','Settings',0,'settings']].filter(x=>can(x[3]));
   if(!tabs.find(x=>x[0]===S.adminTab))S.adminTab=tabs[0][0];
   const focused=document.activeElement&&document.activeElement.id==='adminSearch';
   const who=S.staff?`${esc(S.staff.name||S.me)} · ${t(ROLES[S.role])}${S.staff.branch?' · '+esc((branches().find(b=>b.id===S.staff.branch)||{}).name||''):''}`:t(ROLES[S.role]||'Admin');
@@ -571,7 +604,7 @@ function renderAdmin(fromData){
     <div class="tabs">${tabs.map(([k,l,n])=>`<button data-tab="${k}" class="${S.adminTab===k?'on':''}">${t(l)}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div><div id="adminBody"></div>`;
   $('.tabs').onclick=e=>{const b=e.target.closest('[data-tab]');if(b){S.adminTab=b.dataset.tab;S.adminQ='';renderAdmin()}};
   if($('#logout'))$('#logout').onclick=async()=>{await S.sb.auth.signOut();location.hash='home'};
-  ({orders:adminOrders,customers:adminCustomers,parts:adminParts,sell:adminSell,wholesalers:adminWs,staff:adminStaff,settings:adminSettings})[S.adminTab]();
+  ({orders:adminOrders,customers:adminCustomers,visitors:adminVisitors,parts:adminParts,sell:adminSell,wholesalers:adminWs,staff:adminStaff,settings:adminSettings})[S.adminTab]();
   if(focused&&$('#adminSearch')){const i=$('#adminSearch');i.focus();i.setSelectionRange(i.value.length,i.value.length)}
 }
 function renderLogin(page){
@@ -697,6 +730,33 @@ function adminCustomers(){
     const rows=Store.all('customers').filter(c=>(!ty||c.type===ty)&&(!q||[c.name,c.phone,c.location,c.company].join(' ').toLowerCase().includes(q))).map(c=>({...c,...custStats(c.phoneKey)})).filter(c=>!ow||c.owed>0).sort((a,b)=>(b.lastAt||0)-(a.lastAt||0));
     $('#cRows').innerHTML=rows.length?rows.map(c=>`<tr class="click" data-c="${esc(c.id)}"><td><b>${esc(c.name)}</b>${c.company?` · ${esc(c.company)}`:''}<br><span class="mini ltr">${esc(c.phone)}</span></td><td>${esc(c.location)}</td><td><span class="room-tag ${c.type==='wholesale'?'ws':''}">${t(c.type==='wholesale'?'Wholesale':'Retail')}</span></td><td class="num">${c.os.length}</td><td class="num">${money(c.spent)}</td><td class="num" style="${c.owed?'color:var(--red2);font-weight:700':''}">${c.owed?money(c.owed):'—'}</td><td>${dateStr(c.lastAt)}</td></tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">${t('Customers are created automatically when they place an order.')}</td></tr>`};
   draw();bindSearch(draw);$('#cT').onchange=draw;$('#cO').onchange=draw;$('#cRows').onclick=e=>{const r=e.target.closest('[data-c]');if(r)openCustomer(r.dataset.c)};
+}
+function visitorStatus(v){const c=Store.get('customers','c_'+v.phoneKey);if(c)return ['cust',t('Customer')];if(Date.now()-(v.firstAt||0)<864e5)return ['new',t('New')];return ['vis',t('Visitor')]}
+const kindLbl=k=>({search:t('Search'),find:t('Find my part'),model:t('Car model')})[k]||t('Search');
+function adminVisitors(){
+  const body=$('#adminBody');
+  body.innerHTML=`<div class="toolbar">${searchBox(t('Search phone or searched part…'))}<select class="sel" id="vF"><option value="">${t('All visitors')}</option><option value="new">${t('New (last 24 hours)')}</option><option value="noorder">${t('Not ordered yet')}</option><option value="miss">${t('Searched and found nothing')}</option></select></div>
+    <p class="mini" id="vCount" style="margin:0 0 8px"></p>
+    <div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Phone')}</th><th>${t('Status')}</th><th>${t('First visit')}</th><th>${t('Last active')}</th><th class="num">${t('Visits')}</th><th class="num">${t('Searches')}</th><th>${t('Last searched')}</th></tr></thead><tbody id="vRows"></tbody></table></div></div>`;
+  const draw=()=>{const q=(S.adminQ||'').toLowerCase().replace(/\s/g,'');const f=$('#vF').value;
+    const rows=Store.all('visitors').filter(v=>{const st=visitorStatus(v)[0];
+      if(f==='new'&&Date.now()-(v.firstAt||0)>=864e5)return false;if(f==='noorder'&&st==='cust')return false;if(f==='miss'&&!(v.searches||[]).some(x=>x.k==='search'&&!x.n))return false;
+      return !q||(v.phone+' '+v.phoneKey+' '+(v.searches||[]).map(x=>x.q).join(' ')).toLowerCase().replace(/\s/g,'').includes(q)}).sort((a,b)=>(b.lastAt||0)-(a.lastAt||0));
+    $('#vCount').textContent=t('{n} visitors',{n:rows.length.toLocaleString('en')});
+    $('#vRows').innerHTML=rows.length?rows.slice(0,500).map(v=>{const [sc,sl]=visitorStatus(v);const ls3=(v.searches||[]).slice(0,3);
+      return `<tr class="click" data-v="${esc(v.id)}"><td><b class="ltr">${esc(v.phone||v.phoneKey)}</b></td><td><span class="vst ${sc}">${sl}</span></td><td>${dtStr(v.firstAt)}</td><td>${dtStr(v.lastAt)}</td><td class="num">${v.visits||1}</td><td class="num">${v.searchCount||0}</td>
+      <td>${ls3.map(x=>`<span class="vq ${x.k!=='model'&&!x.n?'miss':''}">${esc(x.q)}</span>`).join(' ')||'<span class="mini">—</span>'}</td></tr>`}).join(''):`<tr><td colspan="7" class="empty">${t('No visitors yet.')}</td></tr>`};
+  draw();bindSearch(draw);$('#vF').onchange=draw;$('#vRows').onclick=e=>{const r=e.target.closest('[data-v]');if(r)openVisitor(r.dataset.v)};
+}
+function openVisitor(id){
+  const v=Store.get('visitors',id);if(!v)return;const [sc,sl]=visitorStatus(v);const c=Store.get('customers','c_'+v.phoneKey);
+  const wa='https://wa.me/'+v.phoneKey;
+  openModal(mHead(`<span class="ltr">${esc(v.phone||v.phoneKey)}</span> <span class="vst ${sc}">${sl}</span>`,`${t('First visit')}: ${dtStr(v.firstAt)} · ${t('Last active')}: ${dtStr(v.lastAt)} · ${t('Visits')}: ${v.visits||1}`)+`<div class="modal-body">
+    <div class="toolbar" style="margin-bottom:14px"><a class="btn red" href="${wa}" target="_blank" rel="noopener">WhatsApp</a><a class="btn ghost" href="tel:+${esc(v.phoneKey)}">${t('Call')}</a>${c?`<button class="btn ghost" id="vCust">${t('Open customer')}: ${esc(c.name)}</button>`:''}</div>
+    <h4 style="margin:0 0 8px">${t('What they searched')} (${v.searchCount||0})</h4>
+    ${(v.searches||[]).length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Time')}</th><th>${t('Type')}</th><th>${t('Searched for')}</th><th class="num">${t('Results')}</th></tr></thead><tbody>${v.searches.map(x=>`<tr><td>${dtStr(x.at)}</td><td>${kindLbl(x.k)}</td><td><b>${esc(x.q)}</b></td><td class="num">${x.k==='model'?'—':x.n?x.n.toLocaleString('en'):`<span class="vq miss">${t('Nothing found')}</span>`}</td></tr>`).join('')}</tbody></table></div>`:`<p class="mini">${t('No searches yet.')}</p>`}
+    <p class="mini" style="margin-top:12px">${t('Language')}: ${esc((LANGS[v.lang]||{}).native||v.lang||'')} · ${esc(/iphone|ipad/i.test(v.device)?'iPhone':/android/i.test(v.device)?'Android':/windows/i.test(v.device)?'Windows':/mac/i.test(v.device)?'Mac':'')}</p></div>`);
+  if($('#vCust'))$('#vCust').onclick=()=>{closeAll();openCustomer(c.id)};
 }
 function openCustomer(id){
   const c=Store.get('customers',id);if(!c)return;const {os,inv,spent,owed}=custStats(c.phoneKey);
@@ -877,8 +937,10 @@ async function makePdf(o,kind,cn){
 }
 
 /* ================= BOOT ================= */
-(function boot(){
+let storeReady;
+(function boot(){storeReady=initStore();const hadLang=!!LANG;
   if(!LANG){LANG='en';document.documentElement.dir='ltr';buildChrome();buildHome();route();showLangPicker()}
   else{document.documentElement.lang=LANG==='ku'?'ckb':LANG;document.documentElement.dir=LANGS[LANG].dir;buildChrome();buildHome();route()}
-  initStore().then(applyLogo);
+  if(hadLang&&needsPhone())showPhoneGate();
+  storeReady.then(()=>{applyLogo();Visitor.visit()});
 })();
