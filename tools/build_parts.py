@@ -18,11 +18,9 @@ for pn, desc, price in raw:
         best.setdefault(pn, (desc, price))
 
 def fmt_pn(pn):
-    s = pn[1:] if pn.upper().startswith('T') else pn
-    s = s.upper()
-    if re.fullmatch(r'[A-Z0-9]{10}', s): return s[:5] + '-' + s[5:]
-    if re.fullmatch(r'[A-Z0-9]{12}', s): return s[:5] + '-' + s[5:10] + '-' + s[10:]
-    return s
+    # rule: remove the leading T, then a dash after the 5th character (04465-0K290, 04465-0K290S, 11701-3105002)
+    s = (pn[1:] if pn.upper().startswith('T') else pn).upper()
+    return s[:5] + '-' + s[5:] if len(s) > 5 else s
 
 def part_id(no): return 'p_' + re.sub(r'[^A-Z0-9_.-]', '_', no.upper())[:80]
 
@@ -132,6 +130,7 @@ def price(p):
 out = []; nop = []; seen_ids = {}
 for pn, (desc, pr) in best.items():
     no = fmt_pn(pn)
+    if no.startswith('0400'): continue   # owner's rule: part numbers starting with 0400 are not sold online
     if desc.upper().strip() == pn.upper() or not desc: desc = ''
     ar, ku = translate(desc) if desc else (None, None)
     name = english(desc) if desc else no
