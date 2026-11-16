@@ -2,6 +2,10 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Searching…":"جارٍ البحث…",
+"Showing {a} of {n} parts":"عرض {a} من {n} قطعة",
+"Show more":"عرض المزيد",
+"Add from catalog: type part number or name…":"إضافة من الكتالوج: اكتب رقم القطعة أو اسمها…",
 "Find my part":"ابحث عن قطعتي",
 "FIND MY PART":"ابحث عن قطعتي",
 "No part number?":"ما عندك رقم القطعة؟",
@@ -180,6 +184,10 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Searching…":"گەڕان…",
+"Showing {a} of {n} parts":"{a} لە {n} پارچە پیشان دەدرێت",
+"Show more":"زیاتر پیشان بدە",
+"Add from catalog: type part number or name…":"زیادکردن لە کاتالۆگ: ژمارە یان ناوی پارچە بنووسە…",
 "Find my part":"پارچەکەم بدۆزەرەوە",
 "FIND MY PART":"پارچەکەم بدۆزەرەوە",
 "No part number?":"ژمارەی پارچەت نییە؟",

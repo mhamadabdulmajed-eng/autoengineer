@@ -125,18 +125,20 @@ async function initSupabase(cfg){
   S.sb.auth.onAuthStateChange(async(ev,s)=>{if(ev==='TOKEN_REFRESHED'||ev==='INITIAL_SESSION')return;S.session=s;await sbLoadAll();renderCurrent()});
   await sbLoadAll();S.ready=true;restoreWs();renderCurrent();
 }
-async function sbFetchAll(table,filter){let out=[],from=0;for(;;){let q=S.sb.from(table).select('col,id,data').range(from,from+999);if(filter)q=filter(q);const {data,error}=await q;if(error)throw error;out=out.concat(data);if(data.length<1000)break;from+=1000}return out}
+async function sbFetchAll(table,filter){S.loaded.parts=true;let out=[],from=0;for(;;){let q=S.sb.from(table).select('col,id,data').range(from,from+999);if(filter)q=filter(q);const {data,error}=await q;if(error)throw error;out=out.concat(data);if(data.length<1000)break;from+=1000}return out}
 async function sbLoadAll(){
   S.admin=false;S.role=null;S.staff=null;
   if(S.session){const {data}=await S.sb.rpc('my_staff');if(data&&data.active!==false){S.admin=true;S.role=data.role||'sales';S.staff=data;S.me=S.session.user.email}}
   COLS.forEach(c=>S.data[c]={});
   try{
-    const rows=S.admin?await sbFetchAll('docs'):[...await sbFetchAll('public_parts'),...await sbFetchAll('docs',q=>q.eq('col','config').eq('id','settings'))];
+    // the parts catalog (60,000+) is searched on the server, never downloaded whole
+    const rows=S.admin?await sbFetchAll('docs',q=>q.neq('col','parts')):await sbFetchAll('docs',q=>q.eq('col','config').eq('id','settings'));
     rows.forEach(r=>{(S.data[r.col]=S.data[r.col]||{})[r.id]=r.data});
   }catch(e){toast(t('Could not load data.'))}
   COLS.forEach(c=>S.loaded[c]=true);
   if(S.channel){S.sb.removeChannel(S.channel);S.channel=null}
   if(S.admin){S.channel=S.sb.channel('docs').on('postgres_changes',{event:'*',schema:'public',table:'docs'},p=>{const r=p.new&&p.new.col?p.new:p.old;if(!r||!r.col)return;
+      if(r.col==='parts'){if(p.eventType==='DELETE')delete S.data.parts[r.id];else S.data.parts[r.id]=p.new.data;return}
       const m={...(S.data[r.col]||{})};if(p.eventType==='DELETE')delete m[r.id];else m[r.id]=p.new.data;S.data[r.col]=m;Store.emit(r.col)}).subscribe()}
   Store.emit('all');
 }
@@ -353,19 +355,51 @@ function matches(p){const f=S.f;
     if(wn.length>2&&modelIdOf(wn)&&modelIdOf(wn)!=='*'){const pm=modelIdOf(p.model);return pm==='*'||pm===modelIdOf(wn)}
     return hay.includes(w)||(wn.length>2&&hayNo.includes(wn))})}
 const pName=p=>(LANG==='ar'&&p.nameAr)||(LANG==='ku'&&p.nameKu)||p.name;
-function fitText(p){const yrs=p.yearFrom||p.yearTo?` ${p.yearFrom||''}–${p.yearTo||''}`:'';const pm=modelIdOf(p.model);const mn=pm==='*'?t('All models'):(modelById(pm)?.name||p.model||'');return ('Toyota '+mn).trim()+yrs}
-function renderResults(){
+function fitText(p){const yrs=p.yearFrom||p.yearTo?` ${p.yearFrom||''}–${p.yearTo||''}`:'';const pm=modelIdOf(p.model);const mn=(pm==='*'||!pm)?t('All models'):(modelById(pm)?.name||p.model||'');return ('Toyota '+mn).trim()+yrs}
+/* ---------- parts search: on the server for the live site, in the browser for preview ---------- */
+const PartsAPI={
+  remote(){return S.mode==='supabase'},
+  local(o){const cp=window.commonPartOf?commonPartOf(o.q||''):null;const nq=s=>String(s||'').toLowerCase();
+    const words=nq(o.q).trim().split(/\s+/).filter(Boolean);
+    let rows=Store.all('parts').filter(p=>{if(p.hidden||(p.make&&!/toyota/i.test(p.make)))return false;
+      if(o.cat&&p.category!==o.cat)return false;
+      if(o.model){const pm=modelIdOf(p.model);if(pm&&pm!=='*'&&pm!==o.model)return false}
+      if(o.year){const y=+o.year;if(p.yearFrom&&y<p.yearFrom)return false;if(p.yearTo&&y>p.yearTo)return false}
+      const hay=nq([p.partNo,p.name,p.nameAr,p.nameKu,p.desc,p.category,t(p.category||''),p.model].join(' '))+' '+nq(p.partNo).replace(/[^a-z0-9]/g,'');
+      if(o.anyw&&o.anyw.length&&!o.anyw.some(k=>hay.includes(nq(k))))return false;
+      return words.every(w=>hay.includes(w)||(w.replace(/[^a-z0-9]/g,'').length>2&&hay.includes(w.replace(/[^a-z0-9]/g,''))))});
+    rows.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+    return {rows:rows.slice(o.off||0,(o.off||0)+(o.lim||60)),total:rows.length}},
+  async search(o){
+    if(!this.remote())return this.local(o);
+    const {data,error}=await S.sb.rpc('search_parts',{q:o.q||'',cat:o.cat||'',model:o.model||'',yr:o.year?+o.year:null,anyw:o.anyw&&o.anyw.length?o.anyw:null,lim:o.lim||60,off:o.off||0});
+    if(error)throw error;(data||[]).forEach(r=>{S.data.parts[r.id]=r.data});
+    return {rows:(data||[]).map(r=>({...r.data,id:r.id})),total:data&&data.length?+data[0].total:0}}
+};
+// shop search words: a known local word (e.g. فحمات) also searches its English catalog words
+function shopQuery(q){const cp=window.commonPartOf&&/[^\x00-\x7f]/.test(q)?commonPartOf(q):null;if(cp&&!/[0-9]{4}/.test(q))return {q:'',anyw:[...cp.kw,...(cp.syn||[]),cp.en,cp.ar,cp.ku].filter(Boolean),cat:cp.cat};return {q}}
+let resTimer=null,resSeq=0;
+function renderResults(more){
   const el=$('#results');if(!el)return;
-  if(S.mode!=='local'&&!S.loaded.parts){el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Loading catalog…')}</div>`;$('#resCount').textContent='';return}
-  const r=room();const list=Store.all('parts').filter(p=>!p.hidden&&(!p.make||/toyota/i.test(p.make))).filter(matches).sort((a,b)=>String(pName(a)).localeCompare(pName(b)));
-  $('#resCount').textContent=t('{n} parts',{n:list.length});
+  clearTimeout(resTimer);resTimer=setTimeout(()=>drawResults(more),PartsAPI.remote()&&!more?220:0);
+}
+async function drawResults(more){
+  const el=$('#results');if(!el)return;const seq=++resSeq;const r=room();
+  const sq=shopQuery(S.q.trim());const o={q:sq.q,anyw:sq.anyw,cat:S.f.cat||(sq.anyw?'':''),model:S.f.model,year:S.f.year,lim:60,off:more?S.resRows.length:0};
+  if(!more){S.resRows=[];if(PartsAPI.remote())el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Searching…')}</div>`}
+  let res;try{res=await PartsAPI.search(o)}catch(e){if(seq===resSeq)el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Could not load data.')}</div>`;return}
+  if(seq!==resSeq)return;
+  let list=res.rows;if(S.f.cond)list=list.filter(p=>p.condition===S.f.cond);
+  S.resRows=more?S.resRows.concat(list):list;S.resTotal=res.total;list=S.resRows;
+  $('#resCount').textContent=res.total>list.length?t('Showing {a} of {n} parts',{a:list.length,n:res.total.toLocaleString('en')}):t('{n} parts',{n:res.total.toLocaleString('en')});
   if(!list.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><h3>${t('No parts found')}</h3><p>${t('Try another search, or send us a request and we’ll find it for you.')}</p><br><button class="btn red" id="reqBtn2">${t('Find my part')}</button></div>`;$('#reqBtn2').onclick=()=>openFindPart({model:S.f.model||'',q:S.q});return}
   const inB=new Set(S.basket.map(b=>b.partId));
-  el.innerHTML=list.slice(0,240).map((p,i)=>{const pr=priceFor(p,r);const cc=p.condition==='Genuine'?'g':p.condition==='Used'?'u':'a';
-    return `<article class="pcard" style="animation-delay:${Math.min(i,16)*25}ms"><div class="pimg">${p.image?`<img src="${esc(p.image)}" alt="">`:icon(p.category,1.2)}${p.condition?`<span class="badge ${cc}">${t(p.condition)}</span>`:''}${p.stock?`<span class="stock">${t(p.stock)}</span>`:''}</div>
+  el.innerHTML=list.map((p,i)=>{const pr=priceFor(p,r);const cc=p.condition==='Genuine'?'g':p.condition==='Used'?'u':'a';
+    return `<article class="pcard" style="animation-delay:${Math.min(i%60,16)*25}ms"><div class="pimg">${p.image?`<img src="${esc(p.image)}" alt="" loading="lazy">`:icon(p.category,1.2)}${p.condition?`<span class="badge ${cc}">${t(p.condition)}</span>`:''}${p.stock?`<span class="stock">${t(p.stock)}</span>`:''}</div>
       <div class="pbody"><span class="pno">${esc(p.partNo)}</span><span class="pname">${esc(pName(p))}</span><span class="pfit">${esc(fitText(p))}${p.brand?' · '+esc(p.brand):''}</span>
-      <div class="prow">${pr!==null?`<span class="price">${money(pr)}</span>`:`<span class="price req">${t('Price on request')}</span>`}<button class="add ${inB.has(p.id)?'done':''}" data-add="${esc(p.id)}">${inB.has(p.id)?'✓ '+t('Added'):t('Add')}</button></div></div></article>`}).join('');
-  el.onclick=e=>{const b=e.target.closest('[data-add]');if(!b)return;addToBasket(Store.get('parts',b.dataset.add));b.classList.add('done');b.textContent='✓ '+t('Added')};
+      <div class="prow">${pr!==null?`<span class="price">${money(pr)}</span>`:`<span class="price req">${t('Price on request')}</span>`}<button class="add ${inB.has(p.id)?'done':''}" data-add="${esc(p.id)}">${inB.has(p.id)?'✓ '+t('Added'):t('Add')}</button></div></div></article>`}).join('')
+    +(res.total>list.length?`<div style="grid-column:1/-1;text-align:center;padding:10px"><button class="btn ghost" id="resMore">${t('Show more')}</button></div>`:'');
+  el.onclick=e=>{if(e.target.closest('#resMore')){e.target.closest('#resMore').disabled=true;drawResults(true);return}const b=e.target.closest('[data-add]');if(!b)return;addToBasket(Store.get('parts',b.dataset.add));b.classList.add('done');b.textContent='✓ '+t('Added')};
 }
 const citiesList=()=>`<datalist id="cities">${CITIES.map(c=>`<option value="${t(c)}">`).join('')}</datalist>`;
 function renderWsGate(page){
@@ -589,7 +623,7 @@ function drawOrderModal(){
       <td><select data-l="${i}" data-k="avail">${['','available','order','unavailable'].map(a=>`<option value="${a}" ${l.avail===a?'selected':''}>${availLabel(a)}</option>`).join('')}</select></td>
       <td><input type="number" min="0" step="any" data-l="${i}" data-k="price" value="${l.price??''}" placeholder="${esc(t('Set price'))}">${nz(l.listPrice)&&l.listPrice!==l.price?`<div class="mini">${t('List')}: ${money(l.listPrice)}</div>`:''}</td>
       <td class="num">${l.avail==='unavailable'?'—':money((+l.price||0)*(+l.qty||0))}</td><td><button class="rm" data-del="${i}">✕</button></td></tr>`).join('')}</tbody></table></div>
-    <div style="display:flex;gap:10px;margin:10px 0 18px;flex-wrap:wrap"><button class="btn sm ghost" id="addLine">+ ${t('Add line')}</button><select class="sel" id="addFromCat" style="max-width:340px"><option value="">+ ${t('Add from catalog…')}</option>${Store.all('parts').sort((a,b)=>String(a.name).localeCompare(b.name)).map(p=>`<option value="${esc(p.id)}">${esc(p.partNo)} — ${esc(p.name)} (${esc(fitText(p))})</option>`).join('')}</select></div>
+    <div style="display:flex;gap:10px;margin:10px 0 18px;flex-wrap:wrap"><button class="btn sm ghost" id="addLine">+ ${t('Add line')}</button><input class="sel" id="addFromCat" style="max-width:360px" list="catPick" autocomplete="off" placeholder="+ ${esc(t('Add from catalog: type part number or name…'))}"><datalist id="catPick"></datalist></div>
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,340px);gap:24px">
       <div><div class="row2"><div class="f"><label>${t('Discount')}</label><div style="display:flex;gap:6px"><input type="number" min="0" step="any" id="o_disc" value="${o.discount||0}"><select id="o_dt" class="sel"><option value="pct" ${o.discountType!=='amt'?'selected':''}>%</option><option value="amt" ${o.discountType==='amt'?'selected':''}>${t(settings().currency)}</option></select></div></div><div class="f"><label>${t('Delivery fee')}</label><input type="number" min="0" step="any" id="o_del" value="${o.delivery||0}"></div></div>
         <div class="f"><label>${t('Notes on quotation / invoice')} <i>(${t('customer sees these')})</i></label><textarea id="o_notes">${esc(o.notes||'')}</textarea></div></div>
@@ -611,7 +645,7 @@ function drawOrderModal(){
     const id=el.id;if(id==='o_disc')editing.discount=Number(el.value)||0;if(id==='o_dt')editing.discountType=el.value;if(id==='o_del')editing.delivery=Number(el.value)||0;if(id==='o_notes')editing.notes=el.value;if(id==='o_status')editing.status=el.value;
     if(id==='o_ful')editing.fulfil=el.value;if(id==='o_br')editing.branch=el.value;if(id==='o_pl')editing.pdfLang=el.value;
     if(id==='oc_name')editing.customer.name=el.value;if(id==='oc_phone'){editing.customer.phone=el.value;editing.customer.phoneKey=phoneKey(el.value)}if(id==='oc_loc')editing.customer.location=el.value;
-    if(id==='addFromCat'&&el.value){const p=Store.get('parts',el.value);editing.lines.push({partId:p.id,partNo:p.partNo,name:p.name,fit:fitText(p),qty:1,price:priceFor(p,editing.room),listPrice:priceFor(p,editing.room),avail:''});drawOrderModal();return}
+    if(id==='addFromCat'&&el.value){const hit=(S.catPick||[]).find(x=>x.partNo===el.value.split(' — ')[0].trim());if(!hit){if(e.type==='input'){clearTimeout(S.cpT);const v=el.value;S.cpT=setTimeout(async()=>{const r=await PartsAPI.search({q:v,lim:25}).catch(()=>({rows:[]}));S.catPick=r.rows;const dl=$('#catPick');if(dl)dl.innerHTML=r.rows.map(p=>`<option value="${esc(p.partNo)} — ${esc(p.name)}">`).join('')},250)}return}const p=hit;editing.lines.push({partId:p.id,partNo:p.partNo,name:p.name,fit:fitText(p),qty:1,price:priceFor(p,editing.room),listPrice:priceFor(p,editing.room),avail:''});drawOrderModal();return}
     drawTot()};
   box.onclick=async e=>{const d=e.target.closest('[data-del]');if(d){editing.lines.splice(+d.dataset.del,1);drawOrderModal();return}
     const pd=e.target.closest('[data-pdel]');if(pd){editing.payments.splice(+pd.dataset.pdel,1);await saveOrder();drawOrderModal();return}
@@ -684,10 +718,10 @@ function adminParts(){
   const body=$('#adminBody');
   body.innerHTML=`<div class="toolbar">${searchBox(t('Search part number, name, model…'))}<button class="btn red" id="pAddB">+ ${t('Add part')}</button><label class="btn ghost" style="cursor:pointer">${t('Import Excel / CSV')}<input type="file" id="pImp" accept=".xlsx,.xls,.csv" hidden></label></div>
     <p class="mini" style="margin:-6px 0 14px">${t('Import columns')}: <b class="ltr">PartNo, Name, NameAr, NameKu, Brand, Make, Model, YearFrom, YearTo, Category, Condition, RetailPrice, WholesalePrice, Stock</b>. ${t('Existing part numbers are updated. Leave prices empty to show “Price on request”.')}</p>
-    <div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Name')}</th><th>${t('Fits')}</th><th>${t('Category')}</th><th class="num">${t('Retail')}</th><th class="num">${t('Wholesale')}</th><th>${t('Stock')}</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div></div>`;
-  const draw=()=>{const q=(S.adminQ||'').toLowerCase();const rows=Store.all('parts').filter(p=>!q||[p.partNo,p.name,p.nameAr,p.nameKu,p.make,p.model,p.brand,p.category].join(' ').toLowerCase().includes(q)).sort((a,b)=>String(a.name).localeCompare(b.name));
-    $('#pRows').innerHTML=rows.length?rows.slice(0,500).map(p=>`<tr class="click" data-p="${esc(p.id)}"><td class="mini ltr"><b>${esc(p.partNo)}</b></td><td>${esc(pName(p))}${p.hidden?` <span class="mini">(${t('hidden')})</span>`:''}</td><td class="mini">${esc(fitText(p))}</td><td>${t(p.category||'')}</td><td class="num">${nz(p.retailPrice)?money(p.retailPrice):'—'}</td><td class="num">${nz(p.wholesalePrice)?money(p.wholesalePrice):'—'}</td><td class="mini">${t(p.stock||'')}</td><td>${can('delete')?`<button class="rm" data-pdel="${esc(p.id)}">${t('Delete')}</button>`:''}</td></tr>`).join(''):`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">${t('No parts yet. Add one or import your Excel list.')}</td></tr>`};
-  draw();bindSearch(draw);$('#pAddB').onclick=()=>openPart();
+    <p class="mini" id="pCount" style="margin:0 0 8px"></p><div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Name')}</th><th>${t('Fits')}</th><th>${t('Category')}</th><th class="num">${t('Retail')}</th><th class="num">${t('Wholesale')}</th><th>${t('Stock')}</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div></div>`;
+  let pSeq=0;const draw=async()=>{const seq=++pSeq;let rows=[],total=0;try{const r=await PartsAPI.search({q:S.adminQ||'',lim:200});rows=r.rows;total=r.total}catch(e){}if(seq!==pSeq||!$('#pRows'))return;$('#pCount').textContent=total>rows.length?t('Showing {a} of {n} parts',{a:rows.length,n:total.toLocaleString('en')}):t('{n} parts',{n:total.toLocaleString('en')});
+    $('#pRows').innerHTML=rows.length?rows.map(p=>`<tr class="click" data-p="${esc(p.id)}"><td class="mini ltr"><b>${esc(p.partNo)}</b></td><td>${esc(pName(p))}${p.hidden?` <span class="mini">(${t('hidden')})</span>`:''}</td><td class="mini">${esc(fitText(p))}</td><td>${t(p.category||'')}</td><td class="num">${nz(p.retailPrice)?money(p.retailPrice):'—'}</td><td class="num">${nz(p.wholesalePrice)?money(p.wholesalePrice):'—'}</td><td class="mini">${t(p.stock||'')}</td><td>${can('delete')?`<button class="rm" data-pdel="${esc(p.id)}">${t('Delete')}</button>`:''}</td></tr>`).join(''):`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">${t('No parts yet. Add one or import your Excel list.')}</td></tr>`};
+  let pT;const drawD=()=>{clearTimeout(pT);pT=setTimeout(draw,250)};draw();bindSearch(drawD);$('#pAddB').onclick=()=>openPart();
   $('#pRows').onclick=e=>{const d=e.target.closest('[data-pdel]');if(d){e.stopPropagation();confirmBox(t('Delete this part from the catalog?'),async()=>{await Store.del('parts',d.dataset.pdel).catch(()=>{});toast(t('Part deleted'))});return}const r=e.target.closest('[data-p]');if(r)openPart(r.dataset.p)};
   $('#pImp').onchange=e=>importParts(e.target.files[0]);
 }
@@ -717,12 +751,12 @@ async function importParts(file){
   if(!items.length){toast(t('No rows with PartNo and Name found'));return}
   openModal(mHead(t('Importing parts'))+`<div class="modal-body"><p id="impP">0 / ${items.length}</p></div>`);
   const num=x=>x===''||x==null?null:(Number(String(x).replace(/[^0-9.]/g,''))||null);let n=0;
-  if(S.mode==='supabase'){for(let i=0;i<items.length;i+=200){const batch=items.slice(i,i+200).map(it=>{const id=partId(it.partNo);const ex=Store.get('parts',id)||{};return {col:'parts',id,data:buildPart(it,ex,num)}});const {error}=await S.sb.from('docs').upsert(batch);if(error){toast(error.message);break}batch.forEach(b=>S.data.parts[b.id]=b.data);n+=batch.length;$('#impP').textContent=`${n} / ${items.length}`}Store.emit('parts')}
+  if(S.mode==='supabase'){for(let i=0;i<items.length;i+=500){const batch=items.slice(i,i+500).map(it=>{const id=partId(it.partNo);const ex=Store.get('parts',id)||{};return {col:'parts',id,data:buildPart(it,ex,num)}});const {error}=await S.sb.from('docs').upsert(batch);if(error){toast(error.message);break}n+=batch.length;$('#impP').textContent=`${n} / ${items.length}`}Store.emit('parts')}
   else for(const it of items){const id=partId(it.partNo);const ex=Store.get('parts',id)||{};try{await Store.set('parts',id,buildPart(it,ex,num))}catch(e){break}n++;if(n%10===0)$('#impP').textContent=`${n} / ${items.length}`}
   closeModal();toast(t('Imported {n} parts',{n}));
 }
 function buildPart(it,ex,num){const cat=CATS.find(([c])=>c.toLowerCase()===String(it.category||'').toLowerCase());const cond=CONDS.find(c=>c.toLowerCase()===String(it.condition||'').toLowerCase());
-  return {...ex,...it,make:it.make||ex.make||'Toyota',category:cat?cat[0]:(ex.category||'Engine'),yearFrom:num(it.yearFrom),yearTo:num(it.yearTo),retailPrice:num(it.retailPrice),wholesalePrice:num(it.wholesalePrice),condition:cond||ex.condition||'Genuine',stock:STOCKS.find(s=>s.toLowerCase()===String(it.stock||'').toLowerCase())||ex.stock||'Ask',updatedAt:Date.now(),createdAt:ex.createdAt||Date.now()}}
+  const mid=modelIdOf(it.model||ex.model||'');return {...ex,...it,modelId:mid||'',make:it.make||ex.make||'Toyota',category:cat?cat[0]:(ex.category||'Engine'),yearFrom:num(it.yearFrom),yearTo:num(it.yearTo),retailPrice:num(it.retailPrice),wholesalePrice:num(it.wholesalePrice),condition:cond||ex.condition||'Genuine',stock:STOCKS.find(s=>s.toLowerCase()===String(it.stock||'').toLowerCase())||ex.stock||'Ask',updatedAt:Date.now(),createdAt:ex.createdAt||Date.now()}}
 
 /* sell requests */
 function adminSell(){

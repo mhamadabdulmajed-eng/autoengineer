@@ -34,13 +34,18 @@ const COMMON_PARTS = [
 const fpNorm = s => String(s||'').toLowerCase().replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/[ًٌٍَُِّْـ]/g,'').replace(/\s+/g,' ').trim();
 function commonPartOf(q){
   const n = fpNorm(q); if(n.length < 2) return null;
-  let best=null, bestLen=0;
+  // 1) the text contains a whole known word: take the longest one ("front brake pads" -> brake pads)
+  let best=null, bestLen=0; const partial=new Set();
   for(const c of COMMON_PARTS){
     for(const w of [c.en,c.ar,c.ku,...c.syn,...c.kw].map(fpNorm)){
-      if(w && (n.includes(w) || (w.includes(n) && n.length>=3)) && w.length>bestLen){best=c;bestLen=w.length}
+      if(!w) continue;
+      if(n.includes(w) && w.length>bestLen){best=c;bestLen=w.length}
+      else if(w.includes(n) && n.length>=3) partial.add(c);
     }
   }
-  return best;
+  if(best) return best;
+  // 2) half-typed word: only when it points to a single part ("فحما" -> brake pads, but not "filter")
+  return partial.size===1 ? [...partial][0] : null;
 }
 const cpName = c => (LANG==='ar'?c.ar:LANG==='ku'?c.ku:c.en);
 
@@ -55,23 +60,20 @@ function vinInfo(v){
   return {ok:true, s, year:y, toyota:/^(JT|4T|5T|2T|MR|MH|NM|AH|SB|VN|JTE|JTM|JTN)/.test(s)};
 }
 
-/* search our own catalog for the chosen model/year */
-function fpSearch(F){
+/* search our own catalog for the chosen model/year (on the server for the live site) */
+async function fpSearch(F){
   const cp = commonPartOf(F.q);
-  const toks = fpNorm(F.q).split(' ').filter(w=>w.length>1);
-  return Store.all('parts').filter(p=>{
-    if(p.hidden || (p.make && !/toyota/i.test(p.make))) return false;
-    if(F.model){ const pm = modelIdOf(p.model); if(pm!=='*' && pm!==F.model) return false; }
-    if(F.year){ const y=+F.year; if(p.yearFrom && y<p.yearFrom) return false; if(p.yearTo && y>p.yearTo) return false; }
-    const cat = F.cat || (cp && cp.cat);
-    if(cat && p.category !== cat) return false;
-    if(!F.q) return !!cat;
-    const hay = fpNorm([p.partNo,p.name,p.nameAr,p.nameKu,p.desc,p.category,t(p.category||'')].join(' '));
-    if(cp && cp.kw.some(k=>hay.includes(fpNorm(k)))) return true;
-    const pn = String(p.partNo||'').toLowerCase().replace(/[^a-z0-9]/g,''), qn = String(F.q).toLowerCase().replace(/[^a-z0-9]/g,'');
-    if(qn.length>3 && pn.includes(qn)) return true;
-    return toks.length && toks.every(w=>hay.includes(w));
-  }).slice(0,30);
+  const cat = F.cat || (cp && cp.cat) || '';
+  if(!F.q && !cat) return [];
+  const o = cp ? {anyw:[...cp.kw, ...(cp.syn||[]), cp.ar, cp.ku].filter(Boolean), cat}
+               : {q:F.q, cat:F.cat||''};
+  Object.assign(o, {model:F.model||'', year:F.year||'', lim:30});
+  try{ return (await PartsAPI.search(o)).rows; }catch(e){ return []; }
+}
+let fpSeq=0, fpT=null;
+function fpRefresh(delay){
+  clearTimeout(fpT);
+  fpT=setTimeout(async()=>{const seq=++fpSeq;const res=await fpSearch(FP);if(seq!==fpSeq||!$('#fpRes'))return;$('#fpRes').innerHTML=fpResults(res,commonPartOf(FP.q))},delay||0);
 }
 
 let FP = null;
@@ -97,7 +99,7 @@ function drawFindPart(){
       <small class="mini" id="fpVinMsg">${FP.vin?(vi.ok?'✓ '+t('Valid VIN')+(vi.year?' · '+vi.year:''):t('A VIN has 17 letters and numbers')):t('Find it on your car registration card or at the bottom of the windscreen.')}</small></div></div>
     <div class="fp-nav"><span></span><button class="btn red" id="fpNext" ${FP.model?'':'disabled'}>${t('Next')} →</button></div>`;
   } else if(FP.step===2){
-    const cp = commonPartOf(FP.q), res = fpSearch(FP);
+    const cp = commonPartOf(FP.q), res = null;
     const cat = FP.cat || (cp&&cp.cat) || '';
     const chips = COMMON_PARTS.filter(c=>!cat || c.cat===cat);
     body=`<div class="fp-car">${m?modelArt(m,{cls:'fp-car-art'}):''}<div><b>Toyota ${esc(m?m.name:'')}</b>${FP.year?` · ${FP.year}`:''}${FP.vin?` · <span class="ltr mini">${esc(FP.vin.toUpperCase())}</span>`:''}<br><button class="linkbtn" id="fpChange">${t('Change car')}</button></div></div>
@@ -119,9 +121,11 @@ function drawFindPart(){
   }
   openModal(fpHead()+`<div class="modal-body fp-body">${body}</div>`, true);
   bindFindPart();
+  if(FP.step===2) fpRefresh(0);
 }
 function fpResults(res,cp){
   if(!FP.q && !FP.cat) return `<p class="mini fp-hint">${t('Type the part, or tap a system or a common part above.')}</p>`;
+  if(res===null) return `<p class="mini fp-hint">${t('Searching…')}</p>`;
   if(!res.length) return `<div class="fp-none"><b>${t('We couldn’t find it in the online catalog yet.')}</b><p>${t('No problem: send it to our team with a photo and we’ll find the exact part for your car.')}</p><button class="btn red" id="fpAsk2">${t('Ask our team')} →</button></div>`;
   const inB=new Set(S.basket.map(b=>b.partId));
   return `<p class="mini" style="margin:4px 0 8px">${t('{n} parts fit your Toyota',{n:res.length})}</p><div class="fp-list">${res.map(p=>{const pr=priceFor(p,'retail');return `<div class="fp-item"><div class="fp-ico">${p.image?`<img src="${esc(p.image)}" alt="">`:icon(p.category,1.4)}</div><div class="fp-txt"><b>${esc(pName(p))}</b><small><span class="ltr">${esc(p.partNo)}</span> · ${esc(fitText(p))}</small></div><div class="fp-pr">${pr!==null?money(pr):`<small>${t('Price on request')}</small>`}</div><button class="add ${inB.has(p.id)?'done':''}" data-fadd="${esc(p.id)}">${inB.has(p.id)?'✓ '+t('Added'):t('Add')}</button></div>`}).join('')}</div>
@@ -143,7 +147,7 @@ function bindFindPart(){
   const v=$('#fpVin');
   if(v)v.oninput=()=>{const vi=vinInfo(v.value);FP.vin=v.value.trim();$('#fpVinMsg').textContent=!v.value?t('Find it on your car registration card or at the bottom of the windscreen.'):vi.ok?('✓ '+t('Valid VIN')+(vi.year?' · '+vi.year:'')):t('A VIN has 17 letters and numbers');if(vi.ok&&vi.year&&$('#fpYear')){$('#fpYear').value=String(vi.year);FP.year=String(vi.year)}};
   const q=$('#fpQ');
-  if(q)q.oninput=()=>{FP.q=q.value;const cp=commonPartOf(FP.q);$('#fpRes').innerHTML=fpResults(fpSearch(FP),cp);$$('.fp-cp').forEach(b=>b.classList.toggle('on',!!cp&&b.dataset.cp===cp.en))};
+  if(q)q.oninput=()=>{FP.q=q.value;const cp=commonPartOf(FP.q);fpRefresh(220);$$('.fp-cp').forEach(b=>b.classList.toggle('on',!!cp&&b.dataset.cp===cp.en))};
   const ph=$('#fpPh');
   if(ph)ph.onchange=async e=>{for(const f of [...e.target.files].slice(0,3-FP.photos.length)){try{FP.photos.push(await compressImg(f,1000,.65))}catch(_){}}$('#fpThumbs').innerHTML=FP.photos.map(s=>`<img src="${s}">`).join('');e.target.value=''};
   const fm=$('#fpForm');
