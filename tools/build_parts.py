@@ -123,9 +123,10 @@ def category(desc):
                 if re.search(r'(?<![A-Z])' + re.escape(k) + r'(?![A-Z])', txt): return cat
     return 'Engine'
 
+MARGIN = 1.20   # owner's rule: website retail price = list price + 20%, rounded up to 250 IQD
 def price(p):
     if not isinstance(p, (int, float)) or p <= 0 or p > 50_000_000: return None
-    return int(math.ceil(p / 250.0) * 250)
+    return int(math.ceil(math.ceil(p / 250.0) * 250 * MARGIN / 250.0) * 250)
 
 out = []; nop = []; seen_ids = {}
 for pn, (desc, pr) in best.items():
