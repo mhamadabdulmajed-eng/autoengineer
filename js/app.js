@@ -962,6 +962,8 @@ async function makePdf(o,kind,cn){
 /* ================= BOOT ================= */
 let storeReady;
 (function boot(){storeReady=initStore();const hadLang=!!LANG;
+  // links like autoengineeriq.com/?q=04465-0K290 (from Google) open the shop with that search
+  try{const uq=new URLSearchParams(location.search).get('q');if(uq){S.q=uq.slice(0,80);history.replaceState(null,'',location.pathname+'#shop')}}catch(e){}
   if(!LANG){LANG='en';document.documentElement.dir='ltr';buildChrome();buildHome();route();showLangPicker()}
   else{document.documentElement.lang=LANG==='ku'?'ckb':LANG;document.documentElement.dir=LANGS[LANG].dir;buildChrome();buildHome();route()}
   if(hadLang&&needsPhone())showPhoneGate();
