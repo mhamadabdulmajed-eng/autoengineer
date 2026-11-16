@@ -240,7 +240,7 @@ function engineExplode(tl,rtl){
   // every part flies out along its own vector; the block stays put
   $$('#engine .ep[data-v]').forEach(g=>{const [dx,dy,r]=g.dataset.v.split(',').map(Number);tl.to(g,{x:rtl?-dx:dx,y:dy,rotation:r,transformOrigin:'50% 50%',ease:'power2.inOut',duration:1},0)});
   tl.to('#engine .ep-glow',{scale:1.25,opacity:.5,transformOrigin:'50% 50%',duration:1},0);
-  tl.fromTo('#engine .ep-lbl',{opacity:0,y:10},{opacity:1,y:0,stagger:.03,duration:.35},.72);
+  tl.fromTo('#engine .ep-lbl',{opacity:0,y:10},{opacity:1,y:0,stagger:.02,duration:.3},.4);
   tl.to('#engine',{scale:.98,duration:1},0);
 }
 function initMotion(){
@@ -254,12 +254,13 @@ function initMotion(){
     gsap.from('.hero h1 .ln span',{yPercent:110,duration:1,ease:'power4.out',stagger:.12});
     gsap.from('.hero .lead,.hero-search,.hero-tags,.hero .eyebrow',{y:24,opacity:0,duration:.9,delay:.3,stagger:.08,ease:'power3.out'});
     gsap.from('#engine .ep',{y:-40,opacity:0,duration:.9,stagger:.05,ease:'back.out(1.6)',delay:.2});
-    // pinned hero: scrolling down takes the engine apart, scrolling up puts it back together
-    const tl=gsap.timeline({scrollTrigger:{trigger:'#hero',start:'top top',end:desk?'+=140%':'+=110%',pin:true,scrub:.7,anticipatePin:1}});
+    // scrolling down takes the engine apart, scrolling up puts it back together
+    // no pinning: the engine comes apart while the page keeps scrolling, in one movement
+    const tl=gsap.timeline({scrollTrigger:{trigger:'#hero',start:'top top',end:desk?'70% top':'35% top',scrub:.25}});
     engineExplode(tl,rtl);
     // fade only the headline and text; the search box, Find My Part and quick tags stay fully usable
-    tl.to('.hero-inner .eyebrow,.hero-inner h1,.hero-inner .lead',{opacity:desk?.1:.15,duration:.6},.15);
-    tl.fromTo('#engineCap',{opacity:0,y:20},{opacity:1,y:0,duration:.3},.75);
+    if(desk)tl.to('.hero-inner .eyebrow,.hero-inner h1,.hero-inner .lead',{opacity:.1,duration:.6},.15);
+    tl.fromTo('#engineCap',{opacity:0,y:20},{opacity:1,y:0,duration:.3},.5);
     tl.to('.scroll-hint',{opacity:0,duration:.2},0);
     gsap.fromTo('#marquee',{xPercent:0},{xPercent:-35,ease:'none',scrollTrigger:{trigger:'.marquee',start:'top bottom',end:'bottom top',scrub:.4}});
     const hscroll=(sec,track)=>{const tr=$(track);if(!tr)return;const dist=()=>Math.max(0,tr.scrollWidth-innerWidth);
