@@ -578,3 +578,11 @@ a.btn{text-decoration:none}
 .tbl tr.grp .btn{margin-inline-start:10px}
 .dupnote{background:#fff7e6;border:1px solid #f3d9a4;color:#6b4a00;border-radius:12px;padding:10px 14px;margin:0 0 10px;font-size:13.5px;line-height:1.6}
 .dupnote .btn{margin-inline-start:8px}
+/* Staff › Parts: filters and sortable column titles */
+.pfilters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.pfilters .pf-range{display:inline-flex;align-items:center;gap:4px;color:var(--muted)}
+.pfilters .pf-range input{width:110px}
+.th-sort{all:unset;cursor:pointer;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit}
+.th-sort:hover{color:var(--text)}
+.th-sort.on{color:var(--red)}
+.th-sort.on::after{content:attr(data-dir);margin-inline-start:4px}

@@ -31,38 +31,54 @@ create index if not exists docs_parts_cat on public.docs ((data->>'category')) w
 -- anyw: optional list of alternative words (any one must match), used by Find My Part quick buttons
 drop function if exists public.search_parts(text, text, text, int, text[], int, int);
 drop function if exists public.search_parts(text, text, text, int, text[], int, int, boolean);
+drop function if exists public.search_parts(text, text, text, int, text[], int, int, boolean, text, numeric, numeric, text, text, text);
+-- staff-only filters (Staff > Parts catalog): stk = stock, pmin/pmax = retail price range,
+-- vis = '' | 'shown' | 'hidden', price = '' | 'has' | 'none', sort = '' | pn | name | cat | stock | price_asc | price_desc
 create or replace function public.search_parts(
   q text default '', cat text default '', model text default '', yr int default null,
-  anyw text[] default null, lim int default 60, off int default 0, staff boolean default false)
+  anyw text[] default null, lim int default 60, off int default 0, staff boolean default false,
+  stk text default '', pmin numeric default null, pmax numeric default null,
+  vis text default '', price text default '', sort text default '')
 returns table(id text, data jsonb, total bigint)
 language sql stable security definer set search_path = public as $$
   with words as (
     select w from unnest(string_to_array(public.ae_txt(trim(coalesce(q,''))), ' ')) w where length(w) > 0
-  ), p as (
-    select d.id, d.data, d.hay, d.pn
+  ), st as (select (staff and public.my_staff() is not null) as on_), p as (
+    select d.id, d.data, d.hay, d.pn, nullif(d.data->>'retailPrice', '')::numeric as rp,
+           coalesce((d.data->>'hidden')::boolean, false) as hid
     from docs d
     where d.col = 'parts'
-      -- hidden parts: only staff see them (in Staff > Parts catalog)
-      and (coalesce((d.data->>'hidden')::boolean, false) = false or (staff and public.my_staff() is not null))
       and (coalesce(cat,'') = '' or d.data->>'category' = cat)
       and (coalesce(model,'') = '' or coalesce(d.data->>'modelId','') in ('', '*', model))
       and (yr is null or ((d.data->>'yearFrom') is null or (d.data->>'yearFrom')::int <= yr)
                       and ((d.data->>'yearTo')   is null or (d.data->>'yearTo')::int   >= yr))
+      and (coalesce(stk,'') = '' or coalesce(d.data->>'stock','Ask') = stk)
   )
   select p.id,
          case when public.my_staff() is not null then p.data else p.data - 'wholesalePrice' end,
          count(*) over ()
-  from p
-  where not exists (select 1 from words where not (p.hay like '%' || words.w || '%' or p.pn like public.ae_pn(words.w) || '%' and length(public.ae_pn(words.w)) > 2))
+  from p, st
+  where (not p.hid or (st.on_ and coalesce(vis,'') <> 'shown'))
+    and (not st.on_ or coalesce(vis,'') <> 'hidden' or p.hid)
+    and (pmin is null or p.rp >= pmin) and (pmax is null or p.rp <= pmax)
+    and (coalesce(price,'') = '' or (price = 'has' and p.rp is not null) or (price = 'none' and p.rp is null))
+    and not exists (select 1 from words where not (p.hay like '%' || words.w || '%' or p.pn like public.ae_pn(words.w) || '%' and length(public.ae_pn(words.w)) > 2))
     and (anyw is null or exists (select 1 from unnest(anyw) a where p.hay like '%' || public.ae_txt(a) || '%'))
-  order by (p.pn = public.ae_pn(q)) desc, (p.pn like public.ae_pn(q) || '%' and length(public.ae_pn(q)) > 2) desc,
-           -- names that start with what was typed come first, then shorter (simpler) names
-           (coalesce(q,'') <> '' and (public.ae_txt(p.data->>'nameAr') like public.ae_txt(q) || '%'
-              or public.ae_txt(p.data->>'nameKu') like public.ae_txt(q) || '%' or lower(p.data->>'name') like lower(q) || '%')) desc,
-           length(p.data->>'name'), p.data->>'name'
+  order by
+    case when sort = 'price_asc'  then p.rp end asc nulls last,
+    case when sort = 'price_desc' then p.rp end desc nulls last,
+    case when sort = 'pn'    then p.data->>'partNo'   end,
+    case when sort = 'name'  then p.data->>'name'     end,
+    case when sort = 'cat'   then p.data->>'category' end,
+    case when sort = 'stock' then p.data->>'stock'    end,
+    (p.pn = public.ae_pn(q)) desc, (p.pn like public.ae_pn(q) || '%' and length(public.ae_pn(q)) > 2) desc,
+    -- names that start with what was typed come first, then shorter (simpler) names
+    (coalesce(q,'') <> '' and (public.ae_txt(p.data->>'nameAr') like public.ae_txt(q) || '%'
+       or public.ae_txt(p.data->>'nameKu') like public.ae_txt(q) || '%' or lower(p.data->>'name') like lower(q) || '%')) desc,
+    length(p.data->>'name'), p.data->>'name'
   limit least(coalesce(lim,60), 500) offset coalesce(off,0)
 $$;
-grant execute on function public.search_parts(text, text, text, int, text[], int, int, boolean) to anon, authenticated;
+grant execute on function public.search_parts(text, text, text, int, text[], int, int, boolean, text, numeric, numeric, text, text, text) to anon, authenticated;
 
 -- count of parts (for the home page stats)
 create or replace function public.parts_count() returns bigint

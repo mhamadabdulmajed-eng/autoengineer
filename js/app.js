@@ -400,11 +400,15 @@ const PartsAPI={
       const hay=nq([p.partNo,p.name,p.nameAr,p.nameKu,p.desc,p.category,t(p.category||''),p.model].join(' '))+' '+nq(p.partNo).replace(/[^a-z0-9]/g,'');
       if(o.anyw&&o.anyw.length&&!o.anyw.some(k=>hay.includes(nq(k))))return false;
       return words.every(w=>hay.includes(w)||(w.replace(/[^a-z0-9]/g,'').length>2&&hay.includes(w.replace(/[^a-z0-9]/g,''))))});
-    rows.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+    const rp=p=>nz(p.retailPrice)?+p.retailPrice:null;
+    rows=rows.filter(p=>(!o.stk||(p.stock||'Ask')===o.stk)&&(!o.staff||!o.vis||(o.vis==='hidden'?p.hidden:!p.hidden))&&(!nz(o.pmin)||(rp(p)!=null&&rp(p)>=+o.pmin))&&(!nz(o.pmax)||(rp(p)!=null&&rp(p)<=+o.pmax))&&(!o.price||(o.price==='has'?rp(p)!=null:rp(p)==null)));
+    const by={pn:p=>p.partNo,name:p=>p.name,cat:p=>p.category,stock:p=>p.stock}[o.sort];
+    if(o.sort==='price_asc'||o.sort==='price_desc'){const d=o.sort==='price_asc'?1:-1;rows.sort((a,b)=>rp(a)==null?1:rp(b)==null?-1:(rp(a)-rp(b))*d)}
+    else rows.sort((a,b)=>String(by?by(a)||'':a.name).localeCompare(String(by?by(b)||'':b.name)));
     return {rows:rows.slice(o.off||0,(o.off||0)+(o.lim||60)),total:rows.length}},
   async search(o){
     if(!this.remote())return this.local(o);
-    const {data,error}=await S.sb.rpc('search_parts',{q:o.q||'',cat:o.cat||'',model:o.model||'',yr:o.year?+o.year:null,anyw:o.anyw&&o.anyw.length?o.anyw:null,lim:o.lim||60,off:o.off||0,staff:!!o.staff});
+    const {data,error}=await S.sb.rpc('search_parts',{q:o.q||'',cat:o.cat||'',model:o.model||'',yr:o.year?+o.year:null,anyw:o.anyw&&o.anyw.length?o.anyw:null,lim:o.lim||60,off:o.off||0,staff:!!o.staff,stk:o.stk||'',pmin:nz(o.pmin)?+o.pmin:null,pmax:nz(o.pmax)?+o.pmax:null,vis:o.vis||'',price:o.price||'',sort:o.sort||''});
     if(error)throw error;(data||[]).forEach(r=>{S.data.parts[r.id]=r.data});
     return {rows:(data||[]).map(r=>({...r.data,id:r.id})),total:data&&data.length?+data[0].total:0}}
 };
@@ -790,8 +794,19 @@ function adminParts(){
   const body=$('#adminBody');
   body.innerHTML=`<div class="toolbar">${searchBox(t('Search part number, name, model…'))}<select class="sel" id="pView" aria-label="${esc(t('Show'))}"><option value="">${t('All parts')}</option><option value="pn" ${S.pView==='pn'?'selected':''}>${t('Duplicates: same part number')}</option><option value="name" ${S.pView==='name'?'selected':''}>${t('Duplicates: same name')}</option></select><button class="btn red" id="pAddB">+ ${t('Add part')}</button><label class="btn ghost" style="cursor:pointer">${t('Import Excel / CSV')}<input type="file" id="pImp" accept=".xlsx,.xls,.csv" hidden></label><label class="mini" style="display:flex;align-items:center;gap:6px">${t('Add margin to imported prices')} <input id="pMargin" type="number" min="0" max="300" value="20" style="width:70px" class="sel"> %</label></div>
     <p class="mini" style="margin:-6px 0 14px">${t('Import columns')}: <b class="ltr">PartNo, Name, NameAr, NameKu, Brand, Make, Model, YearFrom, YearTo, Category, Condition, RetailPrice, WholesalePrice, Stock</b>. ${t('Existing part numbers are updated. Leave prices empty to show “Price on request”.')}</p>
-    <div id="pDupNote" class="dupnote hidden"></div><p class="mini" id="pCount" style="margin:0 0 8px"></p><div id="pBulk" class="bulkbar hidden"></div><div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th class="ck"><input type="checkbox" id="pAll" aria-label="${esc(t('Select all shown'))}"></th><th>${t('Part number')}</th><th>${t('Name')}</th><th>${t('Fits')}</th><th>${t('Category')}</th><th class="num">${t('Retail')}</th><th class="num">${t('Wholesale')}</th><th>${t('Stock')}</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div></div>`;
-  if(!S.pSel)S.pSel=new Set();let pShown=[],pTotal=0,lastCk=null;
+    <div class="pfilters" id="pFilters"></div><div id="pDupNote" class="dupnote hidden"></div><p class="mini" id="pCount" style="margin:0 0 8px"></p><div id="pBulk" class="bulkbar hidden"></div><div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th class="ck"><input type="checkbox" id="pAll" aria-label="${esc(t('Select all shown'))}"></th><th><button class="th-sort" data-sort="pn">${t('Part number')}</button></th><th><button class="th-sort" data-sort="name">${t('Name')}</button></th><th>${t('Fits')}</th><th><button class="th-sort" data-sort="cat">${t('Category')}</button></th><th class="num"><button class="th-sort" data-sort="price">${t('Retail')}</button></th><th class="num">${t('Wholesale')}</th><th><button class="th-sort" data-sort="stock">${t('Stock')}</button></th><th></th></tr></thead><tbody id="pRows"></tbody></table></div></div>`;
+  if(!S.pSel)S.pSel=new Set();if(!S.pf)S.pf={};let pShown=[],pTotal=0,lastCk=null;
+  const F=()=>({q:S.adminQ||'',staff:true,cat:S.pf.cat||'',stk:S.pf.stk||'',vis:S.pf.vis||'',price:S.pf.price||'',pmin:S.pf.pmin,pmax:S.pf.pmax,sort:S.pf.sort||''});
+  const nf=()=>['cat','stk','vis','price','pmin','pmax'].filter(k=>nz(S.pf[k])).length;
+  const drawFilters=()=>{const f=S.pf,o=(arr,val,lbl)=>`<option value="">${lbl}</option>`+arr.map(([v,l])=>`<option value="${esc(v)}" ${val===v?'selected':''}>${l}</option>`).join('');
+    $('#pFilters').innerHTML=`<select class="sel sm" data-pf="cat">${o(CATS.map(c=>[c[0],t(c[0])]),f.cat,t('All categories'))}</select>
+      <select class="sel sm" data-pf="stk">${o(STOCKS.map(x=>[x,t(x)]),f.stk,t('Any stock'))}</select>
+      <select class="sel sm" data-pf="vis">${o([['shown',t('Visible to customers')],['hidden',t('Hidden only')]],f.vis,t('Visible + hidden'))}</select>
+      <select class="sel sm" data-pf="price">${o([['has',t('Has a price')],['none',t('No price')]],f.price,t('Any price'))}</select>
+      <span class="pf-range"><input class="sel sm" type="number" min="0" step="250" data-pf="pmin" value="${esc(f.pmin??'')}" placeholder="${esc(t('Min IQD'))}" aria-label="${esc(t('Min IQD'))}"> – <input class="sel sm" type="number" min="0" step="250" data-pf="pmax" value="${esc(f.pmax??'')}" placeholder="${esc(t('Max IQD'))}" aria-label="${esc(t('Max IQD'))}"></span>
+      <select class="sel sm" data-pf="sort">${o([['pn',t('Sort: part number')],['name',t('Sort: name')],['cat',t('Sort: category')],['price_asc',t('Sort: price low → high')],['price_desc',t('Sort: price high → low')],['stock',t('Sort: stock')]],f.sort,t('Sort: best match'))}</select>
+      ${nf()||f.sort?`<button class="btn sm ghost" id="pfClear">${t('Clear filters')}${nf()?` (${nf()})`:''}</button>`:''}`;
+    $$('#pRows').length;$$('.th-sort').forEach(b=>{const k=b.dataset.sort,cur=f.sort||'';b.classList.toggle('on',k==='price'?cur.startsWith('price'):cur===k);b.dataset.dir=cur==='price_desc'?'↓':cur==='price_asc'?'↑':cur===k?'↑':''})};
   const syncAll=()=>{const a=$('#pAll');if(!a)return;const n=pShown.filter(p=>S.pSel.has(p.id)).length;a.checked=pShown.length>0&&n===pShown.length;a.indeterminate=n>0&&n<pShown.length};
   const drawBulk=()=>{const b=$('#pBulk');if(!b)return;const n=S.pSel.size;b.classList.toggle('hidden',!n);if(!n){b.innerHTML='';return}
     const opt=(arr,lbl)=>`<option value="">${lbl}</option>`+arr.map(x=>`<option value="${esc(x)}">${t(x)}</option>`).join('');
@@ -821,7 +836,7 @@ function adminParts(){
   bar.onclick=e=>{const b=e.target;
     if(b.id==='bkPriceB'){priceChange();return}
     if(b.id==='bkClear'){S.pSel.clear();draw();return}
-    if(b.id==='bkAllMatch'){(async()=>{b.disabled=true;b.textContent=t('Selecting…');for(let off=0;off<pTotal;off+=500){const r=await PartsAPI.search({q:S.adminQ||'',lim:500,off,staff:true}).catch(()=>({rows:[]}));r.rows.forEach(p=>S.pSel.add(p.id));if(!r.rows.length)break}draw()})();return}
+    if(b.id==='bkAllMatch'){(async()=>{b.disabled=true;b.textContent=t('Selecting…');for(let off=0;off<pTotal;off+=500){const r=await (S.pView?PartsAPI.dups({mode:S.pView,q:S.adminQ||'',lim:1000,off}):PartsAPI.search({...F(),lim:500,off})).catch(()=>({rows:[]}));r.rows.forEach(p=>S.pSel.add(p.id));if(!r.rows.length)break}draw()})();return}
     const k=b.closest&&b.closest('[data-bk]');if(!k)return;const n=S.pSel.size;
     if(k.dataset.bk==='delete')confirmBox(t('Delete {n} parts from the catalog? This cannot be undone.',{n:n.toLocaleString('en')}),()=>bulk(t('Deleting parts'),null,true));
     if(k.dataset.bk==='hide')bulk(t('Hiding parts'),p=>({...p,hidden:true}));
@@ -835,12 +850,18 @@ function adminParts(){
     if(!pct||pct<-90||pct>500){toast(t('Enter a % between -90 and 500, e.g. 10 or -5'));return}
     const keys=w==='both'?['retailPrice','wholesalePrice']:[w];
     confirmBox(t('Change the price of {n} parts by {p}%? Prices are rounded up to 250 IQD.',{n:S.pSel.size.toLocaleString('en'),p:(pct>0?'+':'')+pct}),()=>bulk(t('Changing prices'),p=>{keys.forEach(k=>{if(nz(p[k]))p[k]=priceOf(p[k],pct)});return p}))};
-  let pSeq=0;const draw=async()=>{const seq=++pSeq;let rows=[],total=0;const dup=S.pView==='pn'||S.pView==='name';try{const r=dup?await PartsAPI.dups({mode:S.pView,q:S.adminQ||'',lim:300}):await PartsAPI.search({q:S.adminQ||'',lim:200,staff:true});rows=r.rows;total=r.total}catch(e){}if(seq!==pSeq||!$('#pRows'))return;$('#pCount').textContent=(dup?t('Duplicates')+': ':'')+(total>rows.length?t('Showing {a} of {n} parts',{a:rows.length,n:total.toLocaleString('en')}):t('{n} parts',{n:total.toLocaleString('en')}));
+  let pSeq=0;const draw=async()=>{const seq=++pSeq;let rows=[],total=0;const dup=S.pView==='pn'||S.pView==='name';try{const r=dup?await PartsAPI.dups({mode:S.pView,q:S.adminQ||'',lim:300}):await PartsAPI.search({...F(),lim:200});rows=r.rows;total=r.total}catch(e){}if(seq!==pSeq||!$('#pRows'))return;$('#pCount').textContent=(dup?t('Duplicates')+': ':'')+(total>rows.length?t('Showing {a} of {n} parts',{a:rows.length,n:total.toLocaleString('en')}):t('{n} parts',{n:total.toLocaleString('en')}));
     const note=$('#pDupNote');note.classList.toggle('hidden',!dup);if(dup)note.innerHTML=(S.pView==='pn'?t('Parts whose part numbers are the same (only written differently). Keep one of each and delete the others.'):t('Parts with the same name. Careful: the same name is often a different part for a different car (e.g. Headlamp). Search first, e.g. “85W-90”, then compare price and stock before deleting.'))+(rows.length?` <button class="btn sm ghost" id="pTickExtra">${t('Tick all except the first in each group')}</button>`:'');
     let lastGrp=null;$('#pRows').innerHTML=rows.length?rows.map(p=>(dup&&p.grp!==lastGrp?(lastGrp=p.grp,`<tr class="grp"><td></td><td colspan="8"><b class="ltr">${esc(S.pView==='pn'?p.partNo:p.name)}</b> · ${t('{n} parts',{n:p.gsize})} <button class="btn sm ghost" data-gtick="${esc(p.grp)}">${t('Tick all except the first')}</button></td></tr>`):'')+`<tr class="click ${S.pSel.has(p.id)?'sel':''}" data-p="${esc(p.id)}"><td class="ck"><input type="checkbox" data-ck="${esc(p.id)}" ${S.pSel.has(p.id)?'checked':''} aria-label="${esc(t('Select')+' '+p.partNo)}"></td><td class="mini ltr"><b>${esc(p.partNo)}</b></td><td>${esc(pName(p))}${p.hidden?` <span class="mini">(${t('hidden')})</span>`:''}</td><td class="mini">${esc(fitText(p))}</td><td>${t(p.category||'')}</td><td class="num">${nz(p.retailPrice)?money(p.retailPrice):'—'}</td><td class="num">${nz(p.wholesalePrice)?money(p.wholesalePrice):'—'}</td><td class="mini">${t(p.stock||'')}</td><td>${can('delete')?`<button class="rm" data-pdel="${esc(p.id)}">${t('Delete')}</button>`:''}</td></tr>`).join(''):`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">${dup?t('No duplicates found.'):t('No parts yet. Add one or import your Excel list.')}</td></tr>`;
     pShown=rows;pTotal=total;syncAll();drawBulk()};
   let pT;const drawD=()=>{clearTimeout(pT);pT=setTimeout(draw,250)};draw();bindSearch(drawD);$('#pAddB').onclick=()=>openPart();
   $('#pView').onchange=e=>{S.pView=e.target.value;S.pSel.clear();draw()};
+  drawFilters();let pfT;
+  $('#pFilters').onchange=e=>{const k=e.target.dataset.pf;if(!k)return;S.pf[k]=e.target.value===''?undefined:e.target.value;drawFilters();draw()};
+  $('#pFilters').oninput=e=>{const k=e.target.dataset.pf;if(k!=='pmin'&&k!=='pmax')return;S.pf[k]=e.target.value===''?undefined:e.target.value;clearTimeout(pfT);pfT=setTimeout(draw,400)};
+  $('#pFilters').onclick=e=>{if(e.target.id==='pfClear'){S.pf={};drawFilters();draw()}};
+  body.querySelector('thead').onclick=e=>{const b=e.target.closest('.th-sort');if(!b)return;const k=b.dataset.sort,cur=S.pf.sort||'';
+    S.pf.sort=k==='price'?(cur==='price_asc'?'price_desc':cur==='price_desc'?undefined:'price_asc'):(cur===k?undefined:k);drawFilters();draw()};
   const tickExtras=grp=>{const seen=new Set();pShown.forEach(p=>{if(grp&&p.grp!==grp)return;if(seen.has(p.grp))S.pSel.add(p.id);else seen.add(p.grp)});draw()};
   $('#pDupNote').onclick=e=>{if(e.target.id==='pTickExtra')tickExtras(null)};
   $('#pAll').onchange=e=>{pShown.forEach(p=>e.target.checked?S.pSel.add(p.id):S.pSel.delete(p.id));$$('#pRows [data-ck]').forEach(c=>{c.checked=e.target.checked;c.closest('tr').classList.toggle('sel',c.checked)});syncAll();drawBulk()};
