@@ -780,11 +780,62 @@ function adminParts(){
   const body=$('#adminBody');
   body.innerHTML=`<div class="toolbar">${searchBox(t('Search part number, name, model…'))}<button class="btn red" id="pAddB">+ ${t('Add part')}</button><label class="btn ghost" style="cursor:pointer">${t('Import Excel / CSV')}<input type="file" id="pImp" accept=".xlsx,.xls,.csv" hidden></label><label class="mini" style="display:flex;align-items:center;gap:6px">${t('Add margin to imported prices')} <input id="pMargin" type="number" min="0" max="300" value="20" style="width:70px" class="sel"> %</label></div>
     <p class="mini" style="margin:-6px 0 14px">${t('Import columns')}: <b class="ltr">PartNo, Name, NameAr, NameKu, Brand, Make, Model, YearFrom, YearTo, Category, Condition, RetailPrice, WholesalePrice, Stock</b>. ${t('Existing part numbers are updated. Leave prices empty to show “Price on request”.')}</p>
-    <p class="mini" id="pCount" style="margin:0 0 8px"></p><div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Name')}</th><th>${t('Fits')}</th><th>${t('Category')}</th><th class="num">${t('Retail')}</th><th class="num">${t('Wholesale')}</th><th>${t('Stock')}</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div></div>`;
+    <p class="mini" id="pCount" style="margin:0 0 8px"></p><div id="pBulk" class="bulkbar hidden"></div><div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th class="ck"><input type="checkbox" id="pAll" aria-label="${esc(t('Select all shown'))}"></th><th>${t('Part number')}</th><th>${t('Name')}</th><th>${t('Fits')}</th><th>${t('Category')}</th><th class="num">${t('Retail')}</th><th class="num">${t('Wholesale')}</th><th>${t('Stock')}</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div></div>`;
+  if(!S.pSel)S.pSel=new Set();let pShown=[],pTotal=0,lastCk=null;
+  const syncAll=()=>{const a=$('#pAll');if(!a)return;const n=pShown.filter(p=>S.pSel.has(p.id)).length;a.checked=pShown.length>0&&n===pShown.length;a.indeterminate=n>0&&n<pShown.length};
+  const drawBulk=()=>{const b=$('#pBulk');if(!b)return;const n=S.pSel.size;b.classList.toggle('hidden',!n);if(!n){b.innerHTML='';return}
+    const opt=(arr,lbl)=>`<option value="">${lbl}</option>`+arr.map(x=>`<option value="${esc(x)}">${t(x)}</option>`).join('');
+    b.innerHTML=`<b>${t('{n} selected',{n:n.toLocaleString('en')})}</b>
+      ${pTotal>pShown.length&&n<pTotal?`<button class="btn sm ghost" id="bkAllMatch">${t('Select all {n} matching',{n:pTotal.toLocaleString('en')})}</button>`:''}
+      <button class="btn sm ghost" id="bkClear">${t('Clear selection')}</button><span class="sep"></span>
+      ${can('parts')?`<select class="sel sm" id="bkStock">${opt(STOCKS,t('Set stock…'))}</select>
+      <select class="sel sm" id="bkCat">${opt(CATS.map(c=>c[0]),t('Set category…'))}</select>
+      <button class="btn sm ghost" data-bk="hide">${t('Hide')}</button><button class="btn sm ghost" data-bk="show">${t('Show')}</button>
+      <span class="bk-price"><input type="number" class="sel sm" id="bkPct" placeholder="%" step="1" style="width:74px" aria-label="${esc(t('Price change %'))}"><select class="sel sm" id="bkWhich"><option value="retailPrice">${t('Retail')}</option><option value="wholesalePrice">${t('Wholesale')}</option><option value="both">${t('Both')}</option></select><button class="btn sm ghost" id="bkPriceB">${t('Change price %')}</button></span>`:''}
+      ${can('delete')?`<button class="btn sm red" data-bk="delete">${t('Delete')}</button>`:''}`;
+  };
+  // apply one change to every selected part (in batches), then refresh
+  const bulk=async(label,fn,isDelete)=>{const ids=[...S.pSel];if(!ids.length)return;
+    openModal(mHead(label)+`<div class="modal-body"><p id="bkP">0 / ${ids.length.toLocaleString('en')}</p></div>`);let done=0,fail=0;
+    try{
+      if(S.mode==='supabase'){for(let i=0;i<ids.length;i+=(isDelete?150:400)){const chunk=ids.slice(i,i+(isDelete?150:400));
+          if(isDelete){const {error}=await S.sb.from('docs').delete().eq('col','parts').in('id',chunk);if(error)throw error;chunk.forEach(id=>delete S.data.parts[id])}
+          else{const miss=chunk.filter(id=>!S.data.parts[id]);if(miss.length){const {data}=await S.sb.from('docs').select('id,data').eq('col','parts').in('id',miss);(data||[]).forEach(r=>S.data.parts[r.id]=r.data)}
+            const rows=chunk.filter(id=>S.data.parts[id]).map(id=>({col:'parts',id,data:{...fn({...S.data.parts[id]}),updatedAt:Date.now()}}));const {error}=await S.sb.from('docs').upsert(rows);if(error)throw error;rows.forEach(r=>S.data.parts[r.id]=r.data)}
+          done+=chunk.length;$('#bkP').textContent=`${done.toLocaleString('en')} / ${ids.length.toLocaleString('en')}`}}
+      else for(const id of ids){const p=Store.get('parts',id);if(!p){fail++;continue}if(isDelete)await Store.del('parts',id);else await Store.set('parts',id,{...fn({...p}),updatedAt:Date.now()});done++}
+    }catch(e){fail=ids.length-done;toast(e.message||t('Could not save'))}
+    closeModal();S.pSel.clear();toast(t('{n} parts updated',{n:done.toLocaleString('en')})+(fail?` · ${t('{n} failed',{n:fail})}`:''));Store.emit('parts');draw()};
+  const priceOf=(v,pct)=>v==null||v===''?v:Math.max(250,Math.ceil(Number(v)*(1+pct/100)/250)*250);
+  const bar=$('#pBulk');
+  bar.onclick=e=>{const b=e.target;
+    if(b.id==='bkPriceB'){priceChange();return}
+    if(b.id==='bkClear'){S.pSel.clear();draw();return}
+    if(b.id==='bkAllMatch'){(async()=>{b.disabled=true;b.textContent=t('Selecting…');for(let off=0;off<pTotal;off+=500){const r=await PartsAPI.search({q:S.adminQ||'',lim:500,off,staff:true}).catch(()=>({rows:[]}));r.rows.forEach(p=>S.pSel.add(p.id));if(!r.rows.length)break}draw()})();return}
+    const k=b.closest&&b.closest('[data-bk]');if(!k)return;const n=S.pSel.size;
+    if(k.dataset.bk==='delete')confirmBox(t('Delete {n} parts from the catalog? This cannot be undone.',{n:n.toLocaleString('en')}),()=>bulk(t('Deleting parts'),null,true));
+    if(k.dataset.bk==='hide')bulk(t('Hiding parts'),p=>({...p,hidden:true}));
+    if(k.dataset.bk==='show')bulk(t('Showing parts'),p=>{delete p.hidden;return p});
+  };
+  bar.onchange=e=>{const b=e.target;
+    if(b.id==='bkStock'&&b.value){const v=b.value;bulk(t('Setting stock'),p=>({...p,stock:v}))}
+    if(b.id==='bkCat'&&b.value){const v=b.value;bulk(t('Setting category'),p=>({...p,category:v}))}
+  };
+  const priceChange=()=>{const pct=Number(($('#bkPct')||{}).value);const w=$('#bkWhich').value;
+    if(!pct||pct<-90||pct>500){toast(t('Enter a % between -90 and 500, e.g. 10 or -5'));return}
+    const keys=w==='both'?['retailPrice','wholesalePrice']:[w];
+    confirmBox(t('Change the price of {n} parts by {p}%? Prices are rounded up to 250 IQD.',{n:S.pSel.size.toLocaleString('en'),p:(pct>0?'+':'')+pct}),()=>bulk(t('Changing prices'),p=>{keys.forEach(k=>{if(nz(p[k]))p[k]=priceOf(p[k],pct)});return p}))};
   let pSeq=0;const draw=async()=>{const seq=++pSeq;let rows=[],total=0;try{const r=await PartsAPI.search({q:S.adminQ||'',lim:200,staff:true});rows=r.rows;total=r.total}catch(e){}if(seq!==pSeq||!$('#pRows'))return;$('#pCount').textContent=total>rows.length?t('Showing {a} of {n} parts',{a:rows.length,n:total.toLocaleString('en')}):t('{n} parts',{n:total.toLocaleString('en')});
-    $('#pRows').innerHTML=rows.length?rows.map(p=>`<tr class="click" data-p="${esc(p.id)}"><td class="mini ltr"><b>${esc(p.partNo)}</b></td><td>${esc(pName(p))}${p.hidden?` <span class="mini">(${t('hidden')})</span>`:''}</td><td class="mini">${esc(fitText(p))}</td><td>${t(p.category||'')}</td><td class="num">${nz(p.retailPrice)?money(p.retailPrice):'—'}</td><td class="num">${nz(p.wholesalePrice)?money(p.wholesalePrice):'—'}</td><td class="mini">${t(p.stock||'')}</td><td>${can('delete')?`<button class="rm" data-pdel="${esc(p.id)}">${t('Delete')}</button>`:''}</td></tr>`).join(''):`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">${t('No parts yet. Add one or import your Excel list.')}</td></tr>`};
+    $('#pRows').innerHTML=rows.length?rows.map(p=>`<tr class="click ${S.pSel.has(p.id)?'sel':''}" data-p="${esc(p.id)}"><td class="ck"><input type="checkbox" data-ck="${esc(p.id)}" ${S.pSel.has(p.id)?'checked':''} aria-label="${esc(t('Select')+' '+p.partNo)}"></td><td class="mini ltr"><b>${esc(p.partNo)}</b></td><td>${esc(pName(p))}${p.hidden?` <span class="mini">(${t('hidden')})</span>`:''}</td><td class="mini">${esc(fitText(p))}</td><td>${t(p.category||'')}</td><td class="num">${nz(p.retailPrice)?money(p.retailPrice):'—'}</td><td class="num">${nz(p.wholesalePrice)?money(p.wholesalePrice):'—'}</td><td class="mini">${t(p.stock||'')}</td><td>${can('delete')?`<button class="rm" data-pdel="${esc(p.id)}">${t('Delete')}</button>`:''}</td></tr>`).join(''):`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">${t('No parts yet. Add one or import your Excel list.')}</td></tr>`;
+    pShown=rows;pTotal=total;syncAll();drawBulk()};
   let pT;const drawD=()=>{clearTimeout(pT);pT=setTimeout(draw,250)};draw();bindSearch(drawD);$('#pAddB').onclick=()=>openPart();
-  $('#pRows').onclick=e=>{const d=e.target.closest('[data-pdel]');if(d){e.stopPropagation();confirmBox(t('Delete this part from the catalog?'),async()=>{await Store.del('parts',d.dataset.pdel).catch(()=>{});toast(t('Part deleted'))});return}const r=e.target.closest('[data-p]');if(r)openPart(r.dataset.p)};
+  $('#pAll').onchange=e=>{pShown.forEach(p=>e.target.checked?S.pSel.add(p.id):S.pSel.delete(p.id));$$('#pRows [data-ck]').forEach(c=>{c.checked=e.target.checked;c.closest('tr').classList.toggle('sel',c.checked)});syncAll();drawBulk()};
+  $('#pRows').onclick=e=>{const ck=e.target.closest('[data-ck]')||(e.target.closest('td.ck')&&e.target.closest('tr').querySelector('[data-ck]'));
+    if(ck){e.stopPropagation();if(e.target!==ck)ck.checked=!ck.checked;const id=ck.dataset.ck,on=ck.checked;
+      // shift-click selects every row between the last tick and this one
+      if(e.shiftKey&&lastCk!=null){const ids=pShown.map(p=>p.id),a=ids.indexOf(lastCk),b=ids.indexOf(id);if(a>-1&&b>-1){ids.slice(Math.min(a,b),Math.max(a,b)+1).forEach(x=>{on?S.pSel.add(x):S.pSel.delete(x);const c=$(`#pRows [data-ck="${CSS.escape(x)}"]`);if(c){c.checked=on;c.closest('tr').classList.toggle('sel',on)}})}}
+      on?S.pSel.add(id):S.pSel.delete(id);ck.closest('tr').classList.toggle('sel',on);lastCk=id;syncAll();drawBulk();return}
+    const d=e.target.closest('[data-pdel]');if(d){e.stopPropagation();confirmBox(t('Delete this part from the catalog?'),async()=>{await Store.del('parts',d.dataset.pdel).catch(()=>{});toast(t('Part deleted'))});return}const r=e.target.closest('[data-p]');if(r)openPart(r.dataset.p)};
   $('#pImp').onchange=e=>importParts(e.target.files[0]);
 }
 function confirmBox(msg,fn){openModal(mHead(t('Are you sure?'))+`<div class="modal-body"><p style="margin-bottom:18px">${esc(msg)}</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn ghost" data-mclose>${t('Cancel')}</button><button class="btn red" id="cfOk">${t('Confirm')}</button></div></div>`);$$('#modalBox [data-mclose]').forEach(b=>b.onclick=closeModal);$('#cfOk').onclick=()=>{closeModal();fn()}}
