@@ -2,6 +2,16 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Part number {p} is already in the catalog. Opening it so you can edit it.":"رقم القطعة {p} موجود في الكتالوج. سيتم فتحه للتعديل.",
+"All parts":"كل القطع",
+"Duplicates: same part number":"مكرر: نفس رقم القطعة",
+"Duplicates: same name":"مكرر: نفس الاسم",
+"Duplicates":"المكررات",
+"Parts whose part numbers are the same (only written differently). Keep one of each and delete the others.":"قطع لها نفس الرقم (مكتوب بشكل مختلف فقط). احتفظ بواحدة من كل مجموعة واحذف الباقي.",
+"Parts with the same name. Careful: the same name is often a different part for a different car (e.g. Headlamp). Search first, e.g. “85W-90”, then compare price and stock before deleting.":"قطع بنفس الاسم. انتبه: نفس الاسم غالباً قطعة مختلفة لسيارة مختلفة (مثل الضوء الأمامي). ابحث أولاً، مثل “85W-90”، ثم قارن السعر والمخزون قبل الحذف.",
+"Tick all except the first in each group":"تحديد الكل عدا الأول في كل مجموعة",
+"Tick all except the first":"تحديد الكل عدا الأول",
+"No duplicates found.":"لا توجد مكررات.",
 "Select all shown":"تحديد كل المعروض",
 "Select":"تحديد",
 "{n} selected":"{n} محدد",
@@ -250,6 +260,16 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Part number {p} is already in the catalog. Opening it so you can edit it.":"ژمارەی پارچەی {p} لە کاتالۆگدا هەیە. دەیکەینەوە بۆ دەستکاری.",
+"All parts":"هەموو پارچەکان",
+"Duplicates: same part number":"دووبارە: هەمان ژمارەی پارچە",
+"Duplicates: same name":"دووبارە: هەمان ناو",
+"Duplicates":"دووبارەکان",
+"Parts whose part numbers are the same (only written differently). Keep one of each and delete the others.":"پارچەگەلێک کە ژمارەیان یەکە (تەنها جیاواز نووسراون). یەکێک لە هەر گروپێک بهێڵەرەوە و ئەوانی تر بسڕەوە.",
+"Parts with the same name. Careful: the same name is often a different part for a different car (e.g. Headlamp). Search first, e.g. “85W-90”, then compare price and stock before deleting.":"پارچەگەلێک بە هەمان ناو. ئاگاداربە: هەمان ناو زۆرجار پارچەیەکی جیاوازە بۆ ئۆتۆمبێلێکی تر (وەک گڵۆپی پێشەوە). سەرەتا بگەڕێ، وەک “85W-90”، پاشان نرخ و کۆگا بەراورد بکە پێش سڕینەوە.",
+"Tick all except the first in each group":"هەمووی هەڵبژێرە جگە لە یەکەمی هەر گروپێک",
+"Tick all except the first":"هەمووی جگە لە یەکەم",
+"No duplicates found.":"هیچ دووبارەیەک نەدۆزرایەوە.",
 "Select all shown":"هەڵبژاردنی هەموو پیشاندراوەکان",
 "Select":"هەڵبژاردن",
 "{n} selected":"{n} هەڵبژێردراو",

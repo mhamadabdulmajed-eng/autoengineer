@@ -408,6 +408,16 @@ const PartsAPI={
     if(error)throw error;(data||[]).forEach(r=>{S.data.parts[r.id]=r.data});
     return {rows:(data||[]).map(r=>({...r.data,id:r.id})),total:data&&data.length?+data[0].total:0}}
 };
+// duplicates (Staff > Parts catalog): mode 'pn' = same part number written differently, 'name' = same name
+PartsAPI.dups=async function(o){
+  if(!this.remote()){const key=p=>o.mode==='name'?String(p.name||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').split(/\s+/).filter(Boolean).sort().join(' '):String(p.partNo||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const q=String(o.q||'').toLowerCase();const base=Store.all('parts').filter(p=>!q||[p.partNo,p.name,p.nameAr,p.nameKu].join(' ').toLowerCase().includes(q));
+    const g={};base.forEach(p=>{const k=key(p);if(k)(g[k]=g[k]||[]).push(p)});
+    const rows=Object.entries(g).filter(([k,v])=>v.length>1).sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0])).flatMap(([k,v])=>v.map(p=>({...p,grp:k,gsize:v.length})));
+    return {rows:rows.slice(o.off||0,(o.off||0)+(o.lim||300)),total:rows.length}}
+  const {data,error}=await S.sb.rpc('duplicate_parts',{mode:o.mode,q:o.q||'',lim:o.lim||300,off:o.off||0});if(error)throw error;
+  (data||[]).forEach(r=>{S.data.parts[r.id]=r.data});
+  return {rows:(data||[]).map(r=>({...r.data,id:r.id,grp:r.grp,gsize:+r.gsize})),total:data&&data.length?+data[0].total:0}};
 // shop search words: a known local word (e.g. فحمات) also searches its English catalog words
 // fallback when a plain search finds nothing: a known local word (e.g. فحمة, قماش) searches its catalog keywords
 function shopQuery(q){const cp=window.commonPartOf?commonPartOf(q):null;if(cp&&!/[0-9]{4}/.test(q))return {q:'',anyw:cp.kw,cat:cp.cat};return null}
@@ -778,9 +788,9 @@ function openCustomer(id){
 /* parts */
 function adminParts(){
   const body=$('#adminBody');
-  body.innerHTML=`<div class="toolbar">${searchBox(t('Search part number, name, model…'))}<button class="btn red" id="pAddB">+ ${t('Add part')}</button><label class="btn ghost" style="cursor:pointer">${t('Import Excel / CSV')}<input type="file" id="pImp" accept=".xlsx,.xls,.csv" hidden></label><label class="mini" style="display:flex;align-items:center;gap:6px">${t('Add margin to imported prices')} <input id="pMargin" type="number" min="0" max="300" value="20" style="width:70px" class="sel"> %</label></div>
+  body.innerHTML=`<div class="toolbar">${searchBox(t('Search part number, name, model…'))}<select class="sel" id="pView" aria-label="${esc(t('Show'))}"><option value="">${t('All parts')}</option><option value="pn" ${S.pView==='pn'?'selected':''}>${t('Duplicates: same part number')}</option><option value="name" ${S.pView==='name'?'selected':''}>${t('Duplicates: same name')}</option></select><button class="btn red" id="pAddB">+ ${t('Add part')}</button><label class="btn ghost" style="cursor:pointer">${t('Import Excel / CSV')}<input type="file" id="pImp" accept=".xlsx,.xls,.csv" hidden></label><label class="mini" style="display:flex;align-items:center;gap:6px">${t('Add margin to imported prices')} <input id="pMargin" type="number" min="0" max="300" value="20" style="width:70px" class="sel"> %</label></div>
     <p class="mini" style="margin:-6px 0 14px">${t('Import columns')}: <b class="ltr">PartNo, Name, NameAr, NameKu, Brand, Make, Model, YearFrom, YearTo, Category, Condition, RetailPrice, WholesalePrice, Stock</b>. ${t('Existing part numbers are updated. Leave prices empty to show “Price on request”.')}</p>
-    <p class="mini" id="pCount" style="margin:0 0 8px"></p><div id="pBulk" class="bulkbar hidden"></div><div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th class="ck"><input type="checkbox" id="pAll" aria-label="${esc(t('Select all shown'))}"></th><th>${t('Part number')}</th><th>${t('Name')}</th><th>${t('Fits')}</th><th>${t('Category')}</th><th class="num">${t('Retail')}</th><th class="num">${t('Wholesale')}</th><th>${t('Stock')}</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div></div>`;
+    <div id="pDupNote" class="dupnote hidden"></div><p class="mini" id="pCount" style="margin:0 0 8px"></p><div id="pBulk" class="bulkbar hidden"></div><div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th class="ck"><input type="checkbox" id="pAll" aria-label="${esc(t('Select all shown'))}"></th><th>${t('Part number')}</th><th>${t('Name')}</th><th>${t('Fits')}</th><th>${t('Category')}</th><th class="num">${t('Retail')}</th><th class="num">${t('Wholesale')}</th><th>${t('Stock')}</th><th></th></tr></thead><tbody id="pRows"></tbody></table></div></div>`;
   if(!S.pSel)S.pSel=new Set();let pShown=[],pTotal=0,lastCk=null;
   const syncAll=()=>{const a=$('#pAll');if(!a)return;const n=pShown.filter(p=>S.pSel.has(p.id)).length;a.checked=pShown.length>0&&n===pShown.length;a.indeterminate=n>0&&n<pShown.length};
   const drawBulk=()=>{const b=$('#pBulk');if(!b)return;const n=S.pSel.size;b.classList.toggle('hidden',!n);if(!n){b.innerHTML='';return}
@@ -825,16 +835,21 @@ function adminParts(){
     if(!pct||pct<-90||pct>500){toast(t('Enter a % between -90 and 500, e.g. 10 or -5'));return}
     const keys=w==='both'?['retailPrice','wholesalePrice']:[w];
     confirmBox(t('Change the price of {n} parts by {p}%? Prices are rounded up to 250 IQD.',{n:S.pSel.size.toLocaleString('en'),p:(pct>0?'+':'')+pct}),()=>bulk(t('Changing prices'),p=>{keys.forEach(k=>{if(nz(p[k]))p[k]=priceOf(p[k],pct)});return p}))};
-  let pSeq=0;const draw=async()=>{const seq=++pSeq;let rows=[],total=0;try{const r=await PartsAPI.search({q:S.adminQ||'',lim:200,staff:true});rows=r.rows;total=r.total}catch(e){}if(seq!==pSeq||!$('#pRows'))return;$('#pCount').textContent=total>rows.length?t('Showing {a} of {n} parts',{a:rows.length,n:total.toLocaleString('en')}):t('{n} parts',{n:total.toLocaleString('en')});
-    $('#pRows').innerHTML=rows.length?rows.map(p=>`<tr class="click ${S.pSel.has(p.id)?'sel':''}" data-p="${esc(p.id)}"><td class="ck"><input type="checkbox" data-ck="${esc(p.id)}" ${S.pSel.has(p.id)?'checked':''} aria-label="${esc(t('Select')+' '+p.partNo)}"></td><td class="mini ltr"><b>${esc(p.partNo)}</b></td><td>${esc(pName(p))}${p.hidden?` <span class="mini">(${t('hidden')})</span>`:''}</td><td class="mini">${esc(fitText(p))}</td><td>${t(p.category||'')}</td><td class="num">${nz(p.retailPrice)?money(p.retailPrice):'—'}</td><td class="num">${nz(p.wholesalePrice)?money(p.wholesalePrice):'—'}</td><td class="mini">${t(p.stock||'')}</td><td>${can('delete')?`<button class="rm" data-pdel="${esc(p.id)}">${t('Delete')}</button>`:''}</td></tr>`).join(''):`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">${t('No parts yet. Add one or import your Excel list.')}</td></tr>`;
+  let pSeq=0;const draw=async()=>{const seq=++pSeq;let rows=[],total=0;const dup=S.pView==='pn'||S.pView==='name';try{const r=dup?await PartsAPI.dups({mode:S.pView,q:S.adminQ||'',lim:300}):await PartsAPI.search({q:S.adminQ||'',lim:200,staff:true});rows=r.rows;total=r.total}catch(e){}if(seq!==pSeq||!$('#pRows'))return;$('#pCount').textContent=(dup?t('Duplicates')+': ':'')+(total>rows.length?t('Showing {a} of {n} parts',{a:rows.length,n:total.toLocaleString('en')}):t('{n} parts',{n:total.toLocaleString('en')}));
+    const note=$('#pDupNote');note.classList.toggle('hidden',!dup);if(dup)note.innerHTML=(S.pView==='pn'?t('Parts whose part numbers are the same (only written differently). Keep one of each and delete the others.'):t('Parts with the same name. Careful: the same name is often a different part for a different car (e.g. Headlamp). Search first, e.g. “85W-90”, then compare price and stock before deleting.'))+(rows.length?` <button class="btn sm ghost" id="pTickExtra">${t('Tick all except the first in each group')}</button>`:'');
+    let lastGrp=null;$('#pRows').innerHTML=rows.length?rows.map(p=>(dup&&p.grp!==lastGrp?(lastGrp=p.grp,`<tr class="grp"><td></td><td colspan="8"><b class="ltr">${esc(S.pView==='pn'?p.partNo:p.name)}</b> · ${t('{n} parts',{n:p.gsize})} <button class="btn sm ghost" data-gtick="${esc(p.grp)}">${t('Tick all except the first')}</button></td></tr>`):'')+`<tr class="click ${S.pSel.has(p.id)?'sel':''}" data-p="${esc(p.id)}"><td class="ck"><input type="checkbox" data-ck="${esc(p.id)}" ${S.pSel.has(p.id)?'checked':''} aria-label="${esc(t('Select')+' '+p.partNo)}"></td><td class="mini ltr"><b>${esc(p.partNo)}</b></td><td>${esc(pName(p))}${p.hidden?` <span class="mini">(${t('hidden')})</span>`:''}</td><td class="mini">${esc(fitText(p))}</td><td>${t(p.category||'')}</td><td class="num">${nz(p.retailPrice)?money(p.retailPrice):'—'}</td><td class="num">${nz(p.wholesalePrice)?money(p.wholesalePrice):'—'}</td><td class="mini">${t(p.stock||'')}</td><td>${can('delete')?`<button class="rm" data-pdel="${esc(p.id)}">${t('Delete')}</button>`:''}</td></tr>`).join(''):`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">${dup?t('No duplicates found.'):t('No parts yet. Add one or import your Excel list.')}</td></tr>`;
     pShown=rows;pTotal=total;syncAll();drawBulk()};
   let pT;const drawD=()=>{clearTimeout(pT);pT=setTimeout(draw,250)};draw();bindSearch(drawD);$('#pAddB').onclick=()=>openPart();
+  $('#pView').onchange=e=>{S.pView=e.target.value;S.pSel.clear();draw()};
+  const tickExtras=grp=>{const seen=new Set();pShown.forEach(p=>{if(grp&&p.grp!==grp)return;if(seen.has(p.grp))S.pSel.add(p.id);else seen.add(p.grp)});draw()};
+  $('#pDupNote').onclick=e=>{if(e.target.id==='pTickExtra')tickExtras(null)};
   $('#pAll').onchange=e=>{pShown.forEach(p=>e.target.checked?S.pSel.add(p.id):S.pSel.delete(p.id));$$('#pRows [data-ck]').forEach(c=>{c.checked=e.target.checked;c.closest('tr').classList.toggle('sel',c.checked)});syncAll();drawBulk()};
   $('#pRows').onclick=e=>{const ck=e.target.closest('[data-ck]')||(e.target.closest('td.ck')&&e.target.closest('tr').querySelector('[data-ck]'));
     if(ck){e.stopPropagation();if(e.target!==ck)ck.checked=!ck.checked;const id=ck.dataset.ck,on=ck.checked;
       // shift-click selects every row between the last tick and this one
       if(e.shiftKey&&lastCk!=null){const ids=pShown.map(p=>p.id),a=ids.indexOf(lastCk),b=ids.indexOf(id);if(a>-1&&b>-1){ids.slice(Math.min(a,b),Math.max(a,b)+1).forEach(x=>{on?S.pSel.add(x):S.pSel.delete(x);const c=$(`#pRows [data-ck="${CSS.escape(x)}"]`);if(c){c.checked=on;c.closest('tr').classList.toggle('sel',on)}})}}
       on?S.pSel.add(id):S.pSel.delete(id);ck.closest('tr').classList.toggle('sel',on);lastCk=id;syncAll();drawBulk();return}
+    const gt=e.target.closest('[data-gtick]');if(gt){e.stopPropagation();tickExtras(gt.dataset.gtick);return}
     const d=e.target.closest('[data-pdel]');if(d){e.stopPropagation();confirmBox(t('Delete this part from the catalog?'),async()=>{await Store.del('parts',d.dataset.pdel).catch(()=>{});toast(t('Part deleted'))});return}const r=e.target.closest('[data-p]');if(r)openPart(r.dataset.p)};
   $('#pImp').onchange=e=>importParts(e.target.files[0]);
 }
@@ -853,6 +868,10 @@ function openPart(id,prefill){
     <button class="btn red block">${t('Save part')}</button></form><datalist id="makesL"><option value="Toyota"></datalist><datalist id="modelsL"><option value="All models">${(window.TOYOTA_MODELS||[]).map(m=>`<option value="${m.name}">`).join('')}</datalist></div>`);
   $('#pImg').onchange=async e=>{if(e.target.files[0]){img=await compressImg(e.target.files[0],700,.7);$('#pThumb').innerHTML=`<img src="${img}">`}};
   $('#pF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));const num=x=>x===''||x==null?null:Number(x);
+    fd.partNo=fmtPartNo(fd.partNo);
+    // a new part: stop if this part number is already in the catalog (any way of writing it)
+    if(!id){const key=fd.partNo.replace(/[^0-9A-Z]/gi,'').toLowerCase();let ex=null;try{const r=await PartsAPI.search({q:fd.partNo,lim:5,staff:true});ex=r.rows.find(x=>String(x.partNo).replace(/[^0-9A-Z]/gi,'').toLowerCase()===key)}catch(_){}
+      if(ex){toast(t('Part number {p} is already in the catalog. Opening it so you can edit it.',{p:ex.partNo}));closeModal();openPart(ex.id);return}}
     const data={...(id?p:{}),...fd,modelId:modelIdOf(fd.model||'')||'',yearFrom:num(fd.yearFrom),yearTo:num(fd.yearTo),retailPrice:num(fd.retailPrice),wholesalePrice:num(fd.wholesalePrice),hidden:!!fd.hidden,image:img,updatedAt:Date.now(),createdAt:p.createdAt||Date.now()};const nid=id||partId(fd.partNo);
     try{await Store.set('parts',nid,data);if(prefill&&prefill._sellId){const s=Store.get('sellRequests',prefill._sellId);if(s)await Store.set('sellRequests',s.id,{...s,status:'bought',listedPart:nid})}closeModal();toast(t('Part saved'))}catch(_){}};
 }
