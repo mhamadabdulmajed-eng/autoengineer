@@ -202,7 +202,6 @@ function buildHome(){
   <section class="hero hero-engine" id="hero"><div class="hero-grid"></div><div class="hero-glow"></div>
     <div class="hero-tech tech-host" id="heroTech"></div>
     <div class="hero-inner"><span class="eyebrow">${t('Toyota spare parts specialist')}</span><h1>${h1}</h1>
-      <p class="lead">${t('Genuine Toyota parts for Land Cruiser, Hilux, Camry and every Toyota on the road. Search, add to your basket and send your list. We reply with prices, availability and your discount.')}</p>
       <form class="hero-search" id="heroSearch"><input name="q" placeholder="${esc(t('Part name, part number or Toyota model…'))}" autocomplete="off"><button>${t('Search parts')}</button></form>
       <a class="hero-find" href="#find"><span class="hf-q">${t('No part number?')}</span><b>${t('FIND MY PART')}</b><span class="hf-arrow">→</span></a>
       <div class="hero-tags" id="heroTags">${tags.map(x=>`<button type="button" data-q="${esc(t(x))}">${esc(t(x))}</button>`).join('')}</div></div>

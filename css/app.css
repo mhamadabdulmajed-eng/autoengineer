@@ -832,3 +832,10 @@ footer b[style*="color:#fff"]{color:var(--text)!important}
 @media(max-width:860px){.stage-search{gap:8px;margin-bottom:18px}.stage-search .stage-find{width:100%}}
 .stage .stage-bg,.stage .stage-name{display:none}
 .stage::after,[dir=rtl] .stage::after{display:none}
+/* home top: Mohammed higher, search visible without scrolling */
+@media(min-width:861px){
+  .hero-tech{top:96px;transform:none}
+  .hero-engine{align-items:flex-start;min-height:max(620px,100vh);padding-top:120px}
+  .hero-engine .hero-search{margin-top:22px}
+}
+@media(max-width:600px){.hero-tech .tech-av{flex-basis:104px}}@media(min-width:601px) and (max-width:860px){.hero-tech .tech-av{flex-basis:150px}}
