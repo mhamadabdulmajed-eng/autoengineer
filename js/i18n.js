@@ -2,6 +2,14 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Opening the room":"فتح القسم",
+"Retail room":"قسم المفرد",
+"Every part of your Toyota.":"كل قطعة في تويوتا الخاصة بك.",
+"One search.":"بحث واحد.",
+"Skip":"تخطي",
+"Wholesale room":"قسم الجملة",
+"Parts from around the world.":"قطع من كل أنحاء العالم.",
+"Search parts from around the world":"ابحث عن قطع من كل العالم",
 "All categories":"كل الفئات",
 "Any stock":"أي مخزون",
 "Visible to customers":"ظاهر للزبائن",
@@ -278,6 +286,14 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Opening the room":"کردنەوەی بەش",
+"Retail room":"بەشی تاک",
+"Every part of your Toyota.":"هەموو پارچەیەکی تۆیۆتاکەت.",
+"One search.":"یەک گەڕان.",
+"Skip":"تێپەڕاندن",
+"Wholesale room":"بەشی جوملە",
+"Parts from around the world.":"پارچە لە هەموو جیهانەوە.",
+"Search parts from around the world":"بگەڕێ بۆ پارچە لە هەموو جیهان",
 "All categories":"هەموو پۆلەکان",
 "Any stock":"هەر کۆگایەک",
 "Visible to customers":"دیار بۆ کڕیاران",

@@ -586,3 +586,34 @@ a.btn{text-decoration:none}
 .th-sort:hover{color:var(--text)}
 .th-sort.on{color:var(--red)}
 .th-sort.on::after{content:attr(data-dir);margin-inline-start:4px}
+
+/* ===== room intros (Retail: shattering car · Wholesale: parts from around the world) ===== */
+.room-intro{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;overflow:hidden;padding:24px}
+.ri-retail{background:#fff;color:#101318}
+.ri-wholesale{background:radial-gradient(ellipse at 50% 40%,#18202b 0%,#0A0C0F 70%);color:#fff}
+.ri-stage{width:min(860px,92vw);aspect-ratio:16/9;position:relative}
+.ri-car{position:absolute;inset:0}
+.shard{position:absolute;inset:0;background-size:100% 100%;background-repeat:no-repeat;will-change:transform}
+.ri-text{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}
+.ri-text b{font-family:Archivo,sans-serif;font-weight:900;font-stretch:112%;font-size:clamp(26px,4.4vw,48px);line-height:1.05;letter-spacing:-.5px;text-transform:uppercase}
+[dir=rtl] .ri-text b{font-family:'Noto Kufi Arabic',sans-serif;letter-spacing:0;line-height:1.4}
+.ri-text .ri-red{color:#FF3B1F}
+.ri-eyebrow{font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#FF3B1F;margin-bottom:8px}
+.ri-skip{position:absolute;top:18px;inset-inline-end:18px;border:0;border-radius:99px;padding:10px 18px;font:600 14px Inter,sans-serif;cursor:pointer;background:rgba(16,19,24,.08);color:inherit}
+.ri-wholesale .ri-skip{background:rgba(255,255,255,.12)}
+.ri-skip:focus-visible{outline:3px solid #FF3B1F;outline-offset:2px}
+.ri-world{width:min(860px,94vw);aspect-ratio:16/9;position:relative}
+.ri-globe{position:absolute;left:50%;top:46%;width:62%;height:auto;transform:translate(-50%,-50%);overflow:visible}
+.ri-ball{fill:rgba(255,59,31,.06);stroke:rgba(255,255,255,.35);stroke-width:.4}
+.ri-mer,.ri-par{fill:none;stroke:rgba(255,255,255,.16);stroke-width:.3}
+.ri-city{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+.ri-city i{width:9px;height:9px;border-radius:50%;background:#FF3B1F;box-shadow:0 0 0 5px rgba(255,59,31,.22)}
+.ri-city em{font:600 11px Inter,sans-serif;font-style:normal;color:rgba(255,255,255,.7);white-space:nowrap}
+.ri-part{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:10px;background:#fff;display:grid;place-items:center;box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:0}
+.ri-part svg{width:20px;height:20px;fill:none;stroke:#FF3B1F;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ri-bar{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);width:min(520px,86%);display:flex;align-items:center;gap:12px;background:#fff;color:#101318;border-radius:16px;padding:14px 18px;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.ri-bar svg{width:20px;height:20px;fill:none;stroke:#101318;stroke-width:2;flex:none}
+.ri-bar span{flex:1;font:500 15px Inter,sans-serif;color:#4A525C}
+.ri-count{font:900 18px Archivo,sans-serif;color:#FF3B1F;min-width:70px;text-align:end}
+@media(max-width:600px){.ri-city em{display:none}.ri-part{width:26px;height:26px;margin:-13px 0 0 -13px}.ri-part svg{width:15px;height:15px}.ri-bar span{font-size:13px}}
+.ri-whole{position:absolute;inset:0;width:100%;height:100%;opacity:0}

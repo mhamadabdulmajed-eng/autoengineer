@@ -160,9 +160,11 @@ const availLabel=(a,l)=>t(({available:'In stock',order:'On order (2–5 days)',u
 /* ================= ROUTER ================= */
 const VIEWS=['home','shop','wholesale','sell','track','admin','terms'];
 let current='home';
-function route(){let v=(location.hash||'#home').slice(1);if(v==='find'){history.replaceState(null,'','#shop');v='shop';setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
+function route(){let v=(location.hash||'#home').slice(1);if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
   $$('.view').forEach(e=>e.classList.toggle('hidden',e.id!=='view-'+sec));$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===v));$('#navLinks').classList.remove('open');
-  window.scrollTo(0,0);renderCurrent();updateNav();if(v==='home'&&window.ScrollTrigger)setTimeout(()=>ScrollTrigger.refresh(),60)}
+  window.scrollTo(0,0);renderCurrent();updateNav();if(v==='home'&&window.ScrollTrigger)setTimeout(()=>ScrollTrigger.refresh(),60)
+  // short room intro the first time a visitor opens Retail or Wholesale (skipped for Find My Part and Google links)
+  if((v==='shop'||v==='wholesale')&&window.playRoomIntro){if(S.skipIntro)S.skipIntro=false;else playRoomIntro(v==='wholesale'?'wholesale':'retail',()=>{const q=$('#q');if(q&&current===v&&innerWidth>700)q.focus({preventScroll:true})})}}
 function renderCurrent(fromData){
   if(current==='shop'||current==='wholesale')renderShop(fromData);else if(current==='sell')renderSell(fromData);else if(current==='track')renderTrack(fromData);
   else if(current==='admin')renderAdmin(fromData);else if(current==='terms')renderTerms();else renderFoot();
@@ -1054,7 +1056,7 @@ async function makePdf(o,kind,cn){
 let storeReady;
 (function boot(){storeReady=initStore();const hadLang=!!LANG;
   // links like autoengineeriq.com/?q=04465-0K290 (from Google) open the shop with that search
-  try{const uq=new URLSearchParams(location.search).get('q');if(uq){S.q=uq.slice(0,80);history.replaceState(null,'',location.pathname+'#shop')}}catch(e){}
+  try{const uq=new URLSearchParams(location.search).get('q');if(uq){S.q=uq.slice(0,80);S.skipIntro=true;history.replaceState(null,'',location.pathname+'#shop')}}catch(e){}
   if(!LANG){LANG='en';document.documentElement.dir='ltr';buildChrome();buildHome();route();showLangPicker()}
   else{document.documentElement.lang=LANG==='ku'?'ckb':LANG;document.documentElement.dir=LANGS[LANG].dir;buildChrome();buildHome();route()}
   if(hadLang&&needsPhone())showPhoneGate();
