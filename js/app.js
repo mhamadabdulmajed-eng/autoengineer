@@ -316,6 +316,8 @@ function renderShop(fromData){
   }
   renderFilters();renderResults();
 }
+/* Google Images search for an exact part number (a link only; no photos are copied) */
+const gPhotos=pn=>'https://www.google.com/search?tbm=isch&q='+encodeURIComponent('"'+(pn||'')+'" Toyota');
 /* Find My Part, filled in with the customer's registered car */
 function carFind(car){if(!car)return openFindPart({model:S.f.model||''});
   openFindPart({model:car.model&&car.model!=='other'?car.model:'',year:car.year||'',vin:car.vin||''})}
@@ -452,6 +454,7 @@ async function drawResults(more){
   el.innerHTML=list.map((p,i)=>{const pr=priceFor(p,r);const cc=p.condition==='Genuine'?'g':p.condition==='Used'?'u':'a';
     return `<article class="pcard" style="animation-delay:${Math.min(i%60,16)*25}ms"><div class="pimg">${p.image?`<img src="${esc(p.image)}" alt="" loading="lazy">`:icon(p.category,1.2)}${p.condition?`<span class="badge ${cc}">${t(p.condition)}</span>`:''}${p.stock?`<span class="stock">${t(p.stock)}</span>`:''}</div>
       <div class="pbody"><span class="pno">${esc(p.partNo)}</span><span class="pname">${esc(pName(p))}</span><span class="pfit">${esc(fitText(p))}${p.brand?' · '+esc(p.brand):''}</span>
+      ${p.image?'':`<a class="gphotos" href="${gPhotos(p.partNo)}" target="_blank" rel="noopener nofollow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>${t('See photos on Google')}</a>`}
       <div class="prow">${pr!==null?`<span class="price">${money(pr)}</span>`:`<span class="price req">${t('Price on request')}</span>`}<button class="add ${inB.has(p.id)?'done':''}" data-add="${esc(p.id)}">${inB.has(p.id)?'✓ '+t('Added'):t('Add')}</button></div></div></article>`}).join('')
     +(res.total>list.length?`<div style="grid-column:1/-1;text-align:center;padding:10px"><button class="btn ghost" id="resMore">${t('Show more')}</button></div>`:'');
   el.onclick=e=>{if(e.target.closest('#resMore')){e.target.closest('#resMore').disabled=true;drawResults(true);return}const b=e.target.closest('[data-add]');if(!b)return;addToBasket(Store.get('parts',b.dataset.add));b.classList.add('done');b.textContent='✓ '+t('Added')};

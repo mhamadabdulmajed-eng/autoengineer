@@ -107,6 +107,7 @@ footer{text-align:center;color:#69717C;font-size:13px;padding:30px}
 ${price ? `<div class="price">${esc(price)}</div>` : `<div class="price req">Price on request</div>`}
 <a class="btn red" href="${esc(shop)}">Order this part</a>
 <a class="btn ghost" href="${SITE}/#find">Check it fits my car</a>
+<a class="btn ghost" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent('"' + p.partNo + '" Toyota')}" target="_blank" rel="noopener nofollow">See photos on Google</a>
 <p class="small">Genuine Toyota · Delivery across Iraq<br>English · العربية · کوردی</p>
 </aside>
 </article>
