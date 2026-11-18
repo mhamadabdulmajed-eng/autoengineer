@@ -200,13 +200,12 @@ function buildHome(){
   const h1=t('Next part.|[Smarter] part.').split('|').map(x=>`<span class="ln"><span>${esc(x).replace(/\[(.*?)\]/,'<em>$1</em>')}</span></span>`).join('');
   $('#view-home').innerHTML=`<div class="dark-zone">
   <section class="hero hero-engine" id="hero"><div class="hero-grid"></div><div class="hero-glow"></div>
-    <div class="engine-wrap" id="engine">${engineSVG()}</div>
+    <div class="hero-tech tech-host" id="heroTech"></div>
     <div class="hero-inner"><span class="eyebrow">${t('Toyota spare parts specialist')}</span><h1>${h1}</h1>
       <p class="lead">${t('Genuine Toyota parts for Land Cruiser, Hilux, Camry and every Toyota on the road. Search, add to your basket and send your list. We reply with prices, availability and your discount.')}</p>
       <form class="hero-search" id="heroSearch"><input name="q" placeholder="${esc(t('Part name, part number or Toyota model…'))}" autocomplete="off"><button>${t('Search parts')}</button></form>
       <a class="hero-find" href="#find"><span class="hf-q">${t('No part number?')}</span><b>${t('FIND MY PART')}</b><span class="hf-arrow">→</span></a>
       <div class="hero-tags" id="heroTags">${tags.map(x=>`<button type="button" data-q="${esc(t(x))}">${esc(t(x))}</button>`).join('')}</div></div>
-    <div class="engine-caption" id="engineCap">${t('Every part inside your engine. Tap a part to shop it.')}</div>
     <div class="scroll-hint">${t('Scroll')}<i></i></div></section>
   <div class="marquee"><div class="marquee-track" id="marquee">${mk+mk}</div></div>
   <section class="rooms" id="rooms"><div class="rooms-pin"><div class="rooms-track" id="roomsTrack">
@@ -215,8 +214,9 @@ function buildHome(){
     <a class="room-card r2" href="#wholesale"><span class="num">02 / ${t('WHOLESALE')}</span><svg class="art" viewBox="0 0 520 560" preserveAspectRatio="xMidYMid slice"><g stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none"><rect x="300" y="40" width="160" height="110"/><rect x="330" y="70" width="160" height="110"/><rect x="360" y="100" width="160" height="110" stroke="rgba(255,59,31,.5)"/></g></svg><h3>${t('Wholesale room')}</h3><p>${t('For workshops, garages and resellers. Approved accounts see trade prices and can send bulk orders.')}</p><span class="go">${t('Enter wholesale')} →</span></a>
     <a class="room-card r3" href="#sell"><span class="num">03 / ${t('SELL')}</span><svg class="art" viewBox="0 0 520 560" preserveAspectRatio="xMidYMid slice"><path d="M280 180 L460 60" stroke="rgba(255,255,255,.08)" stroke-width="40"/><path d="M420 40 L470 60 L450 110" stroke="rgba(24,163,90,.6)" stroke-width="3" fill="none"/></svg><h3>${t('Sell your parts')}</h3><p>${t('Got new or used parts to sell? Send photos and details, and we’ll make you an offer.')}</p><span class="go">${t('Sell a part')} →</span></a>
   </div></div></section>
-  <section class="tech-sec" id="techSec"><div class="sec-head"><span class="eyebrow">${t('AI Technician')}</span><h2>${t('Meet Mohammed')}</h2><p>${t('Register your car once. Mohammed keeps its details, so finding the right part is quicker every time.')}</p></div>
-    <div class="tech-host home-tech" id="homeTech"></div></section>
+  <section class="engine-sec" id="engineSec"><div class="sec-head"><span class="eyebrow">${t('Inside your engine')}</span><h2>${t('Every part. One search.')}</h2><p>${t('Scroll to take the engine apart. Tap a part to shop it.')}</p></div>
+    <div class="engine-wrap" id="engine">${engineSVG()}</div>
+    <div class="engine-caption" id="engineCap">${t('Every part inside your engine. Tap a part to shop it.')}</div></section>
   ${''/* car model tiles: switched off for now (catalog is by part number and description) */}
   <section class="steps" id="steps"><div class="sec-head"><span class="eyebrow">${t('Ordering')}</span><h2>${t('Four steps. No account needed.')}</h2></div>
     <div class="steps-grid"><svg class="steps-line" viewBox="0 0 1000 4" preserveAspectRatio="none" style="${isRTL()?'transform:scaleX(-1)':''}"><line x1="40" y1="2" x2="960" y2="2" stroke="rgba(255,255,255,.1)" stroke-width="2"/><line id="stepsLine" x1="40" y1="2" x2="960" y2="2" stroke="#FF3B1F" stroke-width="2" stroke-dasharray="920" stroke-dashoffset="920"/></svg>
@@ -235,7 +235,7 @@ function buildHome(){
   $('#catGrid').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){S.f={cat:b.dataset.cat,model:S.f.model||'',year:'',cond:''};S.q='';location.hash='shop'}};
   $('#engine').onclick=e=>{const g=e.target.closest('[data-cat]');if(g){S.f={cat:g.dataset.cat,model:'',year:'',cond:''};S.q='';location.hash='shop'}};
   if($('#modelsSec'))$('#modelsSec').onclick=e=>{const a=e.target.closest('[data-model]');if(a){S.f.model=a.dataset.model;S.f.cat='';S.q=''}};
-  if(window.mountTechnician)mountTechnician($('#homeTech'),{lazy:true,onFind:carFind});
+  if(window.mountTechnician)mountTechnician($('#heroTech'),{onFind:carFind});
   renderFoot();applyLogo();initMotion();
 }
 function renderFoot(){const s=settings();const fc=$('#footContact');if(!fc)return;
@@ -258,15 +258,12 @@ function initMotion(){
     const {desk}=ctx.conditions;
     gsap.from('.hero h1 .ln span',{yPercent:110,duration:1,ease:'power4.out',stagger:.12});
     gsap.from('.hero .lead,.hero-search,.hero-tags,.hero .eyebrow',{y:24,opacity:0,duration:.9,delay:.3,stagger:.08,ease:'power3.out'});
-    gsap.from('#engine .ep',{y:-40,opacity:0,duration:.9,stagger:.05,ease:'back.out(1.6)',delay:.2});
-    // scrolling down takes the engine apart, scrolling up puts it back together
-    // no pinning: the engine comes apart while the page keeps scrolling, in one movement
-    const tl=gsap.timeline({scrollTrigger:{trigger:'#hero',start:'top top',end:desk?'70% top':'35% top',scrub:.25}});
+    gsap.from('#heroTech',{x:rtl?-60:60,opacity:0,duration:1,delay:.25,ease:'power3.out'});
+    // the engine section: scrolling down takes the engine apart, scrolling up puts it back together
+    const tl=gsap.timeline({scrollTrigger:{trigger:'#engine',start:desk?'top 75%':'top 85%',end:desk?'center 35%':'center 45%',scrub:.25}});
     engineExplode(tl,rtl);
-    // fade only the headline and text; the search box, Find My Part and quick tags stay fully usable
-    if(desk)tl.to('.hero-inner .eyebrow,.hero-inner h1,.hero-inner .lead',{opacity:.1,duration:.6},.15);
     tl.fromTo('#engineCap',{opacity:0,y:20},{opacity:1,y:0,duration:.3},.5);
-    tl.to('.scroll-hint',{opacity:0,duration:.2},0);
+    gsap.to('.scroll-hint',{opacity:0,scrollTrigger:{trigger:'#hero',start:'top top',end:'15% top',scrub:true}});
     gsap.fromTo('#marquee',{xPercent:0},{xPercent:-35,ease:'none',scrollTrigger:{trigger:'.marquee',start:'top bottom',end:'bottom top',scrub:.4}});
     const hscroll=(sec,track)=>{const tr=$(track);if(!tr)return;const dist=()=>Math.max(0,tr.scrollWidth-innerWidth);
       gsap.to(tr,{x:()=>rtl?dist():-dist(),ease:'none',scrollTrigger:{trigger:sec,start:'top top',end:()=>'+='+dist(),pin:true,scrub:.8,invalidateOnRefresh:true}})};
@@ -295,12 +292,13 @@ function renderShop(fromData){
   if(shopBuiltFor!==key||!fromData||!$('#results')){
     shopBuiltFor=key;const ws=S.ws;const M=window.TOYOTA_MODELS||[];
     page.innerHTML=`<div class="stage" id="stage"><div class="stage-bg" id="stageBg"></div><div class="stage-name" id="stageName"></div>
-      <div class="stage-inner"><div class="page-head ${r==='retail'?'retail-head':''}"><div class="rh-left"><span class="eyebrow">${r==='wholesale'?t('Wholesale room'):t('Retail room')} · Toyota</span><h1 id="stageTitle">${r==='wholesale'?t('Trade catalog'):t('Find your part')}</h1>
+      <div class="stage-inner"><div class="stage-search"><div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="${esc(t('Search: 04465-0K290, brake pads, oil filter…'))}" value="${esc(S.q)}"></div>
+      ${r==='retail'?`<button class="stage-find" id="stageFind"><span>${t('No part number?')}</span><b>${t('FIND MY PART')}</b></button>`:''}</div>
+      <div class="page-head ${r==='retail'?'retail-head':''}"><div class="rh-left"><span class="eyebrow">${r==='wholesale'?t('Wholesale room'):t('Retail room')} · Toyota</span><h1 id="stageTitle">${r==='wholesale'?t('Trade catalog'):t('Find your part')}</h1>
         <p id="stageSub">${r==='wholesale'?t('Trade prices for approved workshops and resellers. Send your list and we confirm stock and your discount.'):t('Search by part number or part name, in English, Arabic or Kurdish. Prices in IQD.')}</p>${r==='retail'?`<div class="room-switch"><a href="#shop" class="on">${t('Retail')}</a><a href="#wholesale">${t('Wholesale')}</a></div>`:''}</div>
         ${r==='retail'?'<div class="xcar-host tech-host" id="xcarHost"></div>':`<div class="room-switch"><a href="#shop">${t('Retail')}</a><a href="#wholesale" class="on">${t('Wholesale')}</a></div>`}</div>
       ${r==='wholesale'&&ws?`<div class="ws-bar"><div>${t('Signed in as')} <b>${esc(ws.company||ws.name)}</b> · <span class="ltr">${esc(ws.phone)}</span></div><button class="btn sm ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" id="wsOut">${t('Sign out')}</button></div>`:''}
-      <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="${esc(t('Search: 04465-0K290, brake pads, oil filter…'))}" value="${esc(S.q)}"></div>
-      ${r==='retail'?`<button class="stage-find" id="stageFind"><span>${t('No part number?')}</span><b>${t('FIND MY PART')}</b></button>`:''}</div></div>
+</div></div>
     <div class="filters" id="catChips"></div>
     <div class="filters"><select class="sel" id="fCond"></select><button class="linkbtn" id="fClear">${t('Clear filters')}</button></div>
     <div class="result-meta"><span id="resCount"></span><span>${t('Can’t find it?')} <button class="linkbtn" id="reqBtn">${t('Request a part')}</button></span></div>

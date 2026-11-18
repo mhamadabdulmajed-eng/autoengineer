@@ -2,6 +2,9 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Inside your engine":"داخل محركك",
+"Every part. One search.":"كل قطعة. بحث واحد.",
+"Scroll to take the engine apart. Tap a part to shop it.":"مرّر لتفكيك المكينة. اضغط على قطعة لتسوّقها.",
 "Meet Mohammed":"تعرّف على محمد",
 "Register your car once. Mohammed keeps its details, so finding the right part is quicker every time.":"سجّل سيارتك مرة واحدة. محمد يحتفظ بتفاصيلها، فيصبح إيجاد القطعة الصحيحة أسرع في كل مرة.",
 "Mohammed":"محمد",
@@ -357,6 +360,9 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Inside your engine":"ناو بزوێنەرەکەت",
+"Every part. One search.":"هەموو پارچەیەک. یەک گەڕان.",
+"Scroll to take the engine apart. Tap a part to shop it.":"بۆ هەڵوەشاندنەوەی بزوێنەر بچۆ خوارەوە. دەست لە پارچەیەک بدە بۆ کڕینی.",
 "Meet Mohammed":"محەمەد بناسە",
 "Register your car once. Mohammed keeps its details, so finding the right part is quicker every time.":"یەک جار ئۆتۆمبێلەکەت تۆمار بکە. محەمەد زانیارییەکانی دەپارێزێت، بۆیە دۆزینەوەی پارچەی ڕاست هەموو جارێک خێراتر دەبێت.",
 "Mohammed":"محەمەد",

@@ -805,3 +805,30 @@ footer b[style*="color:#fff"]{color:var(--text)!important}
 .tech-svg > circle:first-of-type{opacity:.55}
 .phonegate h2{color:var(--text)}
 .phonegate p{color:#4b525b}.phonegate .btn.red{color:#fff}
+
+/* ===== Home top: Mohammed instead of the engine ===== */
+.hero-tech{position:absolute;z-index:2;top:50%;transform:translateY(-46%);right:clamp(16px,4vw,64px);width:min(48vw,640px);margin:0}
+[dir=rtl] .hero-tech{right:auto;left:clamp(16px,4vw,64px)}
+.hero-tech .tech-av{flex-basis:clamp(170px,15vw,230px);margin-bottom:0}
+.hero-tech .tech-log{max-height:300px}
+@media(max-width:1100px) and (min-width:861px){.hero-tech{width:52vw}.hero-tech .tech-av{flex-basis:150px}}
+@media(max-width:860px){
+  .hero-tech{position:relative;top:auto;right:auto;left:auto;transform:none;width:100%;order:2;margin:22px 0 0}
+  [dir=rtl] .hero-tech{left:auto}
+  .hero-engine{min-height:0;padding-bottom:40px}
+}
+/* ===== Home: the exploding engine, further down ===== */
+.engine-sec{position:relative;padding:clamp(70px,9vw,120px) clamp(16px,5vw,64px) clamp(60px,8vw,110px);overflow:hidden;background:#fff;color:var(--text)}
+.engine-sec .sec-head{text-align:center;max-width:720px;margin:0 auto 10px}
+.engine-sec .sec-head p{color:#4b525b;margin-top:10px;line-height:1.5}
+.engine-sec .engine-wrap,[dir=rtl] .engine-sec .engine-wrap{position:relative;top:auto;right:auto;left:auto;transform:none;width:min(980px,100%);margin:0 auto;order:0!important}
+.engine-sec .engine-caption{position:relative;left:auto;bottom:auto;transform:none;display:table;margin:6px auto 0;white-space:normal;text-align:center}
+@media(max-width:860px){.engine-sec .engine-wrap{width:118%;margin:0 -9%}}
+/* ===== Retail / Wholesale: search bar at the top ===== */
+.stage-search{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:26px}
+.stage .stage-search .searchbar{margin:0;flex:1 1 520px;max-width:none;width:auto}
+.stage-search .stage-find,[dir=rtl] .stage-search .stage-find{margin:0;flex:0 0 auto}
+.stage{padding-top:88px}
+@media(max-width:860px){.stage-search{gap:8px;margin-bottom:18px}.stage-search .stage-find{width:100%}}
+.stage .stage-bg,.stage .stage-name{display:none}
+.stage::after,[dir=rtl] .stage::after{display:none}
