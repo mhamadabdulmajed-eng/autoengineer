@@ -120,7 +120,8 @@ function mountTechnician(host, opts = {}){
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   let first = false; try{ first = sessionStorage.getItem('ae:tech') !== '1'; if(!opts.lazy) sessionStorage.setItem('ae:tech', '1'); }catch(e){}
   const animate = (first || opts.lazy) && !reduce && !opts.quiet;
-  host.innerHTML = `<div class="tech"><div class="tech-av">${TECH_SVG}</div>
+  const uid = 't' + Math.random().toString(36).slice(2, 7);
+  host.innerHTML = `<div class="tech"><div class="tech-av">${TECH_SVG.replace(/(id="|url\(#)tg/g, '$1' + uid)}</div>
     <div class="tech-chat"><div class="tech-name"><b>${t('Mohammed')}</b><span>${t('AI Technician')}</span><i class="tech-on" aria-hidden="true"></i></div>
     <div class="tech-log" aria-live="polite"></div><div class="tech-ans"></div></div></div>`;
   const root = host.firstElementChild, log = root.querySelector('.tech-log'), ans = root.querySelector('.tech-ans');
