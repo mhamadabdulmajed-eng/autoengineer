@@ -35,7 +35,7 @@ const CONDS=['Genuine','Aftermarket','Used'];
 const STOCKS=['In stock','On order','Ask','Out of stock'];
 const PAY_METHODS=['Cash','Bank transfer','FIB','ZainCash','Card','Other'];
 const ROLES={owner:'Owner',admin:'Admin',manager:'Manager',sales:'Sales'};
-const PERMS={owner:['orders','customers','parts','sell','wholesalers','staff','settings','delete','owners'],admin:['orders','customers','parts','sell','wholesalers','staff','settings','delete'],manager:['orders','customers','parts','sell','wholesalers','delete'],sales:['orders','customers','sell']};
+const PERMS={owner:['orders','customers','parts','sell','wholesalers','partners','staff','settings','delete','owners'],admin:['orders','customers','parts','sell','wholesalers','partners','staff','settings','delete'],manager:['orders','customers','parts','sell','wholesalers','partners','delete'],sales:['orders','customers','sell']};
 const DEFAULT_SETTINGS={company:'Auto Engineer',tagline:'Toyota Spare Parts',phone:'',whatsapp:'',email:'',address:'',currency:'IQD',quoteValidity:7,invoiceNote:'Thank you for your business.',quoteNote:'Prices are valid for the period shown. Availability is confirmed at the time of order.',branches:[],logo:''};
 
 /* sample data — only used in local preview (no database) */
@@ -48,7 +48,7 @@ const SAMPLE_PARTS=[
  {partNo:'52119-06989',name:'Front Bumper Cover',brand:'Used OEM',make:'Toyota',model:'Camry',yearFrom:2018,yearTo:2020,category:'Body',condition:'Used',retailPrice:150000,wholesalePrice:130000,stock:'In stock'}];
 
 /* ================= STATE ================= */
-const COLS=['parts','orders','customers','wholesalers','sellRequests','config','staff'];
+const COLS=['parts','orders','customers','wholesalers','sellRequests','config','staff','partners','porders','pstock','pmoves'];
 const S={mode:'local',db:null,sb:null,user:null,admin:false,role:null,staff:null,me:null,canWrite:true,ready:false,
   data:Object.fromEntries(COLS.map(c=>[c,{}])),loaded:{},
   basket:ls('ae:basket')||[],q:'',f:{cat:'',make:'',model:'',year:'',cond:''},ws:null,wsPrices:{},adminTab:'orders',downloads:null,seenOrders:null,alerts:0};
@@ -66,7 +66,7 @@ const Store={
   async set(col,id,data){const c=clone(data);delete c.id;S.data[col]={...S.data[col],[id]:c};this.emit(col);
     try{
       if(S.mode==='claude')await S.db.doc(col+'/'+id).set(c);
-      else if(S.mode==='supabase'){const q=S.admin?S.sb.from('docs').upsert({col,id,data:c}):S.sb.from('docs').insert({col,id,data:c});const {error}=await q;if(error)throw error}
+      else if(S.mode==='supabase'){const q=(S.admin||S.partner)?S.sb.from('docs').upsert({col,id,data:c}):S.sb.from('docs').insert({col,id,data:c});const {error}=await q;if(error)throw error}
       else ls('ae:data:'+col,S.data[col]);
     }catch(e){handleWriteErr(e);throw e}},
   async del(col,id){const n={...S.data[col]};delete n[id];S.data[col]=n;this.emit(col);
@@ -127,14 +127,16 @@ async function initSupabase(cfg){
 }
 async function sbFetchAll(table,filter){S.loaded.parts=true;let out=[],from=0;for(;;){let q=S.sb.from(table).select('col,id,data').range(from,from+999);if(filter)q=filter(q);const {data,error}=await q;if(error)throw error;out=out.concat(data);if(data.length<1000)break;from+=1000}return out}
 async function sbLoadAll(){
-  S.admin=false;S.role=null;S.staff=null;
-  if(S.session){const {data}=await S.sb.rpc('my_staff');if(data&&data.active!==false){S.admin=true;S.role=data.role||'sales';S.staff=data;S.me=S.session.user.email}}
+  S.admin=false;S.role=null;S.staff=null;S.partner=null;
+  if(S.session){const {data}=await S.sb.rpc('my_staff');if(data&&data.active!==false){S.admin=true;S.role=data.role||'sales';S.staff=data;S.me=S.session.user.email}
+    else{const {data:pt}=await S.sb.rpc('my_partner_doc');if(pt&&pt.id)S.partner=pt}}
   COLS.forEach(c=>S.data[c]={});
   try{
     // the parts catalog (60,000+) is searched on the server, never downloaded whole
     const rows=S.admin?await sbFetchAll('docs',q=>q.neq('col','parts')):await sbFetchAll('docs',q=>q.eq('col','config').eq('id','settings'));
     rows.forEach(r=>{(S.data[r.col]=S.data[r.col]||{})[r.id]=r.data});
   }catch(e){toast(t('Could not load data.'))}
+  if(S.partner&&window.PartnerAPI)await PartnerAPI.load();
   COLS.forEach(c=>S.loaded[c]=true);
   if(S.channel){S.sb.removeChannel(S.channel);S.channel=null}
   if(S.admin){S.channel=S.sb.channel('docs').on('postgres_changes',{event:'*',schema:'public',table:'docs'},p=>{const r=p.new&&p.new.col?p.new:p.old;if(!r||!r.col)return;
@@ -158,7 +160,7 @@ function priceFor(p,room){if(room==='wholesale'){const w=S.wsPrices[p.id]??p.who
 const availLabel=(a,l)=>t(({available:'In stock',order:'On order (2–5 days)',unavailable:'Not available','':'To confirm'})[a||'']||a,null,l);
 
 /* ================= ROUTER ================= */
-const VIEWS=['home','shop','wholesale','sell','track','admin','terms'];
+const VIEWS=['home','shop','wholesale','sell','track','admin','terms','partner'];
 let current='home';
 function route(){let v=(location.hash||'#home').slice(1);if($('#qDock')&&v!=='shop'&&v!=='wholesale')$('#qDock').classList.remove('show');if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
   $$('.view').forEach(e=>e.classList.toggle('hidden',e.id!=='view-'+sec));$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===v));$('#navLinks').classList.remove('open');
@@ -167,7 +169,7 @@ function route(){let v=(location.hash||'#home').slice(1);if($('#qDock')&&v!=='sh
   if((v==='shop'||v==='wholesale')&&window.playRoomIntro){if(S.skipIntro)S.skipIntro=false;else if(v==='wholesale')playRoomIntro('wholesale',()=>{const q=$('#q');if(q&&current===v&&innerWidth>700)q.focus({preventScroll:true})})}}
 function renderCurrent(fromData){
   if(current==='shop'||current==='wholesale')renderShop(fromData);else if(current==='sell')renderSell(fromData);else if(current==='track')renderTrack(fromData);
-  else if(current==='admin')renderAdmin(fromData);else if(current==='terms')renderTerms();else renderFoot();
+  else if(current==='admin')renderAdmin(fromData);else if(current==='partner'&&window.renderPartner)renderPartner(fromData);else if(current==='terms')renderTerms();else renderFoot();
   renderBasketCount();}
 window.addEventListener('hashchange',route);
 function updateNav(){const nav=$('#nav'),y=window.scrollY;const h=document.documentElement.scrollHeight-innerHeight;$('#progress').style.width=(h>0?y/h*100:0)+'%';
@@ -176,7 +178,7 @@ window.addEventListener('scroll',updateNav,{passive:true});
 
 /* ================= CHROME (nav, language) ================= */
 function buildChrome(){
-  $('#navLinks').innerHTML=`<a href="#find" class="nav-find">${t('Find my part')}</a><a href="#shop" data-v="shop">${t('Retail')}</a><a href="#wholesale" data-v="wholesale">${t('Wholesale')}</a><a href="#sell" data-v="sell">${t('Sell your parts')}</a><a href="#track" data-v="track">${t('Track order')}</a><a href="#admin" data-v="admin" class="admin-link">${t('Staff')}</a>`;
+  $('#navLinks').innerHTML=`<a href="#find" class="nav-find">${t('Find my part')}</a><a href="#shop" data-v="shop">${t('Retail')}</a><a href="#wholesale" data-v="wholesale">${t('Wholesale')}</a><a href="#sell" data-v="sell">${t('Sell your parts')}</a><a href="#track" data-v="track">${t('Track order')}</a><a href="#partner" data-v="partner" class="admin-link">${t('Partners')}</a><a href="#admin" data-v="admin" class="admin-link">${t('Staff')}</a>`;
   $$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===current));
   $('#basketLbl').textContent=t('Basket');$('#langBtn').textContent=LANGS[LANG||'en'].short;$('#brandName').textContent=t('AUTO ENGINEER');
   document.title=t('Auto Engineer — Toyota Spare Parts');
@@ -651,7 +653,7 @@ function renderAdmin(fromData){
   if(!S.admin){if(S.mode==='supabase'){if(!fromData||!$('#loginF'))renderLogin(page)}else page.innerHTML=`<div class="lock panel"><h3>${t('Staff only')}</h3><p class="sub">${t('This area is for the Auto Engineer team. Ask the owner to give you access.')}</p><a class="btn" href="#home">${t('Back to home')}</a></div>`;return}
   if(S.seenOrders===null)S.seenOrders=new Set(Object.keys(S.data.orders||{}));
   const orders=visibleOrders(),sells=Store.all('sellRequests'),wss=Store.all('wholesalers');
-  const tabs=[['orders','Orders',orders.filter(o=>o.status==='new'||o.status==='accepted').length,'orders'],['customers','Customers',0,'customers'],['visitors','Visitors',Store.all('visitors').filter(v=>Date.now()-(v.firstAt||0)<864e5).length,'customers'],['parts','Parts catalog',0,'parts'],['sell','Sell requests',sells.filter(s=>s.status==='new').length,'sell'],['wholesalers','Wholesalers',wss.filter(w=>w.status==='pending').length,'wholesalers'],['staff','Staff',0,'staff'],['settings','Settings',0,'settings']].filter(x=>can(x[3]));
+  const tabs=[['orders','Orders',orders.filter(o=>o.status==='new'||o.status==='accepted').length,'orders'],['customers','Customers',0,'customers'],['visitors','Visitors',Store.all('visitors').filter(v=>Date.now()-(v.firstAt||0)<864e5).length,'customers'],['parts','Parts catalog',0,'parts'],['sell','Sell requests',sells.filter(s=>s.status==='new').length,'sell'],['wholesalers','Wholesalers',wss.filter(w=>w.status==='pending').length,'wholesalers'],['partners','Partners',0,'partners'],['porders','Partner orders',Store.all('porders').filter(o=>o.status==='new').length,'partners'],['staff','Staff',0,'staff'],['settings','Settings',0,'settings']].filter(x=>can(x[3]));
   if(!tabs.find(x=>x[0]===S.adminTab))S.adminTab=tabs[0][0];
   const focused=document.activeElement&&document.activeElement.id==='adminSearch';
   const who=S.staff?`${esc(S.staff.name||S.me)} · ${t(ROLES[S.role])}${S.staff.branch?' · '+esc((branches().find(b=>b.id===S.staff.branch)||{}).name||''):''}`:t(ROLES[S.role]||'Admin');
@@ -659,7 +661,7 @@ function renderAdmin(fromData){
     <div class="tabs">${tabs.map(([k,l,n])=>`<button data-tab="${k}" class="${S.adminTab===k?'on':''}">${t(l)}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div><div id="adminBody"></div>`;
   $('.tabs').onclick=e=>{const b=e.target.closest('[data-tab]');if(b){S.adminTab=b.dataset.tab;S.adminQ='';renderAdmin()}};
   if($('#logout'))$('#logout').onclick=async()=>{await S.sb.auth.signOut();location.hash='home'};
-  ({orders:adminOrders,customers:adminCustomers,visitors:adminVisitors,parts:adminParts,sell:adminSell,wholesalers:adminWs,staff:adminStaff,settings:adminSettings})[S.adminTab]();
+  ({orders:adminOrders,customers:adminCustomers,visitors:adminVisitors,parts:adminParts,sell:adminSell,wholesalers:adminWs,partners:adminPartners,porders:adminPOrders,staff:adminStaff,settings:adminSettings})[S.adminTab]();
   if(focused&&$('#adminSearch')){const i=$('#adminSearch');i.focus();i.setSelectionRange(i.value.length,i.value.length)}
 }
 function renderLogin(page){
@@ -1033,6 +1035,9 @@ function adminSettings(){
     <div class="row2"><div class="f"><label>${t('Currency')}</label><select name="currency"><option value="IQD" ${s.currency==='IQD'?'selected':''}>${t('IQD')}</option><option value="USD" ${s.currency==='USD'?'selected':''}>USD</option></select></div><div class="f"><label>${t('Quotation valid for (days)')}</label><input name="quoteValidity" type="number" value="${v('quoteValidity')}"></div></div>
     <div class="f"><label>${t('Quotation terms')}</label><textarea name="quoteNote">${v('quoteNote')}</textarea></div><div class="f"><label>${t('Invoice footer')}</label><textarea name="invoiceNote">${v('invoiceNote')}</textarea></div>
     <div class="f"><label>${t('Logo')} <i>(${t('for PDFs and website, optional')})</i></label><input type="file" accept="image/*" id="logoIn"><div class="thumbs" id="logoTh">${s.logo?`<img src="${esc(s.logo)}" style="object-fit:contain;background:#fff">`:''}</div></div>
+    <h3 style="margin-top:20px">${t('Payment')}</h3><p class="sub">${t('How customers and partners can pay.')}</p>
+    <label class="chk"><input type="checkbox" name="payCOD" ${s.payCOD!==false?'checked':''}> ${t('Cash on delivery')}</label>
+    <label class="chk" style="opacity:.6"><input type="checkbox" name="payOnline" disabled> ${t('Online payment: Qi Card, FIB, ZainCash, Visa / Mastercard')} <i>(${t('available when the payment gateway is connected')})</i></label>
     <h3 style="margin-top:20px">${t('Branches')}</h3><p class="sub">${t('Customers can choose a branch for pickup. Orders and sales staff can be assigned to a branch.')}</p><div id="brList"></div><button type="button" class="btn sm ghost" id="brAdd">+ ${t('Add branch')}</button>
     <div style="margin-top:20px"><button class="btn red">${t('Save settings')}</button></div></form>`;
   const drawBr=()=>{$('#brList').innerHTML=brs.map((b,i)=>`<div class="row3" style="grid-template-columns:2fr 1fr 1fr auto;align-items:end"><div class="f"><label>${t('Branch name')}</label><input data-b="${i}" data-k="name" value="${esc(b.name||'')}"></div><div class="f"><label>${t('City')}</label><input data-b="${i}" data-k="city" value="${esc(b.city||'')}" list="cities"></div><div class="f"><label>${t('Phone')}</label><input data-b="${i}" data-k="phone" value="${esc(b.phone||'')}" dir="ltr"></div><div class="f"><button type="button" class="rm" data-brdel="${i}">✕</button></div></div>`).join('')+citiesList()};drawBr();
@@ -1040,7 +1045,7 @@ function adminSettings(){
   $('#brList').onclick=e=>{const d=e.target.closest('[data-brdel]');if(d){brs.splice(+d.dataset.brdel,1);drawBr()}};
   $('#brAdd').onclick=()=>{brs.push({id:'b_'+rid(5).toLowerCase(),name:'',city:'',phone:''});drawBr()};
   let logo=s.logo||'';$('#logoIn').onchange=async e=>{if(e.target.files[0]){logo=await compressImg(e.target.files[0],500,.85);$('#logoTh').innerHTML=`<img src="${logo}" style="object-fit:contain;background:#fff">`}};
-  $('#setF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));try{await Store.set('config','settings',{...fd,quoteValidity:+fd.quoteValidity||7,logo,branches:brs.filter(b=>b.name)});toast(t('Settings saved'))}catch(_){}};
+  $('#setF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));try{await Store.set('config','settings',{...settings(),...fd,payCOD:fd.payCOD==='on',payOnline:false,quoteValidity:+fd.quoteValidity||7,logo,branches:brs.filter(b=>b.name)});toast(t('Settings saved'))}catch(_){}};
 }
 function applyLogo(){const s=settings();$$('.brand-mark').forEach(m=>{m.innerHTML=s.logo?`<img src="${esc(s.logo)}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;background:#fff">`:'<img src="img/logo-mark.svg" alt="">'})}
 
