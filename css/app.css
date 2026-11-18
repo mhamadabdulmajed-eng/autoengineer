@@ -843,3 +843,11 @@ footer b[style*="color:#fff"]{color:var(--text)!important}
 .pcard .gphotos{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;margin:6px 0 2px;font-size:12.5px;font-weight:600;color:#1a5fd0;text-decoration:none;padding:5px 10px;border:1px solid #d6e2f6;border-radius:999px;background:#f5f8fe}
 .pcard .gphotos:hover{background:#eaf1fd;border-color:#b9cdef}
 .pcard .gphotos svg{width:15px;height:15px;flex:none}
+/* search bar pinned under the menu while looking at results */
+.qdock{position:fixed;left:0;right:0;top:66px;z-index:45;padding:8px clamp(12px,4vw,48px);background:rgba(255,255,255,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--edge,#e4e7eb);transform:translateY(-120%);opacity:0;pointer-events:none;transition:transform .28s ease,opacity .2s}
+.qdock.show{transform:none;opacity:1;pointer-events:auto}
+.qdock .searchbar{max-width:860px;margin:0 auto;height:46px;padding:4px 8px 4px 14px;align-items:center;border:1px solid var(--edge,#e4e7eb);box-shadow:0 4px 14px rgba(16,19,24,.06)}
+.qdock .searchbar input{font-size:15px}
+.qdock-x{border:0;background:none;font-size:22px;line-height:1;color:#8a929c;cursor:pointer;padding:0 6px}
+@media(max-width:860px){.qdock{top:60px}}
+.qdock input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}

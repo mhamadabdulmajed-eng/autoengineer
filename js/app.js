@@ -160,7 +160,7 @@ const availLabel=(a,l)=>t(({available:'In stock',order:'On order (2–5 days)',u
 /* ================= ROUTER ================= */
 const VIEWS=['home','shop','wholesale','sell','track','admin','terms'];
 let current='home';
-function route(){let v=(location.hash||'#home').slice(1);if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
+function route(){let v=(location.hash||'#home').slice(1);if($('#qDock')&&v!=='shop'&&v!=='wholesale')$('#qDock').classList.remove('show');if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
   $$('.view').forEach(e=>e.classList.toggle('hidden',e.id!=='view-'+sec));$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===v));$('#navLinks').classList.remove('open');
   window.scrollTo(0,0);renderCurrent();updateNav();if(v==='home'&&window.ScrollTrigger)setTimeout(()=>ScrollTrigger.refresh(),60)
   // short room intro the first time a visitor opens Retail or Wholesale (skipped for Find My Part and Google links)
@@ -229,8 +229,8 @@ function buildHome(){
     <div id="footBranches" style="line-height:1.8"></div></div>
     <div class="foot" style="margin-top:36px;font-size:12px;opacity:.6"><span>© ${new Date().getFullYear()} ${t('Auto Engineer')}. ${t('All rights reserved.')} ${t('Toyota and model names are trademarks of Toyota Motor Corporation.')}</span></div></footer>`;
   $$('#engine .ep-txt').forEach(x=>x.textContent=t(x.dataset.label));
-  $('#heroTags').onclick=e=>{const b=e.target.closest('button');if(b){const mid=modelIdOf(b.dataset.q);if(mid&&mid!=='*'){S.f.model=mid;S.q=''}else S.q=b.dataset.q;location.hash='shop'}};
-  $('#heroSearch').onsubmit=e=>{e.preventDefault();S.q=e.target.q.value.trim();location.hash='shop'};
+  $('#heroTags').onclick=e=>{const b=e.target.closest('button');if(b){const mid=modelIdOf(b.dataset.q);if(mid&&mid!=='*'){S.f.model=mid;S.q=''}else{S.q=b.dataset.q;S.jump=true}location.hash='shop'}};
+  $('#heroSearch').onsubmit=e=>{e.preventDefault();S.q=e.target.q.value.trim();if(S.q)S.jump=true;location.hash='shop'};
   $('#catGrid').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){S.f={cat:b.dataset.cat,model:S.f.model||'',year:'',cond:''};S.q='';location.hash='shop'}};
   $('#engine').onclick=e=>{const g=e.target.closest('[data-cat]');if(g){S.f={cat:g.dataset.cat,model:'',year:'',cond:''};S.q='';location.hash='shop'}};
   if($('#modelsSec'))$('#modelsSec').onclick=e=>{const a=e.target.closest('[data-model]');if(a){S.f.model=a.dataset.model;S.f.cat='';S.q=''}};
@@ -302,7 +302,9 @@ function renderShop(fromData){
     <div class="filters"><select class="sel" id="fCond"></select><button class="linkbtn" id="fClear">${t('Clear filters')}</button></div>
     <div class="result-meta"><span id="resCount"></span><span>${t('Can’t find it?')} <button class="linkbtn" id="reqBtn">${t('Request a part')}</button></span></div>
     <div class="grid" id="results"></div>`;
-    $('#q').oninput=e=>{S.q=e.target.value;if(!S.f.model){const mid=modelIdOf(S.q);setStage(mid&&mid!=='*'?mid:'')}renderResults()};
+    $('#q').oninput=e=>{S.q=e.target.value;if(!S.f.model){const mid=modelIdOf(S.q);setStage(mid&&mid!=='*'?mid:'')}syncDock();renderResults();jumpSoon()};
+    $('#q').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(jumpTimer);if(S.q.trim())toResults(true)}};
+    mountDock();
     $('#fClear').onclick=()=>{S.f={cat:'',model:'',year:'',cond:''};S.q='';$('#q').value='';renderFilters();renderResults()};
     $('#reqBtn').onclick=openRequestModal;if($('#stageFind'))$('#stageFind').onclick=()=>carFind(window.Garage&&Garage.active());
     // car models are switched off for now (the catalog is by part number and description)
@@ -315,6 +317,35 @@ function renderShop(fromData){
       $('#stage').classList.add('has-xcar')}
   }
   renderFilters();renderResults();
+}
+/* ---- search: take the customer straight to the results ----
+   After the customer stops typing (or presses Enter), the page glides down to the results.
+   A slim copy of the search bar stays pinned under the menu, so they can keep typing. */
+let jumpTimer=null,dockIO=null;
+function jumpSoon(){clearTimeout(jumpTimer);if(!S.q.trim())return;jumpTimer=setTimeout(()=>toResults(false),900)}
+function toResults(force){
+  const tg=$('.result-meta')||$('#results');if(!tg||(current!=='shop'&&current!=='wholesale'))return;
+  const nav=$('#nav'),top=(nav?nav.offsetHeight:64)+58;
+  const y=tg.getBoundingClientRect().top+scrollY-top;
+  if(!force&&tg.getBoundingClientRect().top>top-30&&tg.getBoundingClientRect().top<innerHeight*.45)return; // results already in view
+  const q=$('#q'),typing=document.activeElement===q;
+  window.scrollTo({top:Math.max(0,y),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+  if(typing){const d=$('#qDockIn');if(d){$('#qDock').classList.add('show');d.focus({preventScroll:true});try{d.setSelectionRange(d.value.length,d.value.length)}catch(e){}}}
+}
+function syncDock(){const d=$('#qDockIn'),q=$('#q');if(d&&q&&document.activeElement!==d)d.value=q.value;if(d&&q&&document.activeElement===d)q.value=d.value}
+function mountDock(){
+  let dk=$('#qDock');
+  if(!dk){dk=document.createElement('div');dk.id='qDock';dk.className='qdock';document.body.appendChild(dk)}
+  dk.innerHTML=`<div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="qDockIn" type="search" enterkeyhint="search" placeholder="${esc(t('Search: 04465-0K290, brake pads, oil filter…'))}"><button type="button" class="qdock-x" aria-label="${esc(t('Clear'))}">×</button></div>`;
+  const d=$('#qDockIn'),q=$('#q');d.value=q?q.value:'';
+  d.oninput=()=>{const qq=$('#q');if(!qq)return;qq.value=d.value;S.q=d.value;renderResults();jumpSoon()};
+  d.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(jumpTimer);toResults(true);d.blur()}};
+  dk.querySelector('.qdock-x').onclick=()=>{d.value='';const qq=$('#q');if(qq)qq.value='';S.q='';renderResults();d.focus()};
+  if(dockIO)dockIO.disconnect();
+  const nv=$('#nav');if(nv)dk.style.top=nv.offsetHeight+'px';
+  const bar=q&&q.closest('.searchbar');if(!bar)return;
+  dockIO=new IntersectionObserver(es=>{const off=!es[0].isIntersecting;dk.classList.toggle('show',off&&(current==='shop'||current==='wholesale'));if(off)d.value=$('#q')?$('#q').value:d.value},{rootMargin:'-70px 0px 0px 0px'});
+  dockIO.observe(bar);
 }
 /* Google Images search for an exact part number (a link only; no photos are copied) */
 const gPhotos=pn=>'https://www.google.com/search?tbm=isch&q='+encodeURIComponent('"'+(pn||'')+'" Toyota');
@@ -447,6 +478,7 @@ async function drawResults(more){
   if(seq!==resSeq)return;
   let list=res.rows;if(S.f.cond)list=list.filter(p=>p.condition===S.f.cond);
   if(!more&&o.q)Visitor.search(o.q,res.total,'search');
+  if(!more&&S.jump){S.jump=false;setTimeout(()=>toResults(false),120)}
   S.resRows=more?S.resRows.concat(list):list;S.resTotal=res.total;list=S.resRows;
   $('#resCount').textContent=res.total>list.length?t('Showing {a} of {n} parts',{a:list.length,n:res.total.toLocaleString('en')}):t('{n} parts',{n:res.total.toLocaleString('en')});
   if(!list.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><h3>${t('No parts found')}</h3><p>${t('Try another search, or send us a request and we’ll find it for you.')}</p><br><button class="btn red" id="reqBtn2">${t('Find my part')}</button></div>`;$('#reqBtn2').onclick=()=>openFindPart({model:S.f.model||'',q:S.q});return}
@@ -1065,7 +1097,7 @@ async function makePdf(o,kind,cn){
 let storeReady;
 (function boot(){storeReady=initStore();const hadLang=!!LANG;
   // links like autoengineeriq.com/?q=04465-0K290 (from Google) open the shop with that search
-  try{const uq=new URLSearchParams(location.search).get('q');if(uq){S.q=uq.slice(0,80);S.skipIntro=true;history.replaceState(null,'',location.pathname+'#shop')}}catch(e){}
+  try{const uq=new URLSearchParams(location.search).get('q');if(uq){S.q=uq.slice(0,80);S.skipIntro=true;S.jump=true;history.replaceState(null,'',location.pathname+'#shop')}}catch(e){}
   if(!LANG){LANG='en';document.documentElement.dir='ltr';buildChrome();buildHome();route();showLangPicker()}
   else{document.documentElement.lang=LANG==='ku'?'ckb':LANG;document.documentElement.dir=LANGS[LANG].dir;buildChrome();buildHome();route()}
   if(hadLang&&needsPhone())showPhoneGate();

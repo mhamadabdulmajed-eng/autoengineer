@@ -2,6 +2,7 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Clear":"مسح",
 "See photos on Google":"شاهد الصور على Google",
 "Inside your engine":"داخل محركك",
 "Every part. One search.":"كل قطعة. بحث واحد.",
@@ -361,6 +362,7 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Clear":"سڕینەوە",
 "See photos on Google":"وێنەکان لە Google ببینە",
 "Inside your engine":"ناو بزوێنەرەکەت",
 "Every part. One search.":"هەموو پارچەیەک. یەک گەڕان.",
