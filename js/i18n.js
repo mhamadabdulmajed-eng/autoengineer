@@ -2,6 +2,8 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Meet Mohammed":"تعرّف على محمد",
+"Register your car once. Mohammed keeps its details, so finding the right part is quicker every time.":"سجّل سيارتك مرة واحدة. محمد يحتفظ بتفاصيلها، فيصبح إيجاد القطعة الصحيحة أسرع في كل مرة.",
 "Mohammed":"محمد",
 "AI Technician":"الفني الذكي",
 "Which Toyota do you drive?":"ما هي سيارة تويوتا التي تقودها؟",
@@ -355,6 +357,8 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Meet Mohammed":"محەمەد بناسە",
+"Register your car once. Mohammed keeps its details, so finding the right part is quicker every time.":"یەک جار ئۆتۆمبێلەکەت تۆمار بکە. محەمەد زانیارییەکانی دەپارێزێت، بۆیە دۆزینەوەی پارچەی ڕاست هەموو جارێک خێراتر دەبێت.",
 "Mohammed":"محەمەد",
 "AI Technician":"تەکنیسیەنی زیرەک",
 "Which Toyota do you drive?":"کام تۆیۆتا لێدەخوڕیت؟",

@@ -215,6 +215,8 @@ function buildHome(){
     <a class="room-card r2" href="#wholesale"><span class="num">02 / ${t('WHOLESALE')}</span><svg class="art" viewBox="0 0 520 560" preserveAspectRatio="xMidYMid slice"><g stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none"><rect x="300" y="40" width="160" height="110"/><rect x="330" y="70" width="160" height="110"/><rect x="360" y="100" width="160" height="110" stroke="rgba(255,59,31,.5)"/></g></svg><h3>${t('Wholesale room')}</h3><p>${t('For workshops, garages and resellers. Approved accounts see trade prices and can send bulk orders.')}</p><span class="go">${t('Enter wholesale')} →</span></a>
     <a class="room-card r3" href="#sell"><span class="num">03 / ${t('SELL')}</span><svg class="art" viewBox="0 0 520 560" preserveAspectRatio="xMidYMid slice"><path d="M280 180 L460 60" stroke="rgba(255,255,255,.08)" stroke-width="40"/><path d="M420 40 L470 60 L450 110" stroke="rgba(24,163,90,.6)" stroke-width="3" fill="none"/></svg><h3>${t('Sell your parts')}</h3><p>${t('Got new or used parts to sell? Send photos and details, and we’ll make you an offer.')}</p><span class="go">${t('Sell a part')} →</span></a>
   </div></div></section>
+  <section class="tech-sec" id="techSec"><div class="sec-head"><span class="eyebrow">${t('AI Technician')}</span><h2>${t('Meet Mohammed')}</h2><p>${t('Register your car once. Mohammed keeps its details, so finding the right part is quicker every time.')}</p></div>
+    <div class="tech-host home-tech" id="homeTech"></div></section>
   ${''/* car model tiles: switched off for now (catalog is by part number and description) */}
   <section class="steps" id="steps"><div class="sec-head"><span class="eyebrow">${t('Ordering')}</span><h2>${t('Four steps. No account needed.')}</h2></div>
     <div class="steps-grid"><svg class="steps-line" viewBox="0 0 1000 4" preserveAspectRatio="none" style="${isRTL()?'transform:scaleX(-1)':''}"><line x1="40" y1="2" x2="960" y2="2" stroke="rgba(255,255,255,.1)" stroke-width="2"/><line id="stepsLine" x1="40" y1="2" x2="960" y2="2" stroke="#FF3B1F" stroke-width="2" stroke-dasharray="920" stroke-dashoffset="920"/></svg>
@@ -233,6 +235,7 @@ function buildHome(){
   $('#catGrid').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){S.f={cat:b.dataset.cat,model:S.f.model||'',year:'',cond:''};S.q='';location.hash='shop'}};
   $('#engine').onclick=e=>{const g=e.target.closest('[data-cat]');if(g){S.f={cat:g.dataset.cat,model:'',year:'',cond:''};S.q='';location.hash='shop'}};
   if($('#modelsSec'))$('#modelsSec').onclick=e=>{const a=e.target.closest('[data-model]');if(a){S.f.model=a.dataset.model;S.f.cat='';S.q=''}};
+  if(window.mountTechnician)mountTechnician($('#homeTech'),{lazy:true,onFind:carFind});
   renderFoot();applyLogo();initMotion();
 }
 function renderFoot(){const s=settings();const fc=$('#footContact');if(!fc)return;

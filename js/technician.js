@@ -30,61 +30,84 @@ function carLine(c, withKm = true){ if(!c) return '';
   return bits.filter(Boolean).join(' · '); }
 window.carName = carName; window.carLine = carLine;
 
-const TECH_SVG = `<svg class="tech-svg" viewBox="0 0 240 270" aria-hidden="true">
+const TECH_SVG = `<svg class="tech-svg" viewBox="0 0 260 440" aria-hidden="true">
   <defs>
-    <radialGradient id="tgGlow" cx="50%" cy="55%" r="50%"><stop offset="0" stop-color="#FF3B1F" stop-opacity=".35"/><stop offset="1" stop-color="#FF3B1F" stop-opacity="0"/></radialGradient>
-    <linearGradient id="tgSkin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0aa80"/><stop offset="1" stop-color="#c88e64"/></linearGradient>
-    <linearGradient id="tgShirt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b3a55"/><stop offset="1" stop-color="#1a2335"/></linearGradient>
-    <linearGradient id="tgCap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232c3f"/><stop offset="1" stop-color="#121826"/></linearGradient>
+    <radialGradient id="tgGlow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FF3B1F" stop-opacity=".32"/><stop offset="1" stop-color="#FF3B1F" stop-opacity="0"/></radialGradient>
+    <linearGradient id="tgSkin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eab48a"/><stop offset="1" stop-color="#d39a6e"/></linearGradient>
+    <linearGradient id="tgShirt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a6da3"/><stop offset="1" stop-color="#36548a"/></linearGradient>
+    <linearGradient id="tgNavy" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26324a"/><stop offset="1" stop-color="#18202f"/></linearGradient>
+    <linearGradient id="tgCap" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a3550"/><stop offset="1" stop-color="#151c2b"/></linearGradient>
   </defs>
-  <circle cx="120" cy="140" r="118" fill="url(#tgGlow)"/>
+  <circle cx="130" cy="230" r="130" fill="url(#tgGlow)"/>
+  <ellipse cx="132" cy="428" rx="78" ry="8" fill="#000" opacity=".4"/>
   <g class="tech-body">
-    <!-- shoulders, shirt and overall bib -->
-    <path d="M30 270 C32 214 66 196 120 196 C174 196 208 214 210 270 Z" fill="url(#tgShirt)"/>
-    <path d="M100 198 L120 226 L140 198 Z" fill="#c88e64"/>
-    <path d="M96 197 L120 230 L102 236 L86 204 Z M144 197 L120 230 L138 236 L154 204 Z" fill="#33466a"/>
-    <path d="M74 270 L80 232 Q120 244 160 232 L166 270 Z" fill="#141b29"/>
-    <path d="M80 232 L70 204 M160 232 L170 204" stroke="#FF3B1F" stroke-width="7" stroke-linecap="round"/>
-    <circle cx="80" cy="234" r="4.5" fill="#cfd5de"/><circle cx="160" cy="234" r="4.5" fill="#cfd5de"/>
-    <rect x="124" y="246" width="40" height="11" rx="2.5" fill="#f4f5f7"/>
-    <text x="144" y="254" text-anchor="middle" font-size="5.8" font-weight="800" fill="#141b29" font-family="Inter,Arial,sans-serif">MOHAMMED</text>
-    <g transform="translate(94 252)"><circle r="8" fill="#FF3B1F"/><circle r="4.2" fill="#141b29"/><path d="M-2 -2.2 h3.6 M-2 0 h3 M-2 2.2 h3.6 M-2 -2.2 v4.4" stroke="#fff" stroke-width="1.1" stroke-linecap="round"/></g>
-    <!-- neck and head -->
-    <path d="M104 168 h32 v30 q-16 10 -32 0 Z" fill="#b97f57"/>
-    <ellipse cx="81" cy="134" rx="7" ry="11" fill="#c88e64"/><ellipse cx="159" cy="134" rx="7" ry="11" fill="#c88e64"/>
-    <ellipse cx="120" cy="130" rx="39" ry="46" fill="url(#tgSkin)"/>
-    <!-- hair, beard, moustache -->
-    <path d="M82 120 C82 104 88 98 96 96 L96 124 Z M158 120 C158 104 152 98 144 96 L144 124 Z" fill="#20160f"/>
-    <path d="M82 132 C83 170 100 180 120 180 C140 180 157 170 158 132 C154 152 146 160 138 160 Q120 150 102 160 C94 160 86 152 82 132 Z" fill="#2a1c13"/>
-    <path d="M104 152 Q120 143 136 152 Q120 150 104 152 Z" fill="#2a1c13" stroke="#2a1c13" stroke-width="3" stroke-linejoin="round"/>
-    <path class="tech-mouth" d="M110 160 Q120 168 130 160 Q120 163 110 160 Z" fill="#8a3324"/>
-    <!-- face -->
-    <path d="M97 116 q8 -5 15 -1 M128 115 q7 -4 15 1" stroke="#20160f" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-    <g class="tech-eyes"><ellipse cx="105" cy="128" rx="4.6" ry="5.2" fill="#1b130d"/><ellipse cx="135" cy="128" rx="4.6" ry="5.2" fill="#1b130d"/>
-      <circle cx="106.6" cy="126.2" r="1.5" fill="#fff"/><circle cx="136.6" cy="126.2" r="1.5" fill="#fff"/></g>
-    <path d="M120 130 q-4 10 -1 14 q3 1 6 -1" stroke="#a8714b" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <!-- legs and shoes -->
+    <path d="M98 296 h34 v104 q0 5 -5 5 h-24 q-5 0 -5 -5 Z" fill="url(#tgNavy)"/>
+    <path d="M136 296 h34 v104 q0 5 -5 5 h-24 q-5 0 -5 -5 Z" fill="url(#tgNavy)"/>
+    <rect x="98" y="356" width="34" height="5" fill="#FF3B1F"/><rect x="136" y="356" width="34" height="5" fill="#FF3B1F"/>
+    <path d="M86 418 q0 -16 16 -16 h26 q8 0 8 8 v8 Z" fill="#151922"/><path d="M132 418 v-8 q0 -8 8 -8 h26 q16 0 16 16 Z" fill="#151922"/>
+    <rect x="86" y="416" width="50" height="5" rx="2" fill="#FF3B1F"/><rect x="132" y="416" width="50" height="5" rx="2" fill="#FF3B1F"/>
+    <!-- shirt, overalls -->
+    <path d="M80 236 q0 -30 28 -32 h44 q28 2 28 32 v34 h-100 Z" fill="url(#tgShirt)"/>
+    <path d="M86 262 h88 v40 q0 6 -6 6 h-76 q-6 0 -6 -6 Z" fill="url(#tgNavy)"/>
+    <rect x="102" y="232" width="56" height="50" rx="7" fill="url(#tgNavy)"/>
+    <path d="M104 236 L92 208 M156 236 L168 208" stroke="#FF3B1F" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="104" cy="238" r="4" fill="#d6dbe3"/><circle cx="156" cy="238" r="4" fill="#d6dbe3"/>
+    <rect x="86" y="284" width="88" height="6" fill="#111724"/>
+    <path d="M116 204 l14 16 l14 -16 Z" fill="#2c4675"/>
+    <rect x="109" y="250" width="42" height="12" rx="3" fill="#f4f5f7"/>
+    <text x="130" y="258.6" text-anchor="middle" font-size="6.6" font-weight="800" fill="#18202f" font-family="Inter,Arial,sans-serif">MOHAMMED</text>
+    <g transform="translate(130 272)"><circle r="6.5" fill="#FF3B1F"/><path d="M-1.8 -2.6 h3.6 M-1.8 0 h3 M-1.8 2.6 h3.6 M-1.8 -2.6 v5.2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></g>
+    <!-- waving arm -->
+    <g class="tech-wave">
+      <path d="M90 218 Q62 210 54 176" stroke="url(#tgShirt)" stroke-width="21" fill="none" stroke-linecap="round"/>
+      <circle cx="53" cy="164" r="12" fill="url(#tgSkin)"/>
+      <path d="M45 160 v-10 M50 157 v-12 M55 157 v-12 M60 159 v-9" stroke="#d39a6e" stroke-width="5" stroke-linecap="round"/>
+      <path d="M41 168 q-6 -4 -4 -10" stroke="#d39a6e" stroke-width="5" fill="none" stroke-linecap="round"/>
+    </g>
+    <!-- arm holding the check sheet -->
+    <path d="M172 216 Q198 262 152 300" stroke="url(#tgShirt)" stroke-width="20" fill="none" stroke-linecap="round"/>
+    <!-- neck + head -->
+    <g transform="translate(0 15)">
+    <path d="M117 166 h26 v40 q-13 8 -26 0 Z" fill="#c4875c"/>
+    <ellipse cx="79" cy="122" rx="9" ry="13" fill="#d39a6e"/><ellipse cx="181" cy="122" rx="9" ry="13" fill="#d39a6e"/>
+    <ellipse cx="130" cy="118" rx="50" ry="55" fill="url(#tgSkin)"/>
+    <path d="M82 112 C82 96 88 90 96 88 L97 116 Z M178 112 C178 96 172 90 164 88 L163 116 Z" fill="#20160f"/>
+    <path d="M81 124 C83 160 104 174 130 174 C156 174 177 160 179 124 C173 148 162 158 152 161 Q130 170 108 161 C98 158 87 148 81 124 Z" fill="#2a1c13"/>
+    <circle cx="99" cy="140" r="8.5" fill="#ff7f6e" opacity=".35"/><circle cx="161" cy="140" r="8.5" fill="#ff7f6e" opacity=".35"/>
+    <path d="M100 104 q10 -8 20 -2 M140 102 q10 -6 20 2" stroke="#20160f" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+    <g class="tech-eyes"><ellipse cx="110" cy="121" rx="6" ry="7.5" fill="#1b130d"/><ellipse cx="150" cy="121" rx="6" ry="7.5" fill="#1b130d"/>
+      <circle cx="112.3" cy="118.4" r="2.3" fill="#fff"/><circle cx="152.3" cy="118.4" r="2.3" fill="#fff"/><circle cx="108.5" cy="124" r="1" fill="#fff"/><circle cx="148.5" cy="124" r="1" fill="#fff"/></g>
+    <path d="M130 122 q-5 11 -1 14 q4 1.5 8 -1" stroke="#b47a50" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <path d="M112 142 Q130 135 148 142 Q139 146 130 144 Q121 146 112 142 Z" fill="#2a1c13"/>
+    <g class="tech-mouth"><path d="M111 147 Q130 172 149 147 Q130 152 111 147 Z" fill="#7d2b20"/>
+      <path d="M113.5 148 Q130 152.5 146.5 148 L145.2 151.6 Q130 155.5 114.8 151.6 Z" fill="#fff"/>
+      <path d="M121 161 Q130 156 139 161 Q130 166 121 161 Z" fill="#e56f5c"/></g>
     <!-- cap -->
-    <path d="M78 114 C76 80 98 66 120 66 C142 66 164 80 162 114 Q120 104 78 114 Z" fill="url(#tgCap)"/>
-    <path d="M120 66 v42" stroke="#0b0f18" stroke-width="1.4" opacity=".6"/>
-    <path d="M74 113 Q120 99 168 113 Q172 121 120 116 Q72 121 74 113 Z" fill="#FF3B1F"/>
-    <g transform="translate(120 88)"><circle r="9.5" fill="none" stroke="#FF3B1F" stroke-width="2.6" stroke-dasharray="3.2 2.2"/><path d="M-3 -4.2 h6 M-3 0 h5 M-3 4.2 h6 M-3 -4.2 v8.4" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></g>
+    <path d="M78 102 C76 62 102 48 130 48 C158 48 184 62 182 102 Q130 90 78 102 Z" fill="url(#tgCap)"/>
+    <path d="M130 48 v46" stroke="#0b0f18" stroke-width="1.4" opacity=".55"/>
+    <path d="M74 101 Q130 85 186 101 Q191 110 130 105 Q69 110 74 101 Z" fill="#FF3B1F"/>
+    <g transform="translate(130 74)"><circle r="10" fill="none" stroke="#FF3B1F" stroke-width="2.8" stroke-dasharray="3.4 2.3"/><path d="M-3.2 -4.5 h6.4 M-3.2 0 h5.2 M-3.2 4.5 h6.4 M-3.2 -4.5 v9" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/></g>
     <!-- AI headset -->
-    <rect x="152" y="116" width="13" height="26" rx="5" fill="#2a3245"/>
-    <circle class="tech-led" cx="158.5" cy="124" r="2.2" fill="#3ee6ff"/>
-    <path d="M156 140 C160 156 152 164 140 164" stroke="#8d97a8" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <circle class="tech-mic" cx="138" cy="164" r="4" fill="#3ee6ff"/>
+    <rect x="176" y="106" width="14" height="28" rx="5.5" fill="#2a3245"/>
+    <circle class="tech-led" cx="183" cy="114" r="2.4" fill="#3ee6ff"/>
+    <path d="M182 132 C186 152 174 160 160 160" stroke="#8d97a8" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle class="tech-mic" cx="158" cy="160" r="4.2" fill="#3ee6ff"/>
+    </g>
+    <!-- the check sheet -->
+    <g transform="translate(160 226) rotate(7)">
+      <rect x="0" y="0" width="80" height="104" rx="7" fill="#9a6538"/>
+      <rect x="6" y="11" width="68" height="88" rx="2.5" fill="#fbfbf8"/>
+      <rect x="25" y="-4" width="30" height="13" rx="3.5" fill="#c3cad4"/><rect x="33" y="-7" width="14" height="6" rx="3" fill="#c3cad4"/>
+      <text x="40" y="23" text-anchor="middle" font-size="7.2" font-weight="800" fill="#18202f" font-family="Inter,Arial,sans-serif" letter-spacing=".4">CAR CHECK</text>
+      <rect x="12" y="26.5" width="56" height="1.4" fill="#FF3B1F"/>
+      ${['MODEL','YEAR','ENGINE','VIN','KM'].map((l, i) => { const y = 39 + i * 13; return `<rect x="12" y="${y - 6}" width="8" height="8" rx="1.5" fill="none" stroke="#9aa3b2" stroke-width="1.2"/>
+      <text x="24" y="${y + 1}" font-size="6.4" font-weight="700" fill="#4a5262" font-family="Inter,Arial,sans-serif">${l}</text><rect x="46" y="${y}" width="22" height="1" fill="#d5d9e0"/>
+      <path class="ck" d="M13 ${y - 2} l3 3 l6 -8" stroke="#16a34a" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`; }).join('')}
+    </g>
+    <circle cx="152" cy="300" r="11" fill="url(#tgSkin)"/>
+    <path d="M145 295 q6 -3 13 0" stroke="#d39a6e" stroke-width="3" fill="none" stroke-linecap="round"/>
   </g>
-  <!-- tablet in his hand -->
-  <g class="tech-tab" transform="translate(150 196) rotate(-9)">
-    <rect x="0" y="0" width="74" height="52" rx="7" fill="#0c1018" stroke="#46516a" stroke-width="2"/>
-    <rect x="5" y="5" width="64" height="42" rx="3" fill="#0f1b26"/>
-    <path d="M14 34 q4 -10 14 -11 l8 -6 h12 l7 7 q6 1 7 6 v4 h-48 Z" fill="none" stroke="#3ee6ff" stroke-width="1.6" stroke-linejoin="round"/>
-    <circle cx="22" cy="38" r="3.5" fill="#0f1b26" stroke="#3ee6ff" stroke-width="1.4"/><circle cx="53" cy="38" r="3.5" fill="#0f1b26" stroke="#3ee6ff" stroke-width="1.4"/>
-    <text x="9" y="14" font-size="6" fill="#3ee6ff" font-family="Inter,Arial,sans-serif" font-weight="700">VIN ▸ SCAN</text>
-    <rect class="tech-scan" x="5" y="5" width="64" height="3" fill="#3ee6ff" opacity=".55"/>
-    <ellipse cx="-2" cy="34" rx="9" ry="11" fill="#c88e64"/>
-  </g>
-  <g transform="translate(36 196)"><rect width="30" height="18" rx="5" fill="#0c1018" stroke="#3ee6ff" stroke-width="1.6"/><text x="15" y="13" text-anchor="middle" font-size="10.5" font-weight="800" fill="#3ee6ff" font-family="Inter,Arial,sans-serif">AI</text></g>
 </svg>`;
 
 const TECH_FUELS = ['Petrol','Diesel','Hybrid'];
@@ -95,8 +118,8 @@ const TECH_SPECS = ['Iraqi / Gulf (GCC)','American','Other import'];
 function mountTechnician(host, opts = {}){
   if(!host) return;
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let first = false; try{ first = sessionStorage.getItem('ae:tech') !== '1'; sessionStorage.setItem('ae:tech', '1'); }catch(e){}
-  const animate = first && !reduce && !opts.quiet;
+  let first = false; try{ first = sessionStorage.getItem('ae:tech') !== '1'; if(!opts.lazy) sessionStorage.setItem('ae:tech', '1'); }catch(e){}
+  const animate = (first || opts.lazy) && !reduce && !opts.quiet;
   host.innerHTML = `<div class="tech"><div class="tech-av">${TECH_SVG}</div>
     <div class="tech-chat"><div class="tech-name"><b>${t('Mohammed')}</b><span>${t('AI Technician')}</span><i class="tech-on" aria-hidden="true"></i></div>
     <div class="tech-log" aria-live="polite"></div><div class="tech-ans"></div></div></div>`;
@@ -104,6 +127,9 @@ function mountTechnician(host, opts = {}){
   let token = 0;   // stops old timers when the conversation restarts
   let draft = null, step = 0, instant = !animate;
 
+  /* tick the boxes on his check sheet as the customer answers */
+  const sheet = c => { c = c || {}; const done = [c.model, c.year, c.fuel || c.engine || c.trans, c.vin, c.km];
+    root.querySelectorAll('.ck').forEach((el, i) => el.classList.toggle('on', !!done[i])); };
   const scroll = () => { log.scrollTop = log.scrollHeight; };
   const talk = on => root.classList.toggle('talking', on);
   function say(lines, then){
@@ -153,7 +179,7 @@ function mountTechnician(host, opts = {}){
   ];
 
   function ask(i){
-    step = i; if(i >= Q.length) return summary();
+    step = i; sheet(draft); if(i >= Q.length) return summary();
     const q = Q[i];
     say(q.ask(), () => {
       ans.innerHTML = q.ui() + backBtn();
@@ -181,7 +207,7 @@ function mountTechnician(host, opts = {}){
 
   /* ---------- the start screens ---------- */
   function start(){
-    const car = Garage.active();
+    const car = Garage.active(); sheet(car);
     if(!car){
       say([t('Hi! I’m Mohammed, your AI technician.'), t('Tell me about your car once, and I will help you find parts that fit it.')], () => {
         ans.innerHTML = `<div class="tchips"><button type="button" class="btn red sm" data-a="reg">${t('Register my car')}</button><button type="button" class="tchip" data-a="later">${t('Later')}</button></div>`;
@@ -194,7 +220,7 @@ function mountTechnician(host, opts = {}){
     }
   }
   function home(){
-    const car = Garage.active(), g = Garage.get(); if(!car) return start();
+    const car = Garage.active(), g = Garage.get(); if(!car) return start(); sheet(car);
     ans.innerHTML = `<div class="tchips"><button type="button" class="btn red sm" data-a="find">${t('Find a part for this car')}</button>
       <button type="button" class="tchip" data-a="km">${t('Update mileage')}</button><button type="button" class="tchip" data-a="edit">${t('Edit car')}</button>
       ${g.cars.length > 1 ? `<button type="button" class="tchip" data-a="switch">${t('Switch car')}</button>` : ''}<button type="button" class="tchip" data-a="add">+ ${t('Add another car')}</button></div>`;
@@ -215,6 +241,8 @@ function mountTechnician(host, opts = {}){
         return; }
     };
   }
-  start();
+  if(opts.lazy && 'IntersectionObserver' in window){ sheet(Garage.active());
+    const io = new IntersectionObserver(es => { if(es.some(e => e.isIntersecting)){ io.disconnect(); start(); } }, {threshold: .35}); io.observe(root); }
+  else start();
 }
 window.mountTechnician = mountTechnician;

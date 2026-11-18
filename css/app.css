@@ -646,19 +646,23 @@ a.btn{text-decoration:none}
 /* ===== Retail: Mohammed, the AI Technician ===== */
 .tech-host{flex:1 1 560px;max-width:640px;margin:0}
 .tech{display:flex;align-items:flex-end;gap:14px}
-.tech-av{flex:0 0 200px;align-self:flex-end;margin-bottom:-26px}
+.tech-av{flex:0 0 205px;align-self:flex-end;margin-bottom:-14px}
 .tech-svg{width:100%;height:auto;display:block;overflow:visible}
-.tech-body{animation:techBob 4.5s ease-in-out infinite;transform-origin:120px 270px}
+.tech-body{animation:techBob 4.5s ease-in-out infinite;transform-origin:130px 420px}
+.tech-wave{transform-box:view-box;transform-origin:90px 218px;animation:techWave 3.2s ease-in-out infinite}
+@keyframes techWave{0%,55%,100%{transform:rotate(0)}62%{transform:rotate(-14deg)}70%{transform:rotate(6deg)}78%{transform:rotate(-12deg)}86%{transform:rotate(4deg)}}
+.tech .ck{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(.3);transition:opacity .25s,transform .35s cubic-bezier(.3,1.8,.5,1)}
+.tech .ck.on{opacity:1;transform:scale(1)}
 .tech-eyes{transform-box:fill-box;transform-origin:center;animation:techBlink 5s infinite}
 .tech-scan{animation:techScan 2.4s linear infinite}
 .tech-led,.tech-mic{animation:techLed 2s ease-in-out infinite}
 .tech.talking .tech-mouth{transform-box:fill-box;transform-origin:center top;animation:techTalk .28s ease-in-out infinite alternate}
 .tech.talking .tech-mic{animation-duration:.5s}
-@keyframes techBob{50%{transform:translateY(-4px)}}
+@keyframes techBob{50%{transform:translateY(-3px)}}
 @keyframes techBlink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
 @keyframes techScan{0%{transform:translateY(0)}100%{transform:translateY(39px)}}
 @keyframes techLed{50%{opacity:.35}}
-@keyframes techTalk{to{transform:scaleY(1.9)}}
+@keyframes techTalk{to{transform:scaleY(.75)}}
 .tech-chat{flex:1 1 auto;min-width:0;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:18px;padding:12px 12px 12px;backdrop-filter:blur(6px)}
 .tech-name{display:flex;align-items:center;gap:8px;padding:0 4px 8px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:8px}
 .tech-name b{font-size:15px}
@@ -691,12 +695,20 @@ a.btn{text-decoration:none}
 .tmsg:empty{display:none}
 @media(max-width:900px){
   .tech-host{flex:1 1 100%;max-width:640px;margin:6px auto 0}
-  .tech-av{flex-basis:150px;margin-bottom:-18px}
+  .tech-av{flex-basis:160px;margin-bottom:-10px}
 }
 @media(max-width:600px){
   .tech{align-items:flex-start;gap:8px}
-  .tech-av{flex-basis:84px;margin:0;align-self:flex-start}
+  .tech-av{flex-basis:104px;margin:0;align-self:flex-start}
   .tech-log{max-height:210px}
   .tb{font-size:13.5px;max-width:94%}
 }
-@media(prefers-reduced-motion:reduce){.tech-body,.tech-eyes,.tech-scan,.tech-led,.tech-mic,.tb{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.tech-wave,.tech-body,.tech-eyes,.tech-scan,.tech-led,.tech-mic,.tb{animation:none!important}}
+
+/* home: Meet Mohammed */
+.tech-sec{padding:70px clamp(16px,4vw,40px) 90px;color:#fff}
+.tech-sec .sec-head{text-align:center;max-width:640px;margin:0 auto 26px}
+.tech-sec .sec-head p{color:rgba(255,255,255,.7);margin-top:10px;line-height:1.5}
+.home-tech{max-width:780px;margin:0 auto}
+.home-tech .tech-av{margin-bottom:0}
+@media(min-width:901px){.home-tech .tech-av{flex-basis:250px}.home-tech .tech-log{max-height:330px}}
