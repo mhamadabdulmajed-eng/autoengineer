@@ -2,6 +2,8 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Search by part number or part name, in English, Arabic or Kurdish. Prices in IQD.":"ابحث برقم القطعة أو اسمها، بالعربية أو الكردية أو الإنجليزية. الأسعار بالدينار العراقي.",
+"Search: 04465-0K290, brake pads, oil filter…":"ابحث: 04465-0K290، فحمات بريك، فلتر دهن…",
 "Roof rack":"حمالة سقف",
 "Bonnet":"بنيد",
 "Side mirror":"مراية جانبية",
@@ -303,6 +305,8 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Search by part number or part name, in English, Arabic or Kurdish. Prices in IQD.":"بە ژمارە یان ناوی پارچە بگەڕێ، بە کوردی، عەرەبی یان ئینگلیزی. نرخەکان بە دیناری عێراقی.",
+"Search: 04465-0K290, brake pads, oil filter…":"بگەڕێ: 04465-0K290، پاتی برێک، فلتەری زەیت…",
 "Roof rack":"باربەری سەقف",
 "Bonnet":"بەنەت",
 "Side mirror":"ئاوێنەی لاتەنیشت",

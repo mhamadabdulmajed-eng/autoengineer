@@ -215,9 +215,7 @@ function buildHome(){
     <a class="room-card r2" href="#wholesale"><span class="num">02 / ${t('WHOLESALE')}</span><svg class="art" viewBox="0 0 520 560" preserveAspectRatio="xMidYMid slice"><g stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none"><rect x="300" y="40" width="160" height="110"/><rect x="330" y="70" width="160" height="110"/><rect x="360" y="100" width="160" height="110" stroke="rgba(255,59,31,.5)"/></g></svg><h3>${t('Wholesale room')}</h3><p>${t('For workshops, garages and resellers. Approved accounts see trade prices and can send bulk orders.')}</p><span class="go">${t('Enter wholesale')} →</span></a>
     <a class="room-card r3" href="#sell"><span class="num">03 / ${t('SELL')}</span><svg class="art" viewBox="0 0 520 560" preserveAspectRatio="xMidYMid slice"><path d="M280 180 L460 60" stroke="rgba(255,255,255,.08)" stroke-width="40"/><path d="M420 40 L470 60 L450 110" stroke="rgba(24,163,90,.6)" stroke-width="3" fill="none"/></svg><h3>${t('Sell your parts')}</h3><p>${t('Got new or used parts to sell? Send photos and details, and we’ll make you an offer.')}</p><span class="go">${t('Sell a part')} →</span></a>
   </div></div></section>
-  <section class="models-sec" id="modelsSec"><div class="ms-head"><span class="eyebrow">${t('Choose your Toyota')}</span><h2>${t('Parts for every Toyota')}</h2><p>${t('Pick your model to see the parts that fit it.')}</p></div>
-    <div class="mtiles">${M.map(m=>`<a class="mtile" href="#shop" data-model="${m.id}">${modelArt(m,{cls:'mt-art'})}<b>${esc(m.name)}</b></a>`).join('')}</div>
-  </section>
+  ${''/* car model tiles: switched off for now (catalog is by part number and description) */}
   <section class="steps" id="steps"><div class="sec-head"><span class="eyebrow">${t('Ordering')}</span><h2>${t('Four steps. No account needed.')}</h2></div>
     <div class="steps-grid"><svg class="steps-line" viewBox="0 0 1000 4" preserveAspectRatio="none" style="${isRTL()?'transform:scaleX(-1)':''}"><line x1="40" y1="2" x2="960" y2="2" stroke="rgba(255,255,255,.1)" stroke-width="2"/><line id="stepsLine" x1="40" y1="2" x2="960" y2="2" stroke="#FF3B1F" stroke-width="2" stroke-dasharray="920" stroke-dashoffset="920"/></svg>
     ${[['Search','Find parts by name, number, Toyota model or year.'],['Add to basket','Pick quantities. Can’t find it? Add a free-text request.'],['Send','Just your name, phone, location and an optional comment.'],['Get your price','We confirm prices, availability and discount, and send your quotation.']].map((s,i)=>`<div class="step"><div class="dot">${i+1}</div><h4>${t(s[0])}</h4><p>${t(s[1])}</p></div>`).join('')}</div></section></div>
@@ -234,7 +232,7 @@ function buildHome(){
   $('#heroSearch').onsubmit=e=>{e.preventDefault();S.q=e.target.q.value.trim();location.hash='shop'};
   $('#catGrid').onclick=e=>{const b=e.target.closest('[data-cat]');if(b){S.f={cat:b.dataset.cat,model:S.f.model||'',year:'',cond:''};S.q='';location.hash='shop'}};
   $('#engine').onclick=e=>{const g=e.target.closest('[data-cat]');if(g){S.f={cat:g.dataset.cat,model:'',year:'',cond:''};S.q='';location.hash='shop'}};
-  $('#modelsSec').onclick=e=>{const a=e.target.closest('[data-model]');if(a){S.f.model=a.dataset.model;S.f.cat='';S.q=''}};
+  if($('#modelsSec'))$('#modelsSec').onclick=e=>{const a=e.target.closest('[data-model]');if(a){S.f.model=a.dataset.model;S.f.cat='';S.q=''}};
   renderFoot();applyLogo();initMotion();
 }
 function renderFoot(){const s=settings();const fc=$('#footContact');if(!fc)return;
@@ -271,7 +269,7 @@ function initMotion(){
       gsap.to(tr,{x:()=>rtl?dist():-dist(),ease:'none',scrollTrigger:{trigger:sec,start:'top top',end:()=>'+='+dist(),pin:true,scrub:.8,invalidateOnRefresh:true}})};
     if(desk){hscroll('#rooms','#roomsTrack')}
     else $$('.room-card').forEach(c=>gsap.from(c,{y:60,opacity:0,duration:.8,scrollTrigger:{trigger:c,start:'top 88%'}}));
-    gsap.from('.mtile',{y:24,opacity:0,duration:.5,stagger:.03,scrollTrigger:{trigger:'#modelsSec',start:'top 85%'}});
+    if($('#modelsSec'))gsap.from('.mtile',{y:24,opacity:0,duration:.5,stagger:.03,scrollTrigger:{trigger:'#modelsSec',start:'top 85%'}});
     gsap.to('#stepsLine',{strokeDashoffset:0,ease:'none',scrollTrigger:{trigger:'.steps-grid',start:'top 75%',end:'bottom 45%',scrub:true,onUpdate:self=>{$$('.step').forEach((s,i)=>s.classList.toggle('on',self.progress>=i/4+.02))}}});
     gsap.from('.step',{y:40,opacity:0,stagger:.12,duration:.8,scrollTrigger:{trigger:'.steps-grid',start:'top 80%'}});
     $$('.sec-head h2').forEach(h=>gsap.from(h,{y:50,opacity:0,duration:1,ease:'power3.out',scrollTrigger:{trigger:h,start:'top 88%'}}));
@@ -295,21 +293,21 @@ function renderShop(fromData){
     shopBuiltFor=key;const ws=S.ws;const M=window.TOYOTA_MODELS||[];
     page.innerHTML=`<div class="stage" id="stage"><div class="stage-bg" id="stageBg"></div><div class="stage-name" id="stageName"></div>
       <div class="stage-inner"><div class="page-head ${r==='retail'?'retail-head':''}"><div class="rh-left"><span class="eyebrow">${r==='wholesale'?t('Wholesale room'):t('Retail room')} · Toyota</span><h1 id="stageTitle">${r==='wholesale'?t('Trade catalog'):t('Find your part')}</h1>
-        <p id="stageSub">${r==='wholesale'?t('Trade prices for approved workshops and resellers. Send your list and we confirm stock and your discount.'):t('Choose your Toyota, then search by part name or part number. We reply with price and availability.')}</p>${r==='retail'?`<div class="room-switch"><a href="#shop" class="on">${t('Retail')}</a><a href="#wholesale">${t('Wholesale')}</a></div>`:''}</div>
+        <p id="stageSub">${r==='wholesale'?t('Trade prices for approved workshops and resellers. Send your list and we confirm stock and your discount.'):t('Search by part number or part name, in English, Arabic or Kurdish. Prices in IQD.')}</p>${r==='retail'?`<div class="room-switch"><a href="#shop" class="on">${t('Retail')}</a><a href="#wholesale">${t('Wholesale')}</a></div>`:''}</div>
         ${r==='retail'?'<div class="xcar-host" id="xcarHost"></div>':`<div class="room-switch"><a href="#shop">${t('Retail')}</a><a href="#wholesale" class="on">${t('Wholesale')}</a></div>`}</div>
       ${r==='wholesale'&&ws?`<div class="ws-bar"><div>${t('Signed in as')} <b>${esc(ws.company||ws.name)}</b> · <span class="ltr">${esc(ws.phone)}</span></div><button class="btn sm ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" id="wsOut">${t('Sign out')}</button></div>`:''}
-      <div class="model-strip" id="modelStrip"><button class="mchip" data-m="">${t('All models')}</button>${M.map(m=>`<button class="mchip" data-m="${m.id}">${modelArt(m,{cls:'mchip-art'})}<span>${esc(m.name)}</span></button>`).join('')}</div>
-      <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="${esc(t('Search: brake pads, 04465-0K290, Hilux 2018…'))}" value="${esc(S.q)}"></div>
+      <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="${esc(t('Search: 04465-0K290, brake pads, oil filter…'))}" value="${esc(S.q)}"></div>
       ${r==='retail'?`<button class="stage-find" id="stageFind"><span>${t('No part number?')}</span><b>${t('FIND MY PART')}</b></button>`:''}</div></div>
     <div class="filters" id="catChips"></div>
-    <div class="filters"><select class="sel" id="fYear"></select><select class="sel" id="fCond"></select><button class="linkbtn" id="fClear">${t('Clear filters')}</button></div>
+    <div class="filters"><select class="sel" id="fCond"></select><button class="linkbtn" id="fClear">${t('Clear filters')}</button></div>
     <div class="result-meta"><span id="resCount"></span><span>${t('Can’t find it?')} <button class="linkbtn" id="reqBtn">${t('Request a part')}</button></span></div>
     <div class="grid" id="results"></div>`;
     $('#q').oninput=e=>{S.q=e.target.value;if(!S.f.model){const mid=modelIdOf(S.q);setStage(mid&&mid!=='*'?mid:'')}renderResults()};
     $('#fClear').onclick=()=>{S.f={cat:'',model:'',year:'',cond:''};S.q='';$('#q').value='';renderFilters();renderResults()};
     $('#reqBtn').onclick=openRequestModal;if($('#stageFind'))$('#stageFind').onclick=()=>openFindPart({model:S.f.model||''});
-    $('#modelStrip').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;S.f.model=b.dataset.m;renderFilters();renderResults();b.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})};
-    [['fYear','year'],['fCond','cond']].forEach(([id,k])=>$('#'+id).onchange=e=>{S.f[k]=e.target.value;renderFilters();renderResults()});
+    // car models are switched off for now (the catalog is by part number and description)
+    if($('#modelStrip'))$('#modelStrip').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;S.f.model=b.dataset.m;renderFilters();renderResults();b.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})};
+    [['fCond','cond']].forEach(([id,k])=>$('#'+id).onchange=e=>{S.f[k]=e.target.value;renderFilters();renderResults()});
     if($('#wsOut'))$('#wsOut').onclick=()=>{S.ws=null;S.wsPrices={};ls('ae:ws',null);renderShop()};
     stageParallax();
     // Retail: the SUV made of real spare parts (plays once per visit; one tap takes it apart / puts it back)
@@ -346,7 +344,7 @@ function renderFilters(){
   $('#catChips').innerHTML=`<button class="chip ${!S.f.cat?'on':''}" data-c="">${t('All')}</button>`+CATS.map(([c])=>`<button class="chip ${S.f.cat===c?'on':''}" data-c="${esc(c)}">${t(c)}</button>`).join('');
   $('#catChips').onclick=e=>{const b=e.target.closest('[data-c]');if(b){S.f.cat=b.dataset.c;renderFilters();renderResults()}};
   const years=[];for(let y=new Date().getFullYear()+1;y>=1990;y--)years.push(y);
-  $('#fYear').innerHTML=`<option value="">${t('Any year')}</option>`+years.map(y=>`<option ${String(S.f.year)===String(y)?'selected':''}>${y}</option>`).join('');
+  if($('#fYear'))$('#fYear').innerHTML=`<option value="">${t('Any year')}</option>`+years.map(y=>`<option ${String(S.f.year)===String(y)?'selected':''}>${y}</option>`).join('');
   $('#fCond').innerHTML=`<option value="">${t('Any condition')}</option>`+CONDS.map(c=>`<option value="${c}" ${S.f.cond===c?'selected':''}>${t(c)}</option>`).join('');
   $$('#modelStrip [data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===(S.f.model||'')));
   setStage(S.f.model||(()=>{const mid=modelIdOf(S.q);return mid&&mid!=='*'?mid:''})());
@@ -438,7 +436,7 @@ function renderResults(more){
 }
 async function drawResults(more){
   const el=$('#results');if(!el)return;const seq=++resSeq;const r=room();
-  const o={q:S.q.trim(),cat:S.f.cat,model:S.f.model,year:S.f.year,lim:60,off:more?S.resRows.length:0};if(more&&S.resAlt)Object.assign(o,S.resAlt);
+  const o={q:S.q.trim(),cat:S.f.cat,model:'',year:'',lim:60,off:more?S.resRows.length:0};if(more&&S.resAlt)Object.assign(o,S.resAlt);
   if(!more){S.resRows=[];if(PartsAPI.remote())el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Searching…')}</div>`}
   let res;try{res=await PartsAPI.search(o)}catch(e){if(seq===resSeq)el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Could not load data.')}</div>`;return}
   if(!more){S.resAlt=null;const alt=o.q&&!res.total?shopQuery(o.q):null;if(alt){try{const r2=await PartsAPI.search({...o,...alt});if(r2.total){res=r2;S.resAlt=alt}}catch(e){}}}
