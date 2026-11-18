@@ -294,7 +294,7 @@ function renderShop(fromData){
     page.innerHTML=`<div class="stage" id="stage"><div class="stage-bg" id="stageBg"></div><div class="stage-name" id="stageName"></div>
       <div class="stage-inner"><div class="page-head ${r==='retail'?'retail-head':''}"><div class="rh-left"><span class="eyebrow">${r==='wholesale'?t('Wholesale room'):t('Retail room')} · Toyota</span><h1 id="stageTitle">${r==='wholesale'?t('Trade catalog'):t('Find your part')}</h1>
         <p id="stageSub">${r==='wholesale'?t('Trade prices for approved workshops and resellers. Send your list and we confirm stock and your discount.'):t('Search by part number or part name, in English, Arabic or Kurdish. Prices in IQD.')}</p>${r==='retail'?`<div class="room-switch"><a href="#shop" class="on">${t('Retail')}</a><a href="#wholesale">${t('Wholesale')}</a></div>`:''}</div>
-        ${r==='retail'?'<div class="xcar-host" id="xcarHost"></div>':`<div class="room-switch"><a href="#shop">${t('Retail')}</a><a href="#wholesale" class="on">${t('Wholesale')}</a></div>`}</div>
+        ${r==='retail'?'<div class="xcar-host tech-host" id="xcarHost"></div>':`<div class="room-switch"><a href="#shop">${t('Retail')}</a><a href="#wholesale" class="on">${t('Wholesale')}</a></div>`}</div>
       ${r==='wholesale'&&ws?`<div class="ws-bar"><div>${t('Signed in as')} <b>${esc(ws.company||ws.name)}</b> · <span class="ltr">${esc(ws.phone)}</span></div><button class="btn sm ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" id="wsOut">${t('Sign out')}</button></div>`:''}
       <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="${esc(t('Search: 04465-0K290, brake pads, oil filter…'))}" value="${esc(S.q)}"></div>
       ${r==='retail'?`<button class="stage-find" id="stageFind"><span>${t('No part number?')}</span><b>${t('FIND MY PART')}</b></button>`:''}</div></div>
@@ -304,19 +304,21 @@ function renderShop(fromData){
     <div class="grid" id="results"></div>`;
     $('#q').oninput=e=>{S.q=e.target.value;if(!S.f.model){const mid=modelIdOf(S.q);setStage(mid&&mid!=='*'?mid:'')}renderResults()};
     $('#fClear').onclick=()=>{S.f={cat:'',model:'',year:'',cond:''};S.q='';$('#q').value='';renderFilters();renderResults()};
-    $('#reqBtn').onclick=openRequestModal;if($('#stageFind'))$('#stageFind').onclick=()=>openFindPart({model:S.f.model||''});
+    $('#reqBtn').onclick=openRequestModal;if($('#stageFind'))$('#stageFind').onclick=()=>carFind(window.Garage&&Garage.active());
     // car models are switched off for now (the catalog is by part number and description)
     if($('#modelStrip'))$('#modelStrip').onclick=e=>{const b=e.target.closest('[data-m]');if(!b)return;S.f.model=b.dataset.m;renderFilters();renderResults();b.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'})};
     [['fCond','cond']].forEach(([id,k])=>$('#'+id).onchange=e=>{S.f[k]=e.target.value;renderFilters();renderResults()});
     if($('#wsOut'))$('#wsOut').onclick=()=>{S.ws=null;S.wsPrices={};ls('ae:ws',null);renderShop()};
     stageParallax();
-    // Retail: the SUV made of real spare parts (plays once per visit; one tap takes it apart / puts it back)
-    if(r==='retail'&&window.mountRetailCar){let first=false;try{first=sessionStorage.getItem('ae:intro:retail')!=='1';sessionStorage.setItem('ae:intro:retail','1')}catch(e){}
-      mountRetailCar($('#xcarHost'),{autoplay:first&&!S.skipIntro,onPart:(q)=>{S.q=q;const qi=$('#q');if(qi)qi.value=q;renderResults();const res=$('#results');if(res)setTimeout(()=>res.scrollIntoView({behavior:'smooth',block:'start'}),250)}});
-      $('#xcarHost').classList.toggle('hidden',!!S.f.model);$('#stage').classList.toggle('has-xcar',!S.f.model)}
+    // Retail: Mohammed, the AI Technician, registers the customer's car
+    if(r==='retail'&&window.mountTechnician){mountTechnician($('#xcarHost'),{quiet:!!S.skipIntro,onFind:carFind});
+      $('#stage').classList.add('has-xcar')}
   }
   renderFilters();renderResults();
 }
+/* Find My Part, filled in with the customer's registered car */
+function carFind(car){if(!car)return openFindPart({model:S.f.model||''});
+  openFindPart({model:car.model&&car.model!=='other'?car.model:'',year:car.year||'',vin:car.vin||''})}
 /* the big model backdrop at the top of the shop: changes with the chosen Toyota */
 let stageCur=null;
 function setStage(id){if(id&&window.modelById&&modelById(id))Visitor.search(modelById(id).name,0,'model');
@@ -365,7 +367,7 @@ const Visitor={
   get(){return ls('ae:visitor')},
   valid(raw,pk){return /^9647\d{9}$/.test(pk)||(/^\s*(\+|00)/.test(raw)&&/^\d{10,15}$/.test(pk))},
   async visit(){const v=this.get();if(!v||S.admin)return;try{
-    if(S.mode==='supabase'){await S.sb.rpc('track_visit',{pk:v.pk,phone:v.phone,lang:LANG||'',ua:navigator.userAgent})}
+    if(S.mode==='supabase'){await S.sb.rpc('track_visit',{pk:v.pk,phone:v.phone,lang:LANG||'',ua:navigator.userAgent});if(window.Garage&&Garage.get().cars.length)Garage.sync()}
     else{const id='v_'+v.pk,ex=Store.get('visitors',id),now=Date.now();
       await Store.set('visitors',id,{...(ex||{phone:v.phone,phoneKey:v.pk,firstAt:now,visits:0,searches:[],searchCount:0}),lastAt:now,lang:LANG,device:navigator.userAgent.slice(0,160),visits:ex?(ex.visits||0)+(now-(ex.lastAt||0)>18e5?1:0):1})}
   }catch(e){}},
@@ -750,20 +752,21 @@ function adminCustomers(){
   draw();bindSearch(draw);$('#cT').onchange=draw;$('#cO').onchange=draw;$('#cRows').onclick=e=>{const r=e.target.closest('[data-c]');if(r)openCustomer(r.dataset.c)};
 }
 function visitorStatus(v){const c=Store.get('customers','c_'+v.phoneKey);if(c)return ['cust',t('Customer')];if(Date.now()-(v.firstAt||0)<864e5)return ['new',t('New')];return ['vis',t('Visitor')]}
-const kindLbl=k=>({search:t('Search'),find:t('Find my part'),model:t('Car model')})[k]||t('Search');
+const kindLbl=k=>({search:t('Search'),find:t('Find my part'),model:t('Car model'),car:t('Registered car')})[k]||t('Search');
+const vCars=v=>Array.isArray(v.vehicles)?v.vehicles:[];
 function adminVisitors(){
   const body=$('#adminBody');
-  body.innerHTML=`<div class="toolbar">${searchBox(t('Search phone or searched part…'))}<select class="sel" id="vF"><option value="">${t('All visitors')}</option><option value="new">${t('New (last 24 hours)')}</option><option value="noorder">${t('Not ordered yet')}</option><option value="miss">${t('Searched and found nothing')}</option></select></div>
+  body.innerHTML=`<div class="toolbar">${searchBox(t('Search phone or searched part…'))}<select class="sel" id="vF"><option value="">${t('All visitors')}</option><option value="new">${t('New (last 24 hours)')}</option><option value="noorder">${t('Not ordered yet')}</option><option value="miss">${t('Searched and found nothing')}</option><option value="car">${t('Registered a car')}</option></select></div>
     <p class="mini" id="vCount" style="margin:0 0 8px"></p>
-    <div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Phone')}</th><th>${t('Status')}</th><th>${t('First visit')}</th><th>${t('Last active')}</th><th class="num">${t('Visits')}</th><th class="num">${t('Searches')}</th><th>${t('Last searched')}</th></tr></thead><tbody id="vRows"></tbody></table></div></div>`;
+    <div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Phone')}</th><th>${t('Status')}</th><th>${t('Car')}</th><th>${t('First visit')}</th><th>${t('Last active')}</th><th class="num">${t('Visits')}</th><th class="num">${t('Searches')}</th><th>${t('Last searched')}</th></tr></thead><tbody id="vRows"></tbody></table></div></div>`;
   const draw=()=>{const q=(S.adminQ||'').toLowerCase().replace(/\s/g,'');const f=$('#vF').value;
     const rows=Store.all('visitors').filter(v=>{const st=visitorStatus(v)[0];
-      if(f==='new'&&Date.now()-(v.firstAt||0)>=864e5)return false;if(f==='noorder'&&st==='cust')return false;if(f==='miss'&&!(v.searches||[]).some(x=>x.k==='search'&&!x.n))return false;
-      return !q||(v.phone+' '+v.phoneKey+' '+(v.searches||[]).map(x=>x.q).join(' ')).toLowerCase().replace(/\s/g,'').includes(q)}).sort((a,b)=>(b.lastAt||0)-(a.lastAt||0));
+      if(f==='new'&&Date.now()-(v.firstAt||0)>=864e5)return false;if(f==='noorder'&&st==='cust')return false;if(f==='miss'&&!(v.searches||[]).some(x=>x.k==='search'&&!x.n))return false;if(f==='car'&&!vCars(v).length)return false;
+      return !q||(v.phone+' '+v.phoneKey+' '+vCars(v).map(c=>carName(c)+' '+(c.vin||'')).join(' ')+' '+(v.searches||[]).map(x=>x.q).join(' ')).toLowerCase().replace(/\s/g,'').includes(q)}).sort((a,b)=>(b.lastAt||0)-(a.lastAt||0));
     $('#vCount').textContent=t('{n} visitors',{n:rows.length.toLocaleString('en')});
     $('#vRows').innerHTML=rows.length?rows.slice(0,500).map(v=>{const [sc,sl]=visitorStatus(v);const ls3=(v.searches||[]).slice(0,3);
-      return `<tr class="click" data-v="${esc(v.id)}"><td><b class="ltr">${esc(v.phone||v.phoneKey)}</b></td><td><span class="vst ${sc}">${sl}</span></td><td>${dtStr(v.firstAt)}</td><td>${dtStr(v.lastAt)}</td><td class="num">${v.visits||1}</td><td class="num">${v.searchCount||0}</td>
-      <td>${ls3.map(x=>`<span class="vq ${x.k!=='model'&&!x.n?'miss':''}">${esc(x.q)}</span>`).join(' ')||'<span class="mini">—</span>'}</td></tr>`}).join(''):`<tr><td colspan="7" class="empty">${t('No visitors yet.')}</td></tr>`};
+      return `<tr class="click" data-v="${esc(v.id)}"><td><b class="ltr">${esc(v.phone||v.phoneKey)}</b></td><td><span class="vst ${sc}">${sl}</span></td><td>${vCars(v).length?esc(carName(vCars(v)[0]))+(vCars(v).length>1?` <span class="mini">+${vCars(v).length-1}</span>`:''):'<span class="mini">—</span>'}</td><td>${dtStr(v.firstAt)}</td><td>${dtStr(v.lastAt)}</td><td class="num">${v.visits||1}</td><td class="num">${v.searchCount||0}</td>
+      <td>${ls3.map(x=>`<span class="vq ${x.k!=='model'&&x.k!=='car'&&!x.n?'miss':''}">${esc(x.q)}</span>`).join(' ')||'<span class="mini">—</span>'}</td></tr>`}).join(''):`<tr><td colspan="8" class="empty">${t('No visitors yet.')}</td></tr>`};
   draw();bindSearch(draw);$('#vF').onchange=draw;$('#vRows').onclick=e=>{const r=e.target.closest('[data-v]');if(r)openVisitor(r.dataset.v)};
 }
 function openVisitor(id){
@@ -771,8 +774,9 @@ function openVisitor(id){
   const wa='https://wa.me/'+v.phoneKey;
   openModal(mHead(`<span class="ltr">${esc(v.phone||v.phoneKey)}</span> <span class="vst ${sc}">${sl}</span>`,`${t('First visit')}: ${dtStr(v.firstAt)} · ${t('Last active')}: ${dtStr(v.lastAt)} · ${t('Visits')}: ${v.visits||1}`)+`<div class="modal-body">
     <div class="toolbar" style="margin-bottom:14px"><a class="btn red" href="${wa}" target="_blank" rel="noopener">WhatsApp</a><a class="btn ghost" href="tel:+${esc(v.phoneKey)}">${t('Call')}</a>${c?`<button class="btn ghost" id="vCust">${t('Open customer')}: ${esc(c.name)}</button>`:''}</div>
+    ${vCars(v).length?`<h4 style="margin:0 0 8px">${t('Their cars')}</h4><div class="tblwrap" style="margin-bottom:16px"><table class="tbl"><thead><tr><th>${t('Car')}</th><th>${t('Engine')}</th><th>${t('Gearbox')}</th><th>${t('First sold in')}</th><th>VIN</th><th class="num">${t('Mileage')}</th></tr></thead><tbody>${vCars(v).map(c=>`<tr><td><b>${esc(carName(c))}</b></td><td>${esc([c.engine,c.fuel?t(c.fuel):''].filter(Boolean).join(' ')||'—')}</td><td>${c.trans?t(c.trans):'—'}</td><td>${c.spec?esc(t(c.spec)):'—'}</td><td class="ltr mini">${esc(c.vin||'—')}</td><td class="num">${c.km?Number(c.km).toLocaleString('en')+' '+t('km')+(c.kmAt?`<br><span class="mini">${dateStr(c.kmAt)}</span>`:''):'—'}</td></tr>`).join('')}</tbody></table></div>`:''}
     <h4 style="margin:0 0 8px">${t('What they searched')} (${v.searchCount||0})</h4>
-    ${(v.searches||[]).length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Time')}</th><th>${t('Type')}</th><th>${t('Searched for')}</th><th class="num">${t('Results')}</th></tr></thead><tbody>${v.searches.map(x=>`<tr><td>${dtStr(x.at)}</td><td>${kindLbl(x.k)}</td><td><b>${esc(x.q)}</b></td><td class="num">${x.k==='model'?'—':x.n?x.n.toLocaleString('en'):`<span class="vq miss">${t('Nothing found')}</span>`}</td></tr>`).join('')}</tbody></table></div>`:`<p class="mini">${t('No searches yet.')}</p>`}
+    ${(v.searches||[]).length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Time')}</th><th>${t('Type')}</th><th>${t('Searched for')}</th><th class="num">${t('Results')}</th></tr></thead><tbody>${v.searches.map(x=>`<tr><td>${dtStr(x.at)}</td><td>${kindLbl(x.k)}</td><td><b>${esc(x.q)}</b></td><td class="num">${x.k==='model'||x.k==='car'?'—':x.n?x.n.toLocaleString('en'):`<span class="vq miss">${t('Nothing found')}</span>`}</td></tr>`).join('')}</tbody></table></div>`:`<p class="mini">${t('No searches yet.')}</p>`}
     <p class="mini" style="margin-top:12px">${t('Language')}: ${esc((LANGS[v.lang]||{}).native||v.lang||'')} · ${esc(/iphone|ipad/i.test(v.device)?'iPhone':/android/i.test(v.device)?'Android':/windows/i.test(v.device)?'Windows':/mac/i.test(v.device)?'Mac':'')}</p></div>`);
   if($('#vCust'))$('#vCust').onclick=()=>{closeAll();openCustomer(c.id)};
 }

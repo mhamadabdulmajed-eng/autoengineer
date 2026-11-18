@@ -163,7 +163,7 @@ async function sendFindPart(e){
   const fit='Toyota '+(m?m.name:'')+(FP.year?' '+FP.year:'');
   const order={no,room:'retail',status:'new',kind:'find',lang:LANG,fulfil:'delivery',branch:'',
     customer:{name:fd.name.trim(),phone:fd.phone.trim(),phoneKey:k,location:fd.location.trim(),company:''},
-    comment:fd.need.trim(),find:{model:FP.model,modelName:m?m.name:'',year:FP.year||'',vin:vi.ok?vi.s:(FP.vin||'').toUpperCase(),photos:FP.photos,need:fd.need.trim()},
+    comment:fd.need.trim(),find:{car:(window.Garage&&Garage.active())||null,model:FP.model,modelName:m?m.name:'',year:FP.year||'',vin:vi.ok?vi.s:(FP.vin||'').toUpperCase(),photos:FP.photos,need:fd.need.trim()},
     lines:[{partId:null,partNo:'',name:fd.need.trim().slice(0,120),fit,qty:1,price:null,listPrice:null,avail:'',custom:true}],
     discountType:'pct',discount:0,delivery:0,notes:'',payments:[],credits:[],createdAt:Date.now(),updatedAt:Date.now(),log:[{at:Date.now(),s:'new'}]};
   try{await Store.set('orders',no,order);await API.upsertCustomer(order).catch(()=>{});
@@ -178,7 +178,7 @@ async function sendFindPart(e){
 function findInfoHtml(o){
   if(o.kind!=='find'||!o.find)return '';const f=o.find;
   return `<div class="fp-staff"><div class="fp-staff-h"><span class="fp-badge">${t('FIND MY PART')}</span><b>Toyota ${esc(f.modelName||'')}</b>${f.year?' · '+esc(f.year):''}${f.vin?` · VIN <b class="ltr">${esc(f.vin)}</b> <button type="button" class="linkbtn" data-copy="${esc(f.vin)}">${t('Copy')}</button>`:''}</div>
-    <p style="margin:6px 0">${esc(f.need||'')}</p>${(f.photos||[]).length?`<div class="thumbs">${f.photos.map((p,i)=>`<img src="${p}" data-zoom="${i}" style="cursor:zoom-in;width:110px;height:110px">`).join('')}</div>`:''}
+    ${f.car&&window.carLine&&carLine(f.car)?`<p class="mini" style="margin:4px 0">${t('Registered car')}: ${esc(carName(f.car))} · ${esc(carLine(f.car))}</p>`:''}<p style="margin:6px 0">${esc(f.need||'')}</p>${(f.photos||[]).length?`<div class="thumbs">${f.photos.map((p,i)=>`<img src="${p}" data-zoom="${i}" style="cursor:zoom-in;width:110px;height:110px">`).join('')}</div>`:''}
     <p class="mini" style="margin-top:8px">${t('Look it up in the EPC, then replace the request line with the right part: use “Add from catalog…” or type the part number and price. Then send the quotation.')}</p></div>`;
 }
 document.addEventListener('click',e=>{
