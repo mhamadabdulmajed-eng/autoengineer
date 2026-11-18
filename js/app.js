@@ -164,7 +164,7 @@ function route(){let v=(location.hash||'#home').slice(1);if(v==='find'){history.
   $$('.view').forEach(e=>e.classList.toggle('hidden',e.id!=='view-'+sec));$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===v));$('#navLinks').classList.remove('open');
   window.scrollTo(0,0);renderCurrent();updateNav();if(v==='home'&&window.ScrollTrigger)setTimeout(()=>ScrollTrigger.refresh(),60)
   // short room intro the first time a visitor opens Retail or Wholesale (skipped for Find My Part and Google links)
-  if((v==='shop'||v==='wholesale')&&window.playRoomIntro){if(S.skipIntro)S.skipIntro=false;else playRoomIntro(v==='wholesale'?'wholesale':'retail',()=>{const q=$('#q');if(q&&current===v&&innerWidth>700)q.focus({preventScroll:true})})}}
+  if((v==='shop'||v==='wholesale')&&window.playRoomIntro){if(S.skipIntro)S.skipIntro=false;else if(v==='wholesale')playRoomIntro('wholesale',()=>{const q=$('#q');if(q&&current===v&&innerWidth>700)q.focus({preventScroll:true})})}}
 function renderCurrent(fromData){
   if(current==='shop'||current==='wholesale')renderShop(fromData);else if(current==='sell')renderSell(fromData);else if(current==='track')renderTrack(fromData);
   else if(current==='admin')renderAdmin(fromData);else if(current==='terms')renderTerms();else renderFoot();
@@ -294,9 +294,9 @@ function renderShop(fromData){
   if(shopBuiltFor!==key||!fromData||!$('#results')){
     shopBuiltFor=key;const ws=S.ws;const M=window.TOYOTA_MODELS||[];
     page.innerHTML=`<div class="stage" id="stage"><div class="stage-bg" id="stageBg"></div><div class="stage-name" id="stageName"></div>
-      <div class="stage-inner"><div class="page-head"><div><span class="eyebrow">${r==='wholesale'?t('Wholesale room'):t('Retail room')} · Toyota</span><h1 id="stageTitle">${r==='wholesale'?t('Trade catalog'):t('Find your part')}</h1>
-        <p id="stageSub">${r==='wholesale'?t('Trade prices for approved workshops and resellers. Send your list and we confirm stock and your discount.'):t('Choose your Toyota, then search by part name or part number. We reply with price and availability.')}</p></div>
-        <div class="room-switch"><a href="#shop" class="${r==='retail'?'on':''}">${t('Retail')}</a><a href="#wholesale" class="${r==='wholesale'?'on':''}">${t('Wholesale')}</a></div></div>
+      <div class="stage-inner"><div class="page-head ${r==='retail'?'retail-head':''}"><div class="rh-left"><span class="eyebrow">${r==='wholesale'?t('Wholesale room'):t('Retail room')} · Toyota</span><h1 id="stageTitle">${r==='wholesale'?t('Trade catalog'):t('Find your part')}</h1>
+        <p id="stageSub">${r==='wholesale'?t('Trade prices for approved workshops and resellers. Send your list and we confirm stock and your discount.'):t('Choose your Toyota, then search by part name or part number. We reply with price and availability.')}</p>${r==='retail'?`<div class="room-switch"><a href="#shop" class="on">${t('Retail')}</a><a href="#wholesale">${t('Wholesale')}</a></div>`:''}</div>
+        ${r==='retail'?'<div class="xcar-host" id="xcarHost"></div>':`<div class="room-switch"><a href="#shop">${t('Retail')}</a><a href="#wholesale" class="on">${t('Wholesale')}</a></div>`}</div>
       ${r==='wholesale'&&ws?`<div class="ws-bar"><div>${t('Signed in as')} <b>${esc(ws.company||ws.name)}</b> · <span class="ltr">${esc(ws.phone)}</span></div><button class="btn sm ghost" style="color:#fff;border-color:rgba(255,255,255,.3)" id="wsOut">${t('Sign out')}</button></div>`:''}
       <div class="model-strip" id="modelStrip"><button class="mchip" data-m="">${t('All models')}</button>${M.map(m=>`<button class="mchip" data-m="${m.id}">${modelArt(m,{cls:'mchip-art'})}<span>${esc(m.name)}</span></button>`).join('')}</div>
       <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" type="search" placeholder="${esc(t('Search: brake pads, 04465-0K290, Hilux 2018…'))}" value="${esc(S.q)}"></div>
@@ -312,13 +312,17 @@ function renderShop(fromData){
     [['fYear','year'],['fCond','cond']].forEach(([id,k])=>$('#'+id).onchange=e=>{S.f[k]=e.target.value;renderFilters();renderResults()});
     if($('#wsOut'))$('#wsOut').onclick=()=>{S.ws=null;S.wsPrices={};ls('ae:ws',null);renderShop()};
     stageParallax();
+    // Retail: the SUV made of real spare parts (plays once per visit; one tap takes it apart / puts it back)
+    if(r==='retail'&&window.mountRetailCar){let first=false;try{first=sessionStorage.getItem('ae:intro:retail')!=='1';sessionStorage.setItem('ae:intro:retail','1')}catch(e){}
+      mountRetailCar($('#xcarHost'),{autoplay:first&&!S.skipIntro,onPart:(q)=>{S.q=q;const qi=$('#q');if(qi)qi.value=q;renderResults();const res=$('#results');if(res)setTimeout(()=>res.scrollIntoView({behavior:'smooth',block:'start'}),250)}});
+      $('#xcarHost').classList.toggle('hidden',!!S.f.model);$('#stage').classList.toggle('has-xcar',!S.f.model)}
   }
   renderFilters();renderResults();
 }
 /* the big model backdrop at the top of the shop: changes with the chosen Toyota */
 let stageCur=null;
 function setStage(id){if(id&&window.modelById&&modelById(id))Visitor.search(modelById(id).name,0,'model');
-  const bg=$('#stageBg'),nm=$('#stageName');if(!bg)return;
+  const bg=$('#stageBg'),nm=$('#stageName');if(!bg)return;const xh=$('#xcarHost');if(xh){xh.classList.toggle('hidden',!!id);$('#stage').classList.toggle('has-xcar',!id)}
   if(stageCur===id&&bg.childElementCount)return;stageCur=id;
   const m=modelById(id);
   const old=bg.firstElementChild;
