@@ -8,7 +8,7 @@ const PARTNER_DOMAIN = 'partner.autoengineeriq.com';
 const PO_FLOW = ['new','approved','shipped','delivered','received'];
 const PO_LABEL = {new:'Waiting for approval',approved:'Approved',rejected:'Rejected',paid:'Paid',shipped:'On the way',delivered:'Delivered',received:'Received',cancelled:'Cancelled'};
 const pModal = (html, wide) => openModal('<div class="pt-modal">' + html + '</div>', wide);
-const PS = {tab:'overview', q:'', filter:'all', cart:[], buyQ:'', buyRows:[], buyPrices:{}, buyTimer:null};
+const PS = {cache:{}, tab:'overview', q:'', filter:'all', cart:[], buyQ:'', buyRows:[], buyPrices:{}, buyTimer:null};
 
 /* ---------------- data layer ---------------- */
 const PartnerAPI = {
@@ -33,6 +33,7 @@ const PartnerAPI = {
   },
   async prices(ids){
     if(!ids.length) return {};
+    if(ptPreview()){ const o = {}; ids.forEach(id => { const p = PS.cache[id] || Store.get('parts', id); if(p) o[id] = this.localPrice(p); }); return o; }
     if(this.remote()){ const {data} = await S.sb.rpc('partner_prices', {ids}); return data || {}; }
     const o = {}; ids.forEach(id => { const p = Store.get('parts', id); if(p && !p.hidden) o[id] = this.localPrice(p); }); return o;
   },
@@ -65,6 +66,9 @@ const PartnerAPI = {
 };
 window.PartnerAPI = PartnerAPI;
 
+/* staff can open the portal as any partner to see what the shop sees (read-only) */
+const ptPreview = () => !!(S.partnerPreview && S.partner && S.partner.id === S.partnerPreview);
+const ro = () => { if(ptPreview()){ toast(t('Staff preview: read-only. The shop does this from its own account.')); return true; } return false; };
 const stockId = no => 'ps_' + (S.partner ? S.partner.id : '') + '_' + String(no || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const myStock = () => Store.all('pstock').filter(s => !S.partner || s.pid === S.partner.id);
 const myOrders = () => Store.all('porders').filter(o => !S.partner || o.pid === S.partner.id).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -79,29 +83,56 @@ const payOpts = () => { const s = settings(); return {cod: s.payCOD !== false, o
 function renderPartner(fromData){
   const page = $('#partnerPage'); if(!page) return;
   if(!S.ready){ page.innerHTML = `<div class="lock">${t('Loading…')}</div>`; return; }
+  if(S.partnerPreview && S.admin && (!S.partner || S.partner.id !== S.partnerPreview)){ const p = Store.get('partners', S.partnerPreview); if(p) S.partner = p; }
+  if(!S.partner && S.admin){ staffPicker(page); return; }
   if(!S.partner){ if(!fromData || !$('#ptLogin')) partnerLogin(page); return; }
   const focus = document.activeElement && document.activeElement.id;
   const st = myStock(), low = st.filter(s => lowOf(s)), ords = myOrders(), open = ords.filter(o => !['received','cancelled','rejected'].includes(o.status));
   const tabs = [['overview','Overview',0],['stock','My stock',low.length],['buy','Buy from Auto Engineer',PS.cart.length],['orders','My orders',open.length],['sell','Sell',0],['account','Account',0]];
-  page.innerHTML = `<div class="page-head pt-head"><div><span class="eyebrow">${t('Partner portal')}</span><h1>${esc(S.partner.shop || t('My shop'))}</h1>
+  page.innerHTML = `${ptPreview() ? `<div class="pt-preview">👁 ${t('Staff preview of {s}: you see exactly what this shop sees. Read-only.', {s: esc(S.partner.shop)})} <button class="linkbtn" id="ptExitPv">${t('Exit preview')}</button></div>` : ''}<div class="page-head pt-head"><div><span class="eyebrow">${t('Partner portal')}</span><h1>${esc(S.partner.shop || t('My shop'))}</h1>
       <p class="sub">${esc([S.partner.city, S.partner.phone].filter(Boolean).join(' · '))} · <span class="pt-verified">✓ ${t('Verified partner')}</span></p></div>
       <div class="mini" style="text-align:end"><button class="linkbtn" id="ptOut">${t('Sign out')}</button></div></div>
     <div class="tabs">${tabs.map(([k, l, n]) => `<button data-pt="${k}" class="${PS.tab === k ? 'on' : ''}">${t(l)}${n ? `<span class="n">${n}</span>` : ''}</button>`).join('')}</div><div id="ptBody"></div>`;
-  $('#ptOut').onclick = () => PartnerAPI.logout();
+  $('#ptOut').onclick = () => { if(ptPreview()){ S.partnerPreview = null; S.partner = null; renderPartner(); return; } PartnerAPI.logout(); };
+  if($('#ptExitPv')) $('#ptExitPv').onclick = () => { S.partnerPreview = null; S.partner = null; S.adminTab = 'partners'; location.hash = 'admin'; };
   page.querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-pt]'); if(b){ PS.tab = b.dataset.pt; renderPartner(); } };
   ({overview: ptOverview, stock: ptStock, buy: ptBuy, orders: ptOrders, sell: ptSell, account: ptAccount})[PS.tab]();
   if(focus && $('#' + focus) && /^pt(Q|BuyQ)$/.test(focus)){ const i = $('#' + focus); i.focus(); try{ i.setSelectionRange(i.value.length, i.value.length); }catch(e){} }
 }
 window.renderPartner = renderPartner;
 
+function staffPicker(page){
+  const list = Store.all('partners').sort((a, b) => String(a.shop).localeCompare(String(b.shop)));
+  page.innerHTML = `<div class="page-head"><div><span class="eyebrow">${t('Wholesale room')}</span><h1>${t('Partner portal')}</h1>
+      <p class="sub">${t('You are signed in as staff. Open the portal as one of your partner shops to see exactly what they see.')}</p></div>
+      <div class="room-switch"><a href="#shop">${t('Retail')}</a><a href="#partner" class="on">${t('Wholesale')}</a></div></div>
+    ${list.length ? `<div class="pt-pick">${list.map(p => `<button class="panel" data-pv="${esc(p.id)}"><b>${esc(p.shop)}</b><span>${esc([p.city, p.phone].filter(Boolean).join(' · '))}</span><em>${t('Open portal')} →</em></button>`).join('')}</div>`
+      : `<div class="panel empty">${t('No partner shops yet.')} <a class="linkbtn" href="#admin" id="ptToAdd">${t('Add your first partner in Staff › Partners')}</a></div>`}`;
+  page.onclick = e => { const b = e.target.closest('[data-pv]'); if(b){ S.partnerPreview = b.dataset.pv; S.partner = Store.get('partners', b.dataset.pv); PS.tab = 'overview'; renderPartner(); }
+    if(e.target.closest('#ptToAdd')) S.adminTab = 'partners'; };
+}
+
 function partnerLogin(page){
-  page.innerHTML = `<div class="pt-login"><div class="panel"><span class="eyebrow">${t('Partner portal')}</span><h2 style="margin:6px 0 4px">${t('Sign in to your shop')}</h2>
+  page.onclick = null;
+  page.innerHTML = `<div class="page-head"><div><span class="eyebrow">${t('Wholesale room')}</span><h1>${t('Partner portal')}</h1>
+      <p class="sub">${t('For trusted partner shops: trade prices, bulk orders, a free stock system and selling on our website.')}</p></div>
+      <div class="room-switch"><a href="#shop">${t('Retail')}</a><a href="#partner" class="on">${t('Wholesale')}</a></div></div>
+    <div class="pt-login"><div class="panel"><span class="eyebrow">${t('Partner portal')}</span><h2 style="margin:6px 0 4px">${t('Sign in to your shop')}</h2>
     <p class="sub">${t('For trusted partner shops of Auto Engineer. Your account is created by Auto Engineer.')}</p>
     <form id="ptLogin" class="form"><label>${t('Phone number')}<input name="phone" type="tel" inputmode="tel" dir="ltr" placeholder="0750 123 4567" required></label>
     <label>${t('Password')}<input name="pw" type="password" required minlength="8"></label>
     <p class="err hidden" id="ptErr"></p><button class="btn red" style="width:100%">${t('Sign in')}</button></form>
-    <p class="mini" style="margin-top:14px">${t('Want to become a partner? Contact Auto Engineer.')}</p></div>
+    <p class="mini" style="margin-top:14px">${t('Want to become a partner?')} <button type="button" class="linkbtn" id="ptApplyBtn">${t('Apply here')}</button></p>
+    <form id="ptApply" class="form hidden" style="margin-top:14px;border-top:1px solid #e4e7eb;padding-top:14px"><b>${t('Apply to become a partner')}</b>
+      <label>${t('Shop name')}<input name="company" required></label><label>${t('Your name')}<input name="name" required></label>
+      <label>${t('Phone')}<input name="phone" type="tel" dir="ltr" required></label><label>${t('City')}<input name="location" required></label>
+      <button class="btn">${t('Send application')}</button></form></div>
     <div class="pt-why">${[['📦','Free stock system','Know what you have, what is running low and what to reorder.'],['🛒','Buy at trade price','Order from Auto Engineer at your own partner price.'],['🏪','Sell on our website','List your parts for thousands of customers (coming soon).']].map(([i, h, p]) => `<div><b>${i} ${t(h)}</b><span>${t(p)}</span></div>`).join('')}</div></div>`;
+  $('#ptApplyBtn').onclick = () => { $('#ptApply').classList.toggle('hidden'); };
+  $('#ptApply').onsubmit = async e => { e.preventDefault(); const fd = Object.fromEntries(new FormData(e.target)), k = phoneKey(fd.phone);
+    if(k.length < 12){ toast(t('Check the phone number.')); return; }
+    try{ await Store.set('wholesalers', 'w_' + k, {...fd, phoneKey: k, btype: 'Parts shop / reseller', status: 'pending', lang: LANG, createdAt: Date.now()});
+      e.target.innerHTML = `<div class="success"><div class="tick">✓</div><b>${t('Application sent')}</b><p class="sub">${t('We will contact you after reviewing it.')}</p></div>`; }catch(x){ toast(t('Could not save')); } };
   const f = $('#ptLogin');
   f.onsubmit = async e => { e.preventDefault(); const err = $('#ptErr'); err.classList.add('hidden'); const b = f.querySelector('button'); b.disabled = true;
     try{ await PartnerAPI.login(f.phone.value, f.pw.value); }catch(x){ err.textContent = t('Phone number or password is not correct.'); err.classList.remove('hidden'); }
@@ -112,7 +143,11 @@ function ptOverview(){
   const st = myStock(), val = st.reduce((s, x) => s + (+x.qty || 0) * (+x.cost || 0), 0), low = st.filter(s => lowOf(s) === 'low'), out = st.filter(s => lowOf(s) === 'out'), slow = st.filter(slowOf);
   const need = st.filter(s => lowOf(s)).sort((a, b) => (+a.qty || 0) - (+b.qty || 0));
   const ords = myOrders().filter(o => !['received','cancelled','rejected'].includes(o.status));
-  $('#ptBody').innerHTML = `<div class="kpis">
+  $('#ptBody').innerHTML = `<div class="pt-start">
+      <button data-go="stock"><i>📦</i><b>${t('My stock')}</b><span>${t('Add your items, see what you have and what is running low.')}</span></button>
+      <button data-go="buy"><i>🛒</i><b>${t('Place an order')}</b><span>${t('Buy from Auto Engineer at your partner price.')}</span></button>
+      <button data-go="sell"><i>🏪</i><b>${t('Sell my parts')}</b><span>${t('List your parts on autoengineeriq.com.')}</span></button></div>
+    <div class="kpis">
       <div class="kpi"><span>${t('Items in stock')}</span><b>${st.length.toLocaleString('en')}</b></div>
       <div class="kpi"><span>${t('Stock value (cost)')}</span><b>${money(val) || '0'}</b></div>
       <div class="kpi warn"><span>${t('Running low')}</span><b>${low.length}</b></div>
@@ -128,7 +163,7 @@ function ptOverview(){
   const add = async list => { const ids = list.map(([no]) => partId(no)); const pr = await PartnerAPI.prices(ids); let n = 0;
     list.forEach(([no, q]) => { const id = partId(no); if(pr[id] === undefined) return; const ex = PS.cart.find(c => c.partId === id); if(ex) ex.qty = Math.max(ex.qty, q); else PS.cart.push({partId: id, partNo: no, qty: q}); n++; });
     toast(n ? t('{n} added to your order', {n}) : t('Auto Engineer does not have these parts in the catalog.')); if(n){ PS.tab = 'buy'; renderPartner(); } };
-  $('#ptBody').onclick = e => { const b = e.target.closest('[data-need]'); if(b) add([[b.dataset.need, +b.dataset.q]]); if(e.target.closest('#ptNeedAll')) add(need.map(s => [s.partNo, needQty(s)])); };
+  $('#ptBody').onclick = e => { const g = e.target.closest('[data-go]'); if(g){ PS.tab = g.dataset.go; renderPartner(); return; } const b = e.target.closest('[data-need]'); if(b) add([[b.dataset.need, +b.dataset.q]]); if(e.target.closest('#ptNeedAll')) add(need.map(s => [s.partNo, needQty(s)])); };
 }
 
 function ptStock(){
@@ -158,12 +193,14 @@ function ptStock(){
 }
 
 async function ptMove(s, delta, kind, note){
+  if(ro()) return;
   const now = Date.now(), q = (+s.qty || 0) + delta; if(q < 0){ toast(t('Not enough stock.')); return; }
   await Store.set('pstock', s.id, {...s, qty: q, updatedAt: now, lastMove: now});
   await Store.set('pmoves', 'pm_' + rid(12), {pid: S.partner.id, stockId: s.id, partNo: s.partNo, delta, kind, note: note || '', at: now});
 }
 
 function ptItemModal(s){
+  if(ro()) return;
   const isNew = !s; s = s || {qty: 0, min: 0, reorder: 0};
   pModal(`<h3>${isNew ? t('Add item') : t('Edit item')}</h3><form id="ptItemF" class="form grid2">
     <label>${t('Part number')}<input name="partNo" dir="ltr" required value="${esc(s.partNo || '')}" ${isNew ? '' : 'readonly'} autocomplete="off"></label>
@@ -204,7 +241,7 @@ function ptHistory(s){
 }
 
 async function ptImport(file){
-  if(!file) return; if(!window.XLSX){ toast(t('Excel reader still loading. Try again in a moment.')); return; }
+  if(!file || ro()) return; if(!window.XLSX){ toast(t('Excel reader still loading. Try again in a moment.')); return; }
   const wb = XLSX.read(await file.arrayBuffer()); const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval: ''});
   const norm = s => String(s).toLowerCase().replace(/[^a-z؀-ۿ]/g, '');
   const pick = (r, keys) => { for(const k of Object.keys(r)){ const n = norm(k); if(keys.some(x => n.includes(x))) return r[k]; } return ''; };
@@ -248,7 +285,7 @@ function ptBuy(){
   cart.oninput = e => { const i = e.target.dataset.cq; if(i === undefined) return; PS.cart[+i].qty = Math.max(1, Math.round(+e.target.value) || 1); };
   cart.onchange = e => { if(e.target.dataset.cq !== undefined) ptBuy(); };
   cart.onclick = async e => { const x = e.target.closest('[data-cx]'); if(x){ PS.cart.splice(+x.dataset.cx, 1); ptBuy(); return; }
-    if(e.target.closest('#ptSend')){ const b = $('#ptSend'); b.disabled = true;
+    if(e.target.closest('#ptSend')){ if(ro()) return; const b = $('#ptSend'); b.disabled = true;
       try{ const no = await PartnerAPI.placeOrder(PS.cart.map(c => ({partId: c.partId, qty: c.qty})), $('#ptPay').value, $('#ptNote').value.trim());
         PS.cart = []; PS.tab = 'orders'; toast(t('Order {no} sent. Auto Engineer will confirm it.', {no})); renderPartner();
       }catch(er){ toast(t('Could not send the order. Try again.')); b.disabled = false; } } };
@@ -260,13 +297,13 @@ async function ptBuySearch(keep){
   const el = $('#ptBuyRes'); if(!el) return; const q = PS.buyQ.trim();
   if(!q){ el.innerHTML = `<div class="empty">${t('Type a part number or part name.')}</div>`; return; }
   if(!(keep && PS.buyRows.length && PS.buyRows.q === q)){ el.innerHTML = `<div class="empty">${t('Searching…')}</div>`;
-    const r = await PartsAPI.search({q, lim: 30, off: 0}).catch(() => ({rows: []})); const rows = r.rows || []; rows.q = q; PS.buyRows = rows;
+    const r = await PartsAPI.search({q, lim: 30, off: 0}).catch(() => ({rows: []})); const rows = r.rows || []; rows.q = q; PS.buyRows = rows; rows.forEach(p => PS.cache[p.id] = p);
     Object.assign(PS.buyPrices, await PartnerAPI.prices(rows.map(p => p.id).filter(id => PS.buyPrices[id] === undefined))); }
   if(PS.buyQ.trim() !== q) return;
   const inC = new Set(PS.cart.map(c => c.partId));
-  el.innerHTML = PS.buyRows.length ? PS.buyRows.map(p => { const pr = PS.buyPrices[p.id]; const retail = nz(p.retailPrice) ? +p.retailPrice : null;
+  el.innerHTML = PS.buyRows.length ? PS.buyRows.map(p => { const pr = PS.buyPrices[p.id];
     return `<div class="pt-item"><div><b class="ltr">${esc(p.partNo)}</b><span>${esc(pName(p))}</span>${p.stock ? `<small>${t(p.stock)}</small>` : ''}</div>
-      <div class="num">${pr ? `<b>${money(pr)}</b>${retail && retail > pr ? `<small class="strike">${money(retail)}</small>` : ''}` : `<small>${t('Price on request')}</small>`}</div>
+      <div class="num">${pr ? `<b>${money(pr)}</b>` : `<small>${t('Price on request')}</small>`}</div>
       <button class="btn sm ${inC.has(p.id) ? 'ghost' : 'red'}" data-add="${esc(p.id)}" ${pr ? '' : 'disabled'}>${inC.has(p.id) ? '✓ ' + t('Added') : t('Add')}</button></div>`; }).join('')
     : `<div class="empty">${t('No parts found')}</div>`;
   el.onclick = e => { const b = e.target.closest('[data-add]'); if(!b) return; const p = PS.buyRows.find(x => x.id === b.dataset.add); const ex = PS.cart.find(c => c.partId === p.id);
@@ -284,8 +321,8 @@ function ptOrders(){
     : `<div class="empty panel">${t('No orders yet.')} <button class="linkbtn" id="ptGoBuy">${t('Buy from Auto Engineer')}</button></div>`;
   $('#ptBody').onclick = async e => {
     if(e.target.closest('#ptGoBuy')){ PS.tab = 'buy'; renderPartner(); return; }
-    const c = e.target.closest('[data-cancel]'); if(c && confirm(t('Cancel this order?'))){ await PartnerAPI.cancel(c.dataset.cancel).catch(() => toast(t('Could not save'))); renderPartner(); }
-    const r = e.target.closest('[data-recv]'); if(r && confirm(t('Confirm you received everything? The parts will be added to your stock.'))){ r.disabled = true;
+    const c = e.target.closest('[data-cancel]'); if(c && ro()) return; if(c && confirm(t('Cancel this order?'))){ await PartnerAPI.cancel(c.dataset.cancel).catch(() => toast(t('Could not save'))); renderPartner(); }
+    const r = e.target.closest('[data-recv]'); if(r && ro()) return; if(r && confirm(t('Confirm you received everything? The parts will be added to your stock.'))){ r.disabled = true;
       try{ await PartnerAPI.receive(r.dataset.recv); toast(t('Added to your stock')); }catch(er){ toast(t('Could not save')); } renderPartner(); }
   };
 }
@@ -305,7 +342,7 @@ function ptAccount(){
       <p class="mini">${t('To change these details, contact Auto Engineer.')}</p></div>
     <div class="panel"><h3>${t('Change password')}</h3><form id="ptPw" class="form"><label>${t('New password')}<input name="a" type="password" minlength="8" required></label><label>${t('Repeat new password')}<input name="b" type="password" minlength="8" required></label>
       <p class="err hidden" id="ptPwErr"></p><button class="btn red">${t('Save')}</button></form></div></div>`;
-  $('#ptPw').onsubmit = async e => { e.preventDefault(); const f = e.target, er = $('#ptPwErr'); er.classList.add('hidden');
+  $('#ptPw').onsubmit = async e => { e.preventDefault(); if(ro()) return; const f = e.target, er = $('#ptPwErr'); er.classList.add('hidden');
     if(f.a.value !== f.b.value){ er.textContent = t('The two passwords are different.'); er.classList.remove('hidden'); return; }
     try{ if(S.mode === 'supabase'){ const {error} = await S.sb.auth.updateUser({password: f.a.value}); if(error) throw error; } else { const d = clone(Store.get('partners', p.id)); d.demoPassword = f.a.value; await Store.set('partners', p.id, d); }
       f.reset(); toast(t('Password changed')); }catch(x){ er.textContent = t('Could not save'); er.classList.remove('hidden'); } };
@@ -314,17 +351,26 @@ function ptAccount(){
 /* ---------------- staff: partners ---------------- */
 function adminPartners(){
   const list = Store.all('partners').sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)), stock = Store.all('pstock'), pos = Store.all('porders');
-  $('#adminBody').innerHTML = `<div class="admin-bar"><span class="sub" style="flex:1">${t('Trusted shops only. You create their account; they sign in at autoengineeriq.com/#partner.')}</span><button class="btn red sm" id="apNew">+ ${t('Add partner')}</button></div>
+  const apps = Store.all('wholesalers').filter(w => w.status === 'pending').sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  $('#adminBody').innerHTML = `${apps.length ? `<div class="panel" style="margin-bottom:16px"><h3 style="margin:0 0 8px">${t('Applications')} (${apps.length})</h3><div class="tblwrap"><table class="tbl"><tbody>
+      ${apps.map(w => `<tr><td><b>${esc(w.company || '')}</b><br><span class="mini">${esc(w.name || '')}</span></td><td class="ltr">${esc(w.phone || '')}</td><td>${esc(w.location || '')}</td><td>${dateStr(w.createdAt)}</td>
+        <td style="white-space:nowrap"><button class="btn sm red" data-mk="${esc(w.id)}">${t('Make partner')}</button> <button class="btn sm ghost" data-rj="${esc(w.id)}">${t('Reject')}</button></td></tr>`).join('')}</tbody></table></div></div>` : ''}
+    <div class="admin-bar"><span class="sub" style="flex:1">${t('Trusted shops only. You create their account; they sign in at autoengineeriq.com/#partner.')}</span><button class="btn red sm" id="apNew">+ ${t('Add partner')}</button></div>
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Shop')}</th><th>${t('Phone')}</th><th>${t('City')}</th><th class="num">${t('Discount')}</th><th class="num">${t('Commission')}</th><th class="num">${t('Stock items')}</th><th class="num">${t('Orders')}</th><th>${t('Status')}</th><th></th></tr></thead><tbody>
     ${list.length ? list.map(p => `<tr data-id="${esc(p.id)}"><td><b>${esc(p.shop)}</b><br><span class="mini">${esc(p.owner || '')}</span></td><td class="ltr">${esc(p.phone)}</td><td>${esc(p.city || '')}</td><td class="num">${+p.discount || 0}%</td><td class="num">${p.commission ?? 1.5}%</td>
       <td class="num">${stock.filter(s => s.pid === p.id).length}</td><td class="num">${pos.filter(o => o.pid === p.id).length}</td><td><span class="vst ${p.status === 'paused' ? 'vis' : 'cust'}">${t(p.status === 'paused' ? 'Paused' : 'Active')}</span></td>
-      <td><button class="linkbtn" data-ed>${t('Edit')}</button></td></tr>`).join('') : `<tr><td colspan="9" class="empty">${t('No partners yet.')}</td></tr>`}</tbody></table></div>`;
+      <td style="white-space:nowrap"><button class="linkbtn" data-pv>${t('Open portal')}</button> · <button class="linkbtn" data-ed>${t('Edit')}</button></td></tr>`).join('') : `<tr><td colspan="9" class="empty">${t('No partners yet.')}</td></tr>`}</tbody></table></div>`;
   $('#apNew').onclick = () => partnerModal(null);
-  $('#adminBody').querySelector('tbody').onclick = e => { const tr = e.target.closest('tr[data-id]'); if(tr) partnerModal(Store.get('partners', tr.dataset.id)); };
+  $('#adminBody').onclick = async e => {
+    const mk = e.target.closest('[data-mk]'); if(mk){ const w = Store.get('wholesalers', mk.dataset.mk); partnerModal(null, {shop: w.company, owner: w.name, phone: w.phone, city: w.location, appId: w.id}); return; }
+    const rj = e.target.closest('[data-rj]'); if(rj){ const w = clone(Store.get('wholesalers', rj.dataset.rj)); w.status = 'rejected'; w.reviewedAt = Date.now(); delete w.id; await Store.set('wholesalers', rj.dataset.rj, w); return; }
+    const tr = e.target.closest('tr[data-id]'); if(!tr) return;
+    if(e.target.closest('[data-pv]')){ S.partnerPreview = tr.dataset.id; S.partner = Store.get('partners', tr.dataset.id); PS.tab = 'overview'; location.hash = 'partner'; return; }
+    partnerModal(Store.get('partners', tr.dataset.id)); };
 }
 const genPw = () => { const a = 'abcdefghjkmnpqrstuvwxyz23456789'; let s = ''; const r = crypto.getRandomValues(new Uint32Array(10)); r.forEach(x => s += a[x % a.length]); return s.slice(0, 5) + '-' + s.slice(5); };
-function partnerModal(p){
-  const isNew = !p; p = p || {discount: 10, commission: 1.5, status: 'active'};
+function partnerModal(p, pre){
+  const isNew = !p; p = p || {discount: 10, commission: 1.5, status: 'active', ...(pre || {})};
   pModal(`<h3>${isNew ? t('Add partner') : esc(p.shop)}</h3><form id="apF" class="form grid2">
     <label>${t('Shop name')}<input name="shop" required value="${esc(p.shop || '')}"></label><label>${t('Owner name')}<input name="owner" value="${esc(p.owner || '')}"></label>
     <label>${t('Phone (sign-in)')}<input name="phone" type="tel" dir="ltr" required value="${esc(p.phone || '')}" ${isNew ? '' : 'readonly'}></label><label>${t('City')}<input name="city" value="${esc(p.city || '')}"></label>
@@ -347,7 +393,9 @@ function partnerModal(p){
       discount: Math.min(90, Math.max(0, +f.discount.value || 0)), commission: Math.min(50, Math.max(0, +f.commission.value || 0)), updatedAt: Date.now()};
     if(isNew) Object.assign(d, {phone: f.phone.value.trim(), phoneKey: pk, loginEmail: pk + '@' + PARTNER_DOMAIN, status: 'active', createdAt: Date.now()});
     delete d.id; const btn = f.querySelector('button.red'); btn.disabled = true;
-    try{ await Store.set('partners', id, d); if(isNew){ await PartnerAPI.setLogin(id, f.pw.value); share(d, f.pw.value); } else { closeModal(); toast(t('Saved')); } }
+    try{ await Store.set('partners', id, d); if(isNew){ await PartnerAPI.setLogin(id, f.pw.value);
+      if(p.appId){ const w = clone(Store.get('wholesalers', p.appId) || {}); if(w.phone){ w.status = 'approved'; w.partnerId = id; w.reviewedAt = Date.now(); delete w.id; await Store.set('wholesalers', p.appId, w); } }
+      share(d, f.pw.value); } else { closeModal(); toast(t('Saved')); } }
     catch(x){ btn.disabled = false; fail(t('Could not save') + (x && x.message ? ' — ' + x.message : '')); } };
   if($('#apPause')) $('#apPause').onclick = async () => { const d = clone(Store.get('partners', p.id)); d.status = d.status === 'paused' ? 'active' : 'paused'; delete d.id; await Store.set('partners', p.id, d); closeModal(); };
   if($('#apReset')) $('#apReset').onclick = async () => { const pw = genPw(); try{ await PartnerAPI.setLogin(p.id, pw); share(p, pw); }catch(x){ fail(t('Could not save')); } };
