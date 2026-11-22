@@ -2,6 +2,13 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Forgot password?":"نسيت كلمة المرور؟",
+"Type your email above, then press Forgot password again.":"اكتب بريدك الإلكتروني في الأعلى، ثم اضغط نسيت كلمة المرور مرة أخرى.",
+"Could not send the email.":"تعذّر إرسال البريد.",
+"Check your email ({e}) and open the reset link. It may take a minute; check spam too.":"تفقّد بريدك ({e}) وافتح رابط إعادة التعيين. قد يستغرق دقيقة؛ تفقّد البريد المزعج أيضاً.",
+"Set a new password":"عيّن كلمة مرور جديدة",
+"Choose a new password for your staff account.":"اختر كلمة مرور جديدة لحساب الموظف.",
+"Save new password":"احفظ كلمة المرور الجديدة",
 "Staff preview: read-only. The shop does this from its own account.":"معاينة الموظفين: للقراءة فقط. يقوم المتجر بذلك من حسابه.",
 "Staff preview of {s}: you see exactly what this shop sees. Read-only.":"معاينة الموظفين لـ {s}: ترى بالضبط ما يراه هذا المتجر. للقراءة فقط.",
 "Exit preview":"إنهاء المعاينة",
@@ -532,6 +539,13 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Forgot password?":"وشەی نهێنیت لەبیرچووە؟",
+"Type your email above, then press Forgot password again.":"ئیمەیڵەکەت لە سەرەوە بنووسە، پاشان دووبارە کرتە لە وشەی نهێنیت لەبیرچووە بکە.",
+"Could not send the email.":"نەتوانرا ئیمەیڵ بنێردرێت.",
+"Check your email ({e}) and open the reset link. It may take a minute; check spam too.":"ئیمەیڵەکەت ({e}) بپشکنە و بەستەری ڕێکخستنەوە بکەرەوە. لەوانەیە خولەکێک بخایەنێت؛ سپامیش بپشکنە.",
+"Set a new password":"وشەی نهێنی نوێ دابنێ",
+"Choose a new password for your staff account.":"وشەی نهێنییەکی نوێ بۆ هەژماری ستافەکەت هەڵبژێرە.",
+"Save new password":"وشەی نهێنی نوێ پاشەکەوت بکە",
 "Staff preview: read-only. The shop does this from its own account.":"پێشبینینی ستاف: تەنها خوێندنەوە. دوکانەکە ئەمە لە هەژماری خۆیەوە دەکات.",
 "Staff preview of {s}: you see exactly what this shop sees. Read-only.":"پێشبینینی ستاف بۆ {s}: هەمان ئەوە دەبینیت کە ئەم دوکانە دەیبینێت. تەنها خوێندنەوە.",
 "Exit preview":"دەرچوون لە پێشبینین",

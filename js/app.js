@@ -122,7 +122,7 @@ async function initSupabase(cfg){
   try{await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')}catch(e){toast(t('Could not connect. Check your internet connection.'));return}
   S.sb=supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey);
   const {data:{session}}=await S.sb.auth.getSession();S.session=session;
-  S.sb.auth.onAuthStateChange(async(ev,s)=>{if(ev==='TOKEN_REFRESHED'||ev==='INITIAL_SESSION')return;S.session=s;await sbLoadAll();renderCurrent()});
+  S.sb.auth.onAuthStateChange(async(ev,s)=>{if(ev==='PASSWORD_RECOVERY')setTimeout(showNewPassword,300);if(ev==='TOKEN_REFRESHED'||ev==='INITIAL_SESSION')return;S.session=s;await sbLoadAll();renderCurrent()});
   await sbLoadAll();S.ready=true;restoreWs();renderCurrent();
 }
 async function sbFetchAll(table,filter){S.loaded.parts=true;let out=[],from=0;for(;;){let q=S.sb.from(table).select('col,id,data').range(from,from+999);if(filter)q=filter(q);const {data,error}=await q;if(error)throw error;out=out.concat(data);if(data.length<1000)break;from+=1000}return out}
@@ -664,15 +664,30 @@ function renderAdmin(fromData){
   ({orders:adminOrders,customers:adminCustomers,visitors:adminVisitors,parts:adminParts,sell:adminSell,wholesalers:adminWs,partners:adminPartners,porders:adminPOrders,staff:adminStaff,settings:adminSettings})[S.adminTab]();
   if(focused&&$('#adminSearch')){const i=$('#adminSearch');i.focus();i.setSelectionRange(i.value.length,i.value.length)}
 }
+/* after opening the reset link from the email: choose a new password */
+function showNewPassword(){
+  openModal(`<div class="modal-body" style="padding:24px"><h3 style="margin:0 0 6px">${t('Set a new password')}</h3><p class="sub">${t('Choose a new password for your staff account.')}</p>
+    <form id="npF"><div class="f"><label>${t('New password')}</label><input name="a" type="password" minlength="8" required dir="ltr" autocomplete="new-password"></div>
+    <div class="f"><label>${t('Repeat new password')}</label><input name="b" type="password" minlength="8" required dir="ltr" autocomplete="new-password"></div>
+    <div class="err hidden" id="npErr"></div><button class="btn red block">${t('Save new password')}</button></form></div>`);
+  $('#npF').onsubmit=async e=>{e.preventDefault();const f=e.target,er=$('#npErr');er.classList.add('hidden');
+    if(f.a.value!==f.b.value){er.textContent=t('The two passwords are different.');er.classList.remove('hidden');return}
+    const {error}=await S.sb.auth.updateUser({password:f.a.value});
+    if(error){er.textContent=error.message;er.classList.remove('hidden');return}
+    closeModal();toast(t('Password changed'));location.hash='admin'};
+}
 function renderLogin(page){
   page.innerHTML=`<form class="panel login" id="loginF"><h3>${t('Staff sign in')}</h3><p class="sub">${t('Sign in with the email your admin added to the staff list.')}</p>
     <div class="f"><label>${t('Email')}</label><input name="email" type="email" required dir="ltr" autocomplete="username"></div><div class="f"><label>${t('Password')}</label><input name="password" type="password" required dir="ltr" autocomplete="current-password" minlength="8"></div>
     <div class="err hidden" id="lgErr"></div><button class="btn red block" name="in">${t('Sign in')}</button>
-    <p class="mini" style="margin-top:14px;text-align:center">${t('First time?')} <button type="button" class="linkbtn" id="lgNew">${t('Create your password')}</button></p></form>`;
+    <p class="mini" style="margin-top:14px;text-align:center"><button type="button" class="linkbtn" id="lgForgot">${t('Forgot password?')}</button> · ${t('First time?')} <button type="button" class="linkbtn" id="lgNew">${t('Create your password')}</button></p></form>`;
   const f=$('#loginF'),err=$('#lgErr');
   f.onsubmit=async e=>{e.preventDefault();err.classList.add('hidden');const {error}=await S.sb.auth.signInWithPassword({email:f.email.value.trim(),password:f.password.value});
     if(error){err.textContent=t('Wrong email or password.');err.classList.remove('hidden');return}
     setTimeout(()=>{if(!S.admin){err.textContent=t('This email is not on the staff list. Ask your admin to add you.');err.classList.remove('hidden')}},1500)};
+  $('#lgForgot').onclick=async()=>{const em=f.email.value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){err.textContent=t('Type your email above, then press Forgot password again.');err.classList.remove('hidden');f.email.focus();return}
+    const {error}=await S.sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+'/'});
+    err.textContent=error?(t('Could not send the email.')+' '+error.message):t('Check your email ({e}) and open the reset link. It may take a minute; check spam too.',{e:em});err.classList.remove('hidden')};
   $('#lgNew').onclick=async()=>{if(!f.email.value||f.password.value.length<8){err.textContent=t('Enter your email and a password of at least 8 characters, then press this again.');err.classList.remove('hidden');return}
     const {error}=await S.sb.auth.signUp({email:f.email.value.trim(),password:f.password.value});err.textContent=error?error.message:t('Account created. If asked, confirm your email, then sign in.');err.classList.remove('hidden')};
 }
