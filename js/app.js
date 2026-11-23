@@ -401,10 +401,13 @@ function fitText(p){const yrs=p.yearFrom||p.yearTo?` ${p.yearFrom||''}–${p.yea
 const Visitor={
   get(){return ls('ae:visitor')},
   valid(raw,pk){return /^9647\d{9}$/.test(pk)||(/^\s*(\+|00)/.test(raw)&&/^\d{10,15}$/.test(pk))},
+  async setType(){const v=this.get(),c=ls('ae:ctype');if(!v||!c||S.admin)return;try{
+    if(S.mode==='supabase')await S.sb.rpc('track_type',{pk:v.pk,ctype:c.type,seller:!!c.seller});
+    else{const id='v_'+v.pk,ex=Store.get('visitors',id);if(ex)await Store.set('visitors',id,{...ex,ctype:c.type,seller:!!c.seller})}}catch(e){}},
   async visit(){const v=this.get();if(!v||S.admin)return;try{
-    if(S.mode==='supabase'){await S.sb.rpc('track_visit',{pk:v.pk,phone:v.phone,lang:LANG||'',ua:navigator.userAgent});if(window.Garage&&Garage.get().cars.length)Garage.sync()}
+    if(S.mode==='supabase'){await S.sb.rpc('track_visit',{pk:v.pk,phone:v.phone,lang:LANG||'',ua:navigator.userAgent});if(ls('ae:ctype'))this.setType();if(window.Garage&&Garage.get().cars.length)Garage.sync()}
     else{const id='v_'+v.pk,ex=Store.get('visitors',id),now=Date.now();
-      await Store.set('visitors',id,{...(ex||{phone:v.phone,phoneKey:v.pk,firstAt:now,visits:0,searches:[],searchCount:0}),lastAt:now,lang:LANG,device:navigator.userAgent.slice(0,160),visits:ex?(ex.visits||0)+(now-(ex.lastAt||0)>18e5?1:0):1})}
+      const c=ls('ae:ctype')||{};await Store.set('visitors',id,{...(ex||{phone:v.phone,phoneKey:v.pk,firstAt:now,visits:0,searches:[],searchCount:0}),...(c.type?{ctype:c.type,seller:!!c.seller}:{}),lastAt:now,lang:LANG,device:navigator.userAgent.slice(0,160),visits:ex?(ex.visits||0)+(now-(ex.lastAt||0)>18e5?1:0):1})}
   }catch(e){}},
   logT:null,last:'',
   search(q,n,kind){const v=this.get();q=String(q||'').trim();if(!v||q.length<2||S.admin)return;clearTimeout(this.logT);
@@ -425,9 +428,28 @@ function showPhoneGate(){
   f.onsubmit=e=>{e.preventDefault();const raw=f.phone.value.trim(),pk=phoneKey(raw);
     if(!Visitor.valid(raw,pk)){el.querySelector('.pg-err').classList.remove('hidden');f.phone.focus();return}
     ls('ae:visitor',{phone:raw,pk,at:Date.now()});ls('ae:me',{...(ls('ae:me')||{}),phone:raw});
-    el.remove();storeReady.then(()=>Visitor.visit())};
+    el.remove();storeReady.then(()=>Visitor.visit());showTypeGate()};
 }
 const needsPhone=()=>!Visitor.get()&&!/^#admin/.test(location.hash);
+/* step 3 of the first visit: who are you? (retail buyer · wholesale shop · has a few parts to sell = retail too) */
+const needsType=()=>!!Visitor.get()&&!ls('ae:ctype')&&!/^#admin/.test(location.hash);
+const CTYPES={retail:'Retail customer',wholesale:'Wholesale',seller:'Retail · has parts to sell'};
+function showTypeGate(){
+  if($('.typegate'))return;
+  const el=document.createElement('div');el.className='langpick phonegate typegate';
+  el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>AUTO ENGINEER</div>
+    <div class="pg-box tg-box"><h2>${t('How can we help you?')}</h2><p>${t('Choose one, so we show you the right room.')}</p>
+    <div class="tg-opts">
+      <button data-ct="retail"><i>🛒</i><b>${t('I want to buy parts')}</b><span>${t('Retail customer: genuine Toyota parts for my car.')}</span></button>
+      <button data-ct="wholesale"><i>🏪</i><b>${t('I am a shop / wholesale buyer')}</b><span>${t('Trade prices, bulk orders and a free stock system for partner shops.')}</span></button>
+      <button data-ct="seller"><i>🔧</i><b>${t('I have a few parts to sell')}</b><span>${t('Sell your spare parts to us. You can also buy parts any time.')}</span></button>
+    </div></div>`;
+  document.body.appendChild(el);
+  el.onclick=e=>{const b=e.target.closest('[data-ct]');if(!b)return;const k=b.dataset.ct;
+    const ct={type:k==='wholesale'?'wholesale':'retail',seller:k==='seller',at:Date.now()};ls('ae:ctype',ct);el.remove();
+    storeReady.then(()=>Visitor.setType());
+    location.hash=k==='wholesale'?'partner':k==='seller'?'sell':'shop'};
+}
 
 /* ---------- parts search: on the server for the live site, in the browser for preview ---------- */
 const PartsAPI={
@@ -806,19 +828,20 @@ function adminCustomers(){
 function visitorStatus(v){const c=Store.get('customers','c_'+v.phoneKey);if(c)return ['cust',t('Customer')];if(Date.now()-(v.firstAt||0)<864e5)return ['new',t('New')];return ['vis',t('Visitor')]}
 const kindLbl=k=>({search:t('Search'),find:t('Find my part'),model:t('Car model'),car:t('Registered car')})[k]||t('Search');
 const vCars=v=>Array.isArray(v.vehicles)?v.vehicles:[];
+const vType=v=>v.ctype?`<span class="vtype ${v.ctype}${v.seller?' seller':''}">${t(v.seller?CTYPES.seller:CTYPES[v.ctype]||v.ctype)}</span>`:'<span class="mini">—</span>';
 function adminVisitors(){
   const body=$('#adminBody');
-  body.innerHTML=`<div class="toolbar">${searchBox(t('Search phone or searched part…'))}<select class="sel" id="vF"><option value="">${t('All visitors')}</option><option value="new">${t('New (last 24 hours)')}</option><option value="noorder">${t('Not ordered yet')}</option><option value="miss">${t('Searched and found nothing')}</option><option value="car">${t('Registered a car')}</option></select></div>
+  body.innerHTML=`<div class="toolbar">${searchBox(t('Search phone or searched part…'))}<select class="sel" id="vF"><option value="">${t('All visitors')}</option><option value="new">${t('New (last 24 hours)')}</option><option value="noorder">${t('Not ordered yet')}</option><option value="miss">${t('Searched and found nothing')}</option><option value="car">${t('Registered a car')}</option><option value="t_retail">${t('Retail customers')}</option><option value="t_wholesale">${t('Wholesale')}</option><option value="t_seller">${t('Has parts to sell')}</option></select></div>
     <p class="mini" id="vCount" style="margin:0 0 8px"></p>
-    <div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Phone')}</th><th>${t('Status')}</th><th>${t('Car')}</th><th>${t('First visit')}</th><th>${t('Last active')}</th><th class="num">${t('Visits')}</th><th class="num">${t('Searches')}</th><th>${t('Last searched')}</th></tr></thead><tbody id="vRows"></tbody></table></div></div>`;
+    <div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Phone')}</th><th>${t('Type')}</th><th>${t('Status')}</th><th>${t('Car')}</th><th>${t('First visit')}</th><th>${t('Last active')}</th><th class="num">${t('Visits')}</th><th class="num">${t('Searches')}</th><th>${t('Last searched')}</th></tr></thead><tbody id="vRows"></tbody></table></div></div>`;
   const draw=()=>{const q=(S.adminQ||'').toLowerCase().replace(/\s/g,'');const f=$('#vF').value;
     const rows=Store.all('visitors').filter(v=>{const st=visitorStatus(v)[0];
-      if(f==='new'&&Date.now()-(v.firstAt||0)>=864e5)return false;if(f==='noorder'&&st==='cust')return false;if(f==='miss'&&!(v.searches||[]).some(x=>x.k==='search'&&!x.n))return false;if(f==='car'&&!vCars(v).length)return false;
+      if(f==='new'&&Date.now()-(v.firstAt||0)>=864e5)return false;if(f==='noorder'&&st==='cust')return false;if(f==='miss'&&!(v.searches||[]).some(x=>x.k==='search'&&!x.n))return false;if(f==='car'&&!vCars(v).length)return false;if(f==='t_retail'&&v.ctype!=='retail')return false;if(f==='t_wholesale'&&v.ctype!=='wholesale')return false;if(f==='t_seller'&&!v.seller)return false;
       return !q||(v.phone+' '+v.phoneKey+' '+vCars(v).map(c=>carName(c)+' '+(c.vin||'')).join(' ')+' '+(v.searches||[]).map(x=>x.q).join(' ')).toLowerCase().replace(/\s/g,'').includes(q)}).sort((a,b)=>(b.lastAt||0)-(a.lastAt||0));
     $('#vCount').textContent=t('{n} visitors',{n:rows.length.toLocaleString('en')});
     $('#vRows').innerHTML=rows.length?rows.slice(0,500).map(v=>{const [sc,sl]=visitorStatus(v);const ls3=(v.searches||[]).slice(0,3);
-      return `<tr class="click" data-v="${esc(v.id)}"><td><b class="ltr">${esc(v.phone||v.phoneKey)}</b></td><td><span class="vst ${sc}">${sl}</span></td><td>${vCars(v).length?esc(carName(vCars(v)[0]))+(vCars(v).length>1?` <span class="mini">+${vCars(v).length-1}</span>`:''):'<span class="mini">—</span>'}</td><td>${dtStr(v.firstAt)}</td><td>${dtStr(v.lastAt)}</td><td class="num">${v.visits||1}</td><td class="num">${v.searchCount||0}</td>
-      <td>${ls3.map(x=>`<span class="vq ${x.k!=='model'&&x.k!=='car'&&!x.n?'miss':''}">${esc(x.q)}</span>`).join(' ')||'<span class="mini">—</span>'}</td></tr>`}).join(''):`<tr><td colspan="8" class="empty">${t('No visitors yet.')}</td></tr>`};
+      return `<tr class="click" data-v="${esc(v.id)}"><td><b class="ltr">${esc(v.phone||v.phoneKey)}</b></td><td>${vType(v)}</td><td><span class="vst ${sc}">${sl}</span></td><td>${vCars(v).length?esc(carName(vCars(v)[0]))+(vCars(v).length>1?` <span class="mini">+${vCars(v).length-1}</span>`:''):'<span class="mini">—</span>'}</td><td>${dtStr(v.firstAt)}</td><td>${dtStr(v.lastAt)}</td><td class="num">${v.visits||1}</td><td class="num">${v.searchCount||0}</td>
+      <td>${ls3.map(x=>`<span class="vq ${x.k!=='model'&&x.k!=='car'&&!x.n?'miss':''}">${esc(x.q)}</span>`).join(' ')||'<span class="mini">—</span>'}</td></tr>`}).join(''):`<tr><td colspan="9" class="empty">${t('No visitors yet.')}</td></tr>`};
   draw();bindSearch(draw);$('#vF').onchange=draw;$('#vRows').onclick=e=>{const r=e.target.closest('[data-v]');if(r)openVisitor(r.dataset.v)};
 }
 function openVisitor(id){
@@ -1120,6 +1143,6 @@ let storeReady;
   try{const uq=new URLSearchParams(location.search).get('q');if(uq){S.q=uq.slice(0,80);S.skipIntro=true;S.jump=true;history.replaceState(null,'',location.pathname+'#shop')}}catch(e){}
   if(!LANG){LANG='en';document.documentElement.dir='ltr';buildChrome();buildHome();route();showLangPicker()}
   else{document.documentElement.lang=LANG==='ku'?'ckb':LANG;document.documentElement.dir=LANGS[LANG].dir;buildChrome();buildHome();route()}
-  if(hadLang&&needsPhone())showPhoneGate();
+  if(hadLang&&needsPhone())showPhoneGate();else if(hadLang&&needsType())showTypeGate();
   storeReady.then(()=>{applyLogo();Visitor.visit()});
 })();

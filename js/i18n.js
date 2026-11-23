@@ -2,6 +2,18 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"How can we help you?":"كيف يمكننا مساعدتك؟",
+"Choose one, so we show you the right room.":"اختر واحداً لنعرض لك القسم المناسب.",
+"I want to buy parts":"أريد شراء قطع غيار",
+"Retail customer: genuine Toyota parts for my car.":"زبون مفرد: قطع تويوتا أصلية لسيارتي.",
+"I am a shop / wholesale buyer":"أنا محل / مشترٍ بالجملة",
+"Trade prices, bulk orders and a free stock system for partner shops.":"أسعار جملة، طلبات بالجملة، ونظام مخزون مجاني للمتاجر الشريكة.",
+"I have a few parts to sell":"لدي بعض القطع للبيع",
+"Sell your spare parts to us. You can also buy parts any time.":"يمكنك بيع قطعك لنا، وشراء القطع في أي وقت.",
+"Retail customer":"زبون مفرد",
+"Retail · has parts to sell":"مفرد · لديه قطع للبيع",
+"Retail customers":"زبائن المفرد",
+"Has parts to sell":"لديه قطع للبيع",
 "Forgot password?":"نسيت كلمة المرور؟",
 "Type your email above, then press Forgot password again.":"اكتب بريدك الإلكتروني في الأعلى، ثم اضغط نسيت كلمة المرور مرة أخرى.",
 "Could not send the email.":"تعذّر إرسال البريد.",
@@ -539,6 +551,18 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"How can we help you?":"چۆن یارمەتیت بدەین؟",
+"Choose one, so we show you the right room.":"یەکێک هەڵبژێرە بۆ ئەوەی بەشی گونجاوت پیشان بدەین.",
+"I want to buy parts":"دەمەوێت پارچە بکڕم",
+"Retail customer: genuine Toyota parts for my car.":"کڕیاری تاک: پارچەی ئەسڵی تۆیۆتا بۆ ئۆتۆمبێلەکەم.",
+"I am a shop / wholesale buyer":"من دوکانم / کڕیاری کۆفرۆشیم",
+"Trade prices, bulk orders and a free stock system for partner shops.":"نرخی بازرگانی، داواکاری بە کۆمەڵ و سیستەمی کۆگای بەخۆڕایی بۆ دوکانە هاوبەشەکان.",
+"I have a few parts to sell":"چەند پارچەیەکم هەیە بۆ فرۆشتن",
+"Sell your spare parts to us. You can also buy parts any time.":"پارچەکانت بە ئێمە بفرۆشە. هەروەها هەر کاتێک دەتوانیت پارچە بکڕیت.",
+"Retail customer":"کڕیاری تاک",
+"Retail · has parts to sell":"تاک · پارچەی هەیە بۆ فرۆشتن",
+"Retail customers":"کڕیارانی تاک",
+"Has parts to sell":"پارچەی هەیە بۆ فرۆشتن",
 "Forgot password?":"وشەی نهێنیت لەبیرچووە؟",
 "Type your email above, then press Forgot password again.":"ئیمەیڵەکەت لە سەرەوە بنووسە، پاشان دووبارە کرتە لە وشەی نهێنیت لەبیرچووە بکە.",
 "Could not send the email.":"نەتوانرا ئیمەیڵ بنێردرێت.",
