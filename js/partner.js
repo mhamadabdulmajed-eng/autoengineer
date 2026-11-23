@@ -19,28 +19,31 @@ const PartnerAPI = {
   async login(phone, pw){
     const pk = phoneKey(phone);
     if(this.remote()){ const {error} = await S.sb.auth.signInWithPassword({email: pk + '@' + PARTNER_DOMAIN, password: pw}); if(error) throw error; return; }
-    const p = Store.get('partners', 'pt_' + pk);
-    if(!p || p.status === 'paused' || !p.demoPassword || p.demoPassword !== pw) throw new Error('login');
-    S.partner = p; S.partnerLocal = true; renderCurrent();
+    let p = Store.get('partners', 'pt_' + pk), role = 'owner', u = null;
+    if(!p){ u = Store.get('pusers', 'pu_' + pk); if(u && u.active !== false){ p = Store.get('partners', u.pid); role = u.role || 'seller'; } }
+    const pw0 = u ? u.demoPassword : p && p.demoPassword;
+    if(!p || p.status === 'paused' || !pw0 || pw0 !== pw) throw new Error('login');
+    S.partner = {...p, role, userName: u ? u.name : ''}; S.partnerLocal = true; renderCurrent();
   },
   async logout(){ if(this.remote()) await S.sb.auth.signOut(); S.partner = null; S.partnerLocal = false; PS.cart = []; renderCurrent(); },
   async load(){ // live site: load my own stock, movements and orders
     if(!this.remote() || !S.partner) return;
-    try{ const rows = await sbFetchAll('docs', q => q.in('col', ['pstock','pmoves','porders']));
-      ['pstock','pmoves','porders'].forEach(c => S.data[c] = {}); rows.forEach(r => { (S.data[r.col] = S.data[r.col] || {})[r.id] = r.data; });
+    try{ const rows = await sbFetchAll('docs', q => q.in('col', ['pstock','pmoves','porders','plistings','psales','pledger','pnotify','pusers']));
+      ['pstock','pmoves','porders','plistings','psales','pledger','pnotify','pusers'].forEach(c => S.data[c] = {}); rows.forEach(r => { (S.data[r.col] = S.data[r.col] || {})[r.id] = r.data; });
     }catch(e){ toast(t('Could not load data.')); }
     Store.emit('pstock');
   },
   async prices(ids){
     if(!ids.length) return {};
-    if(ptPreview()){ const o = {}; ids.forEach(id => { const p = PS.cache[id] || Store.get('parts', id); if(p) o[id] = this.localPrice(p); }); return o; }
+    if(ptPreview()){ const o = {}; ids.forEach(id => { const p = PS.cache[id] || Store.get('parts', id); if(p) o[id] = ptLocalPrice(p); }); return o; }
     if(this.remote()){ const {data} = await S.sb.rpc('partner_prices', {ids}); return data || {}; }
-    const o = {}; ids.forEach(id => { const p = Store.get('parts', id); if(p && !p.hidden) o[id] = this.localPrice(p); }); return o;
+    const o = {}; ids.forEach(id => { const p = Store.get('parts', id); if(p && !p.hidden) o[id] = ptLocalPrice(p); }); return o;
   },
   async placeOrder(lines, pay, note){
     if(this.remote()){ const {data, error} = await S.sb.rpc('partner_place_order', {p_lines: lines, p_pay: pay, p_note: note}); if(error) throw error; await this.load(); return data; }
     const out = []; let tot = 0;
-    lines.forEach(l => { const p = Store.get('parts', l.partId); if(!p || p.hidden) return; const pr = this.localPrice(p); out.push({partId: l.partId, partNo: p.partNo, name: p.name, nameAr: p.nameAr, nameKu: p.nameKu, qty: +l.qty, price: pr}); tot += (pr || 0) * l.qty; });
+    lines.forEach(l => { const p = Store.get('parts', l.partId); if(!p || p.hidden) return; const pr = ptLocalPrice(p); out.push({partId: l.partId, partNo: p.partNo, name: p.name, nameAr: p.nameAr, nameKu: p.nameKu, qty: +l.qty, price: pr}); tot += (pr || 0) * l.qty; });
+    if(pay === 'credit'){ const lim = +S.partner.creditLimit || 0; if(!lim) throw new Error('no credit'); if(ptBalance() + tot > lim) throw new Error('credit limit'); }
     const c = clone((S.data.config || {}).pocounter || {}); const y = new Date().getFullYear(); if(c.year !== y){ c.year = y; c.n = 0; } c.n = (c.n || 0) + 1; await Store.set('config', 'pocounter', c);
     const no = 'PO-' + y + '-' + String(c.n).padStart(4, '0'), now = Date.now();
     await Store.set('porders', no, {pid: S.partner.id, shop: S.partner.shop, phone: S.partner.phone, city: S.partner.city, lines: out, total: tot, pay, note, status: 'new', createdAt: now, updatedAt: now, log: [{at: now, s: 'new'}]});
@@ -59,6 +62,16 @@ const PartnerAPI = {
       await Store.set('pmoves', 'pm_' + rid(12), {pid: S.partner.id, stockId: sid, partNo: l.partNo, delta: +l.qty, kind: 'purchase', note: no, at: now}); }
     o.status = 'received'; o.updatedAt = now; o.log = [...(o.log || []), {at: now, s: 'received'}]; await Store.set('porders', no, o);
   },
+  async rpc(name, args){ // server functions, with a local stand-in for the preview mode
+    if(this.remote() && !ptPreview()){ const {data, error} = await S.sb.rpc(name, args || {}); if(error) throw error; return data; }
+    return ptLocalRpc(name, args || {});
+  },
+  async setUser(phone, name, role, pw, active){
+    if(this.remote()){ const {data, error} = await S.sb.rpc('partner_set_user', {p_phone: phone, p_name: name, p_role: role, p_password: pw || '', p_active: active}); if(error) throw error; await this.load(); return data; }
+    const pk = phoneKey(phone), id = 'pu_' + pk, ex = Store.get('pusers', id);
+    if(Store.get('partners', 'pt_' + pk) || (ex && ex.pid !== S.partner.id)) throw new Error('phone in use');
+    await Store.set('pusers', id, {...(ex || {createdAt: Date.now()}), pid: S.partner.id, phone, name, role, active, loginEmail: pk + '@' + PARTNER_DOMAIN, ...(pw ? {demoPassword: pw} : {})});
+  },
   async setLogin(pid, pw){ // staff: create or reset the partner's password
     if(this.remote()){ const {data, error} = await S.sb.rpc('staff_set_partner_login', {p_pid: pid, p_password: pw}); if(error) throw error; return data; }
     const p = clone(Store.get('partners', pid)); p.demoPassword = pw; await Store.set('partners', pid, p); return p.loginEmail;
@@ -67,6 +80,12 @@ const PartnerAPI = {
 window.PartnerAPI = PartnerAPI;
 
 /* staff can open the portal as any partner to see what the shop sees (read-only) */
+const PT_TABS = {overview: ['owner','buyer','seller'], counter: ['owner','buyer','seller'], stock: ['owner','buyer','seller'], buy: ['owner','buyer'], orders: ['owner','buyer'],
+  web: ['owner'], trends: ['owner','buyer','seller'], vin: ['owner','buyer','seller'], account: ['owner','buyer','seller']};
+const ROLE_LABEL = {owner: 'Owner', buyer: 'Buyer', seller: 'Seller'};
+const ptRole = () => (S.partner && S.partner.role) || 'owner';
+const ptOwner = () => ptRole() === 'owner';
+const ptBalance = () => Store.all('pledger').filter(x => x.pid === (S.partner || {}).id).reduce((s, x) => s + (+x.amount || 0), 0);
 const ptPreview = () => !!(S.partnerPreview && S.partner && S.partner.id === S.partnerPreview);
 const ro = () => { if(ptPreview()){ toast(t('Staff preview: read-only. The shop does this from its own account.')); return true; } return false; };
 const stockId = no => 'ps_' + (S.partner ? S.partner.id : '') + '_' + String(no || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -88,15 +107,18 @@ function renderPartner(fromData){
   if(!S.partner){ if(!fromData || !$('#ptLogin')) partnerLogin(page); return; }
   const focus = document.activeElement && document.activeElement.id;
   const st = myStock(), low = st.filter(s => lowOf(s)), ords = myOrders(), open = ords.filter(o => !['received','cancelled','rejected'].includes(o.status));
-  const tabs = [['overview','Overview',0],['stock','My stock',low.length],['buy','Buy from Auto Engineer',PS.cart.length],['orders','My orders',open.length],['sell','Sell',0],['account','Account',0]];
+  const role = ptRole(), can = k => PT_TABS[k].includes(role);
+  const pendingL = Store.all('plistings').filter(l => l.pid === S.partner.id && l.status === 'pending').length;
+  const tabs = [['overview','Overview',0],['counter','Counter sale',0],['stock','My stock',low.length],['buy','Buy from Auto Engineer',PS.cart.length],['orders','My orders',open.length],['web','Sell on website',pendingL],['trends','Customer searches',0],['vin','VIN lookup',0],['account','Account',0]].filter(([k]) => can(k));
+  if(!can(PS.tab)) PS.tab = 'overview';
   page.innerHTML = `${ptPreview() ? `<div class="pt-preview">👁 ${t('Staff preview of {s}: you see exactly what this shop sees. Read-only.', {s: esc(S.partner.shop)})} <button class="linkbtn" id="ptExitPv">${t('Exit preview')}</button></div>` : ''}<div class="page-head pt-head"><div><span class="eyebrow">${t('Partner portal')}</span><h1>${esc(S.partner.shop || t('My shop'))}</h1>
-      <p class="sub">${esc([S.partner.city, S.partner.phone].filter(Boolean).join(' · '))} · <span class="pt-verified">✓ ${t('Verified partner')}</span></p></div>
+      <p class="sub">${esc([S.partner.city, S.partner.phone].filter(Boolean).join(' · '))} · <span class="pt-verified">✓ ${t('Verified partner')}</span>${S.partner.userName ? ` · ${esc(S.partner.userName)} (${t(ROLE_LABEL[role] || role)})` : ''}</p></div>
       <div class="mini" style="text-align:end"><button class="linkbtn" id="ptOut">${t('Sign out')}</button></div></div>
     <div class="tabs">${tabs.map(([k, l, n]) => `<button data-pt="${k}" class="${PS.tab === k ? 'on' : ''}">${t(l)}${n ? `<span class="n">${n}</span>` : ''}</button>`).join('')}</div><div id="ptBody"></div>`;
   $('#ptOut').onclick = () => { if(ptPreview()){ S.partnerPreview = null; S.partner = null; renderPartner(); return; } PartnerAPI.logout(); };
   if($('#ptExitPv')) $('#ptExitPv').onclick = () => { S.partnerPreview = null; S.partner = null; S.adminTab = 'partners'; location.hash = 'admin'; };
   page.querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-pt]'); if(b){ PS.tab = b.dataset.pt; renderPartner(); } };
-  ({overview: ptOverview, stock: ptStock, buy: ptBuy, orders: ptOrders, sell: ptSell, account: ptAccount})[PS.tab]();
+  ({overview: ptOverview, counter: ptCounter, stock: ptStock, buy: ptBuy, orders: ptOrders, web: ptWeb, trends: ptTrends, vin: ptVin, account: ptAccount})[PS.tab]();
   if(focus && $('#' + focus) && /^pt(Q|BuyQ)$/.test(focus)){ const i = $('#' + focus); i.focus(); try{ i.setSelectionRange(i.value.length, i.value.length); }catch(e){} }
 }
 window.renderPartner = renderPartner;
@@ -359,12 +381,13 @@ function adminPartners(){
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Shop')}</th><th>${t('Phone')}</th><th>${t('City')}</th><th class="num">${t('Discount')}</th><th class="num">${t('Commission')}</th><th class="num">${t('Stock items')}</th><th class="num">${t('Orders')}</th><th>${t('Status')}</th><th></th></tr></thead><tbody>
     ${list.length ? list.map(p => `<tr data-id="${esc(p.id)}"><td><b>${esc(p.shop)}</b><br><span class="mini">${esc(p.owner || '')}</span></td><td class="ltr">${esc(p.phone)}</td><td>${esc(p.city || '')}</td><td class="num">${+p.discount || 0}%</td><td class="num">${p.commission ?? 1.5}%</td>
       <td class="num">${stock.filter(s => s.pid === p.id).length}</td><td class="num">${pos.filter(o => o.pid === p.id).length}</td><td><span class="vst ${p.status === 'paused' ? 'vis' : 'cust'}">${t(p.status === 'paused' ? 'Paused' : 'Active')}</span></td>
-      <td style="white-space:nowrap"><button class="linkbtn" data-pv>${t('Open portal')}</button> · <button class="linkbtn" data-ed>${t('Edit')}</button></td></tr>`).join('') : `<tr><td colspan="9" class="empty">${t('No partners yet.')}</td></tr>`}</tbody></table></div>`;
+      <td style="white-space:nowrap"><button class="linkbtn" data-pv>${t('Open portal')}</button> · <button class="linkbtn" data-acc>${t('Account')}</button> · <button class="linkbtn" data-ed>${t('Edit')}</button></td></tr>`).join('') : `<tr><td colspan="9" class="empty">${t('No partners yet.')}</td></tr>`}</tbody></table></div>`;
   $('#apNew').onclick = () => partnerModal(null);
   $('#adminBody').onclick = async e => {
     const mk = e.target.closest('[data-mk]'); if(mk){ const w = Store.get('wholesalers', mk.dataset.mk); partnerModal(null, {shop: w.company, owner: w.name, phone: w.phone, city: w.location, appId: w.id}); return; }
     const rj = e.target.closest('[data-rj]'); if(rj){ const w = clone(Store.get('wholesalers', rj.dataset.rj)); w.status = 'rejected'; w.reviewedAt = Date.now(); delete w.id; await Store.set('wholesalers', rj.dataset.rj, w); return; }
     const tr = e.target.closest('tr[data-id]'); if(!tr) return;
+    if(e.target.closest('[data-acc]')){ ledgerModal(tr.dataset.id); return; }
     if(e.target.closest('[data-pv]')){ S.partnerPreview = tr.dataset.id; S.partner = Store.get('partners', tr.dataset.id); PS.tab = 'overview'; location.hash = 'partner'; return; }
     partnerModal(Store.get('partners', tr.dataset.id)); };
 }
@@ -377,6 +400,7 @@ function partnerModal(p, pre){
     <label class="span2">${t('Address')}<input name="address" value="${esc(p.address || '')}"></label>
     <label>${t('Partner discount % (off retail price)')}<input name="discount" type="number" min="0" max="90" step="0.5" dir="ltr" value="${+p.discount || 0}"></label>
     <label>${t('Commission % on their sales')}<input name="commission" type="number" min="0" max="50" step="0.1" dir="ltr" value="${p.commission ?? 1.5}"></label>
+    <label>${t('Credit limit (IQD, 0 = no credit)')}<input name="creditLimit" type="number" min="0" step="50000" dir="ltr" value="${+p.creditLimit || 0}"></label><span></span>
     <label class="span2">${t('Private notes (partner cannot see)')}<input name="notes" value="${esc(p.notes || '')}"></label>
     ${isNew ? `<label class="span2">${t('Starting password')}<input name="pw" dir="ltr" required minlength="8" value="${genPw()}"><small>${t('Give this to the partner. They can change it in Account.')}</small></label>` : ''}
     <p class="err hidden span2" id="apErr"></p>
@@ -390,7 +414,7 @@ function partnerModal(p, pre){
   f.onsubmit = async e => { e.preventDefault(); er.classList.add('hidden'); const pk = phoneKey(f.phone.value); if(pk.length < 12) return fail(t('Check the phone number.'));
     const id = isNew ? 'pt_' + pk : p.id; if(isNew && Store.get('partners', id)) return fail(t('A partner with this phone number already exists.'));
     const d = {...(isNew ? {} : Store.get('partners', id)), shop: f.shop.value.trim(), owner: f.owner.value.trim(), city: f.city.value.trim(), address: f.address.value.trim(), notes: f.notes.value.trim(),
-      discount: Math.min(90, Math.max(0, +f.discount.value || 0)), commission: Math.min(50, Math.max(0, +f.commission.value || 0)), updatedAt: Date.now()};
+      discount: Math.min(90, Math.max(0, +f.discount.value || 0)), commission: Math.min(50, Math.max(0, +f.commission.value || 0)), creditLimit: Math.max(0, Math.round(+f.creditLimit.value || 0)), updatedAt: Date.now()};
     if(isNew) Object.assign(d, {phone: f.phone.value.trim(), phoneKey: pk, loginEmail: pk + '@' + PARTNER_DOMAIN, status: 'active', createdAt: Date.now()});
     delete d.id; const btn = f.querySelector('button.red'); btn.disabled = true;
     try{ await Store.set('partners', id, d); if(isNew){ await PartnerAPI.setLogin(id, f.pw.value);
@@ -419,12 +443,15 @@ function poModal(o){
     ${(o.lines || []).map(l => `<tr><td class="ltr"><b>${esc(l.partNo)}</b></td><td>${esc(l.name || '')}</td><td class="num">${l.qty}</td><td class="num">${money(l.price)}</td><td class="num">${money((l.price || 0) * l.qty)}</td></tr>`).join('')}
     <tr class="grp"><td colspan="4"><b>${t('Total')}</b></td><td class="num"><b>${money(o.total)}</b></td></tr></tbody></table></div>
     ${o.note ? `<p><b>${t('Partner note')}:</b> ${esc(o.note)}</p>` : ''}
+    ${o.pay === 'credit' ? (() => { const pt = Store.get('partners', o.pid) || {}, bal = Store.all('pledger').filter(x => x.pid === o.pid).reduce((s, x) => s + (+x.amount || 0), 0), lim = +pt.creditLimit || 0;
+      return `<p class="${bal + (o.ledgered ? 0 : +o.total) > lim ? 'err' : 'mini'}">${t('On credit')} · ${t('Credit limit')}: ${money(lim) || '0'} · ${t('They owe')}: ${money(bal) || '0'}${o.ledgered ? '' : ' · ' + t('after this order') + ': ' + money(bal + (+o.total || 0))}</p>`; })() : ''}
     <form id="poF2" class="form grid2"><label>${t('Delivery company')}<input name="courier" value="${esc(o.courier || '')}"></label><label>${t('Tracking number')}<input name="tracking" dir="ltr" value="${esc(o.tracking || '')}"></label>
       <label class="span2">${t('Message to partner')}<input name="reply" value="${esc(o.reply || '')}"></label>
       <div class="span2 actions"><button type="button" class="btn ghost" data-mclose>${t('Close')}</button><button type="button" class="btn ghost" data-st="">${t('Save')}</button>${next.map(([s, l]) => `<button type="button" class="btn ${s === 'rejected' ? 'ghost' : 'red'}" data-st="${s}">${t(l)}</button>`).join('')}</div></form>`, true);
   $('#poF2').onclick = async e => { const b = e.target.closest('[data-st]'); if(!b) return; const f = $('#poF2'), d = clone(Store.get('porders', o.id)), now = Date.now();
     d.courier = f.courier.value.trim(); d.tracking = f.tracking.value.trim(); d.reply = f.reply.value.trim(); d.updatedAt = now;
     if(b.dataset.st){ d.status = b.dataset.st; d.log = [...(d.log || []), {at: now, s: d.status, by: S.me || ''}]; }
-    delete d.id; await Store.set('porders', o.id, d); closeModal(); toast(t('Saved')); };
+    delete d.id; await Store.set('porders', o.id, d); await poLedger(o.id).catch(() => {}); closeModal(); toast(t('Saved'));
+    if(b.dataset.st){ const pt = Store.get('partners', o.pid) || {}; ptWaPrompt(pt.phone || o.phone, `${t('Auto Engineer')} · ${o.id}: ${t(PO_LABEL[d.status] || d.status)}${d.courier ? ' · ' + d.courier + (d.tracking ? ' (' + d.tracking + ')' : '') : ''}${d.reply ? '\n' + d.reply : ''}`); } };
 }
 window.adminPartners = adminPartners; window.adminPOrders = adminPOrders;

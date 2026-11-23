@@ -48,7 +48,7 @@ const SAMPLE_PARTS=[
  {partNo:'52119-06989',name:'Front Bumper Cover',brand:'Used OEM',make:'Toyota',model:'Camry',yearFrom:2018,yearTo:2020,category:'Body',condition:'Used',retailPrice:150000,wholesalePrice:130000,stock:'In stock'}];
 
 /* ================= STATE ================= */
-const COLS=['parts','orders','customers','wholesalers','sellRequests','config','staff','partners','porders','pstock','pmoves'];
+const COLS=['parts','orders','customers','wholesalers','sellRequests','config','staff','partners','porders','pstock','pmoves','plistings','psales','pledger','pnotify','pusers'];
 const S={mode:'local',db:null,sb:null,user:null,admin:false,role:null,staff:null,me:null,canWrite:true,ready:false,
   data:Object.fromEntries(COLS.map(c=>[c,{}])),loaded:{},
   basket:ls('ae:basket')||[],q:'',f:{cat:'',make:'',model:'',year:'',cond:''},ws:null,wsPrices:{},adminTab:'orders',downloads:null,seenOrders:null,alerts:0};
@@ -314,7 +314,7 @@ function renderShop(fromData){
     <div class="filters" id="catChips"></div>
     <div class="filters"><select class="sel" id="fCond"></select><button class="linkbtn" id="fClear">${t('Clear filters')}</button></div>
     <div class="result-meta"><span id="resCount"></span><span>${t('Can’t find it?')} <button class="linkbtn" id="reqBtn">${t('Request a part')}</button></span></div>
-    <div class="grid" id="results"></div>`;
+    <div class="grid" id="results"></div><div id="pListRes"></div>`;
     $('#q').oninput=e=>{S.q=e.target.value;if(!S.f.model){const mid=modelIdOf(S.q);setStage(mid&&mid!=='*'?mid:'')}syncDock();renderResults();jumpSoon()};
     $('#q').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(jumpTimer);if(S.q.trim())toResults(true)}};
     mountDock();
@@ -508,8 +508,25 @@ function renderResults(more){
   const el=$('#results');if(!el)return;
   clearTimeout(resTimer);resTimer=setTimeout(()=>drawResults(more),PartsAPI.remote()&&!more?220:0);
 }
+/* approved items from verified partner shops (shown in the Retail room) */
+let listCache=null,listAt=0;
+async function loadListings(){if(listCache&&Date.now()-listAt<3e5)return listCache;
+  try{if(S.mode==='supabase'){const {data}=await S.sb.from('docs').select('id,data').eq('col','plistings').eq('data->>status','approved').limit(3000);listCache=(data||[]).map(r=>({...r.data,id:r.id}))}
+    else listCache=Store.all('plistings').filter(l=>l.status==='approved')}catch(e){listCache=[]}
+  listAt=Date.now();return listCache}
+async function drawListings(){const box=$('#pListRes');if(!box)return;const q=S.q.trim().toLowerCase().replace(/-/g,'');
+  if(room()!=='retail'||q.length<2){box.innerHTML='';return}
+  const L=(await loadListings()).filter(l=>(+l.qty||0)>0&&((l.partNo||'').toLowerCase().replace(/-/g,'').includes(q)||[l.name,l.nameAr,l.nameKu].some(x=>String(x||'').toLowerCase().includes(S.q.trim().toLowerCase())))).slice(0,24);
+  if(S.q.trim().toLowerCase().replace(/-/g,'')!==q)return;
+  const inB=new Set(S.basket.map(b=>b.listingId));const CL={genuine:'New genuine',aftermarket:'New aftermarket',used:'Used'};
+  box.innerHTML=L.length?`<h3 class="plist-h">${t('From verified partner shops')}</h3><div class="grid">${L.map(l=>`<article class="pcard plist"><div class="pbody"><span class="pno">${esc(l.partNo)}</span><span class="pname">${esc((LANG==='ar'&&l.nameAr)||(LANG==='ku'&&l.nameKu)||l.name)}</span>
+    <span class="pfit">${t(CL[l.cond]||'')}${l.note?' · '+esc(l.note):''}</span><span class="pshop">🏪 ${t('Sold by {s}',{s:esc(l.shop||'')})}${l.city?' · '+esc(l.city):''} · <b>✓ ${t('Verified partner')}</b></span>
+    <div class="prow"><span class="price">${money(l.price)}</span><button class="add ${inB.has(l.id)?'done':''}" data-ladd="${esc(l.id)}">${inB.has(l.id)?'✓ '+t('Added'):t('Add')}</button></div></div></article>`).join('')}</div>`:'';
+  box.onclick=e=>{const b=e.target.closest('[data-ladd]');if(!b)return;const l=L.find(x=>x.id===b.dataset.ladd);const ex=S.basket.find(x=>x.listingId===l.id);
+    if(ex)ex.qty=Math.min(+l.qty||1,ex.qty+1);else S.basket.push({key:rid(6),partId:null,listingId:l.id,pid:l.pid,shop:l.shop,partNo:l.partNo,name:l.name,fit:'',qty:1,price:+l.price,room:'retail'});
+    saveBasket();b.classList.add('done');b.textContent='✓ '+t('Added');toast(t('Added: {x}',{x:l.name}))}}
 async function drawResults(more){
-  const el=$('#results');if(!el)return;const seq=++resSeq;const r=room();
+  const el=$('#results');if(!el)return;const seq=++resSeq;const r=room();if(!more)drawListings();
   const o={q:S.q.trim(),cat:S.f.cat,model:'',year:'',lim:60,off:more?S.resRows.length:0};if(more&&S.resAlt)Object.assign(o,S.resAlt);
   if(!more){S.resRows=[];if(PartsAPI.remote())el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Searching…')}</div>`}
   let res;try{res=await PartsAPI.search(o)}catch(e){if(seq===resSeq)el.innerHTML=`<div class="empty" style="grid-column:1/-1">${t('Could not load data.')}</div>`;return}
@@ -567,7 +584,7 @@ function renderBasket(){
   const body=$('#basketBody'),foot=$('#basketFoot');$('#drawerTitle').textContent=t('Basket');
   if(!S.basket.length){body.innerHTML=`<div class="empty" style="background:none"><h3>${t('Your basket is empty')}</h3><p>${t('Search the catalog and add the parts you need.')}</p></div>`;foot.innerHTML=`<a class="btn block" href="#shop" id="bBrowse">${t('Browse parts')}</a>`;$('#bBrowse').onclick=closeAll;return}
   const r=S.basket[0].room||'retail';const known=S.basket.filter(b=>nz(b.price));const est=known.reduce((s,b)=>s+b.price*b.qty,0);const unknown=S.basket.length-known.length;
-  body.innerHTML=`<div style="margin-bottom:8px"><span class="room-tag ${r==='wholesale'?'ws':''}">${r==='wholesale'?t('Wholesale order'):t('Retail order')}</span></div>`+S.basket.map(b=>`<div class="bline"><div class="meta"><b>${esc(b.name)}</b><small class="ltr">${esc(b.partNo||t('Custom request'))}</small>${b.fit?` <small>· ${esc(b.fit)}</small>`:''}<br><small>${nz(b.price)?money(b.price)+' '+t('each'):t('Price on request')}</small><br><button class="rm" data-rm="${b.key}">${t('Remove')}</button></div>
+  body.innerHTML=`<div style="margin-bottom:8px"><span class="room-tag ${r==='wholesale'?'ws':''}">${r==='wholesale'?t('Wholesale order'):t('Retail order')}</span></div>`+S.basket.map(b=>`<div class="bline"><div class="meta"><b>${esc(b.name)}</b><small class="ltr">${esc(b.partNo||t('Custom request'))}</small>${b.fit?` <small>· ${esc(b.fit)}</small>`:''}${b.shop?`<br><small>🏪 ${t('Sold by {s}',{s:esc(b.shop)})}</small>`:''}<br><small>${nz(b.price)?money(b.price)+' '+t('each'):t('Price on request')}</small><br><button class="rm" data-rm="${b.key}">${t('Remove')}</button></div>
     <div class="qty"><button data-dec="${b.key}">−</button><span>${b.qty}</span><button data-inc="${b.key}">+</button></div></div>`).join('');
   foot.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>${t('Estimated total')}</span><b>${money(est)}</b></div><p class="mini" style="margin-bottom:14px">${unknown?t('{n} item(s) priced on request.',{n:unknown})+' ':''}${t('Final prices, availability and discount are confirmed by our team.')}</p><button class="btn red block" id="checkoutBtn">${t('Send order request')}</button>`;
   body.onclick=e=>{const el=e.target;const k=el.dataset.inc||el.dataset.dec||el.dataset.rm;if(!k)return;const i=S.basket.findIndex(b=>b.key===k);if(i<0)return;
@@ -608,7 +625,7 @@ function openCheckout(){
     const d=new Date();const no='AE-'+String(d.getFullYear()).slice(2)+pad(d.getMonth()+1,2)+pad(d.getDate(),2)+'-'+rid(4);const r=S.basket[0].room||'retail';
     const fulfil=fd.fulfil||'delivery';const branch=fulfil==='pickup'?fd.branch:(brs.find(b=>b.city&&fd.location&&fd.location.toLowerCase().includes(String(b.city).toLowerCase()))||{}).id||'';
     const order={no,room:r,status:'new',lang:LANG,fulfil,branch:branch||'',customer:{name:fd.name.trim(),phone:fd.phone.trim(),phoneKey:k,location:fd.location.trim(),company:ws?ws.company||'':''},comment:fd.comment||'',
-      lines:S.basket.map(b=>({partId:b.partId,partNo:b.partNo,name:b.name,fit:b.fit,qty:b.qty,price:b.price,listPrice:b.price,avail:'',custom:!!b.custom})),
+      lines:S.basket.map(b=>({partId:b.partId,partNo:b.partNo,name:b.name,fit:b.fit,qty:b.qty,price:b.price,listPrice:b.price,avail:'',custom:!!b.custom,...(b.listingId?{listingId:b.listingId,pid:b.pid,shop:b.shop}:{})})),
       discountType:'pct',discount:0,delivery:0,notes:'',payments:[],credits:[],createdAt:Date.now(),updatedAt:Date.now(),log:[{at:Date.now(),s:'new'}]};
     try{await Store.set('orders',no,order);await API.upsertCustomer(order).catch(()=>{});
       ls('ae:me',{name:fd.name,phone:fd.phone,location:fd.location,fulfil,branch:fd.branch});S.basket=[];saveBasket();$('#drawer').classList.remove('on');S.lastOrder={no,phone:fd.phone};
@@ -690,7 +707,7 @@ function renderAdmin(fromData){
   if(!S.admin){if(S.mode==='supabase'){if(!fromData||!$('#loginF'))renderLogin(page)}else page.innerHTML=`<div class="lock panel"><h3>${t('Staff only')}</h3><p class="sub">${t('This area is for the Auto Engineer team. Ask the owner to give you access.')}</p><a class="btn" href="#home">${t('Back to home')}</a></div>`;return}
   if(S.seenOrders===null)S.seenOrders=new Set(Object.keys(S.data.orders||{}));
   const orders=visibleOrders(),sells=Store.all('sellRequests'),wss=Store.all('wholesalers');
-  const tabs=[['orders','Orders',orders.filter(o=>o.status==='new'||o.status==='accepted').length,'orders'],['customers','Customers',0,'customers'],['visitors','Visitors',Store.all('visitors').filter(v=>Date.now()-(v.firstAt||0)<864e5).length,'customers'],['parts','Parts catalog',0,'parts'],['sell','Sell requests',sells.filter(s=>s.status==='new').length,'sell'],['partners','Partners',wss.filter(w=>w.status==='pending').length,'partners'],['porders','Partner orders',Store.all('porders').filter(o=>o.status==='new').length,'partners'],['staff','Staff',0,'staff'],['settings','Settings',0,'settings']].filter(x=>can(x[3]));
+  const tabs=[['orders','Orders',orders.filter(o=>o.status==='new'||o.status==='accepted').length,'orders'],['customers','Customers',0,'customers'],['visitors','Visitors',Store.all('visitors').filter(v=>Date.now()-(v.firstAt||0)<864e5).length,'customers'],['parts','Parts catalog',0,'parts'],['sell','Sell requests',sells.filter(s=>s.status==='new').length,'sell'],['partners','Partners',wss.filter(w=>w.status==='pending').length,'partners'],['porders','Partner orders',Store.all('porders').filter(o=>o.status==='new').length,'partners'],['plistings','Partner listings',Store.all('plistings').filter(l=>l.status==='pending').length,'partners'],['staff','Staff',0,'staff'],['settings','Settings',0,'settings']].filter(x=>can(x[3]));
   if(!tabs.find(x=>x[0]===S.adminTab))S.adminTab=tabs[0][0];
   const focused=document.activeElement&&document.activeElement.id==='adminSearch';
   const who=S.staff?`${esc(S.staff.name||S.me)} · ${t(ROLES[S.role])}${S.staff.branch?' · '+esc((branches().find(b=>b.id===S.staff.branch)||{}).name||''):''}`:t(ROLES[S.role]||'Admin');
@@ -698,7 +715,7 @@ function renderAdmin(fromData){
     <div class="tabs">${tabs.map(([k,l,n])=>`<button data-tab="${k}" class="${S.adminTab===k?'on':''}">${t(l)}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div><div id="adminBody"></div>`;
   $('.tabs').onclick=e=>{const b=e.target.closest('[data-tab]');if(b){S.adminTab=b.dataset.tab;S.adminQ='';renderAdmin()}};
   if($('#logout'))$('#logout').onclick=async()=>{await S.sb.auth.signOut();location.hash='home'};
-  ({orders:adminOrders,customers:adminCustomers,visitors:adminVisitors,parts:adminParts,sell:adminSell,wholesalers:adminWs,partners:adminPartners,porders:adminPOrders,staff:adminStaff,settings:adminSettings})[S.adminTab]();
+  ({orders:adminOrders,customers:adminCustomers,visitors:adminVisitors,parts:adminParts,sell:adminSell,wholesalers:adminWs,partners:adminPartners,porders:adminPOrders,plistings:adminPListings,staff:adminStaff,settings:adminSettings})[S.adminTab]();
   if(focused&&$('#adminSearch')){const i=$('#adminSearch');i.focus();i.setSelectionRange(i.value.length,i.value.length)}
 }
 /* after opening the reset link from the email: choose a new password */
@@ -806,6 +823,7 @@ function drawOrderModal(){
 function setStatus(s){editing.status=s;editing.log=[...(editing.log||[]),{at:Date.now(),s}]}
 async function saveOrder(){const prev=Store.get('orders',editing.id);if(prev&&prev.status!==editing.status&&!(editing.log||[]).some(x=>x.s===editing.status&&Date.now()-x.at<5000))editing.log=[...(editing.log||[]),{at:Date.now(),s:editing.status}];
   editing.updatedAt=Date.now();const data={...editing};delete data.pdfLang;data.pdfLang=editing.pdfLang;
+  if(data.status==='delivered'&&!data.partnerSettled&&window.settlePartnerLines&&await settlePartnerLines(data).catch(()=>false)){data.partnerSettled=true;editing.partnerSettled=true}
   try{await Store.set('orders',editing.id,data);const c=Store.get('customers','c_'+editing.customer.phoneKey);if(!c||c.name!==editing.customer.name||c.location!==editing.customer.location)await API.upsertCustomer({...editing,createdAt:editing.createdAt})}catch(_){}}
 function openCreditNote(){
   const o=editing;const returned=i=>o.credits.reduce((s,c)=>s+((c.lines||[]).find(x=>x.i===i)?.qty||0),0);
@@ -914,7 +932,8 @@ function adminParts(){
       ${can('parts')?`<select class="sel sm" id="bkStock">${opt(STOCKS,t('Set stock…'))}</select>
       <select class="sel sm" id="bkCat">${opt(CATS.map(c=>c[0]),t('Set category…'))}</select>
       <button class="btn sm ghost" data-bk="hide">${t('Hide')}</button><button class="btn sm ghost" data-bk="show">${t('Show')}</button>
-      <span class="bk-price"><input type="number" class="sel sm" id="bkPct" placeholder="%" step="1" style="width:74px" aria-label="${esc(t('Price change %'))}"><select class="sel sm" id="bkWhich"><option value="retailPrice">${t('Retail')}</option><option value="wholesalePrice">${t('Wholesale')}</option><option value="both">${t('Both')}</option></select><button class="btn sm ghost" id="bkPriceB">${t('Change price %')}</button></span>`:''}
+      <span class="bk-price"><input type="number" class="sel sm" id="bkPct" placeholder="%" step="1" style="width:74px" aria-label="${esc(t('Price change %'))}"><select class="sel sm" id="bkWhich"><option value="retailPrice">${t('Retail')}</option><option value="wholesalePrice">${t('Wholesale')}</option><option value="both">${t('Both')}</option></select><button class="btn sm ghost" id="bkPriceB">${t('Change price %')}</button></span>
+      <span class="bk-price"><input type="number" class="sel sm" id="bkOff" placeholder="% ${esc(t('off'))}" step="1" min="1" max="90" style="width:74px"><button class="btn sm ghost" id="bkOfferB">🔥 ${t('Partner offer')}</button><button class="btn sm ghost" id="bkNoOffer">${t('Remove offer')}</button></span>`:''}
       ${can('delete')?`<button class="btn sm red" data-bk="delete">${t('Delete')}</button>`:''}`;
   };
   // apply one change to every selected part (in batches), then refresh
@@ -933,6 +952,9 @@ function adminParts(){
   const bar=$('#pBulk');
   bar.onclick=e=>{const b=e.target;
     if(b.id==='bkPriceB'){priceChange();return}
+    if(b.id==='bkOfferB'){const pct=Number(($('#bkOff')||{}).value);if(!(pct>0&&pct<=90)){toast(t('Enter a % between 1 and 90'));return}
+      confirmBox(t('Give partners {p}% off the retail price on {n} parts?',{p:pct,n:S.pSel.size.toLocaleString('en')}),()=>bulk(t('Setting partner offers'),p=>{if(nz(p.retailPrice))p.offerPrice=Math.ceil(Number(p.retailPrice)*(1-pct/100)/250)*250;return p}));return}
+    if(b.id==='bkNoOffer'){bulk(t('Removing partner offers'),p=>{delete p.offerPrice;delete p.offerNote;return p});return}
     if(b.id==='bkClear'){S.pSel.clear();draw();return}
     if(b.id==='bkAllMatch'){(async()=>{b.disabled=true;b.textContent=t('Selecting…');for(let off=0;off<pTotal;off+=500){const r=await (S.pView?PartsAPI.dups({mode:S.pView,q:S.adminQ||'',lim:1000,off}):PartsAPI.search({...F(),lim:500,off})).catch(()=>({rows:[]}));r.rows.forEach(p=>S.pSel.add(p.id));if(!r.rows.length)break}draw()})();return}
     const k=b.closest&&b.closest('[data-bk]');if(!k)return;const n=S.pSel.size;
@@ -981,6 +1003,7 @@ function openPart(id,prefill){
     <div class="row3"><div class="f"><label>${t('Make')}</label><input name="make" value="${v('make')}" list="makesL"></div><div class="f"><label>${t('Model')}</label><input name="model" value="${v('model')}" list="modelsL"></div><div class="f"><label>${t('Brand')}</label><input name="brand" value="${v('brand')}" placeholder="Toyota Genuine, Denso…"></div></div>
     <div class="row3"><div class="f"><label>${t('Year from')}</label><input name="yearFrom" type="number" value="${v('yearFrom')}"></div><div class="f"><label>${t('Year to')}</label><input name="yearTo" type="number" value="${v('yearTo')}"></div><div class="f"><label>${t('Category')}</label><select name="category">${CATS.map(([c])=>`<option value="${c}" ${p.category===c?'selected':''}>${t(c)}</option>`).join('')}</select></div></div>
     <div class="row3"><div class="f"><label>${t('Condition')}</label><select name="condition">${CONDS.map(c=>`<option value="${c}" ${p.condition===c?'selected':''}>${t(c)}</option>`).join('')}</select></div><div class="f"><label>${t('Retail price')} <i>(${t('empty = on request')})</i></label><input name="retailPrice" type="number" step="any" value="${v('retailPrice')}"></div><div class="f"><label>${t('Wholesale price')}</label><input name="wholesalePrice" type="number" step="any" value="${v('wholesalePrice')}"></div></div>
+    <div class="row2"><div class="f"><label>🔥 ${t('Partner offer price')} <i>(${t('partners only, empty = no offer')})</i></label><input name="offerPrice" type="number" step="any" value="${v('offerPrice')}"></div><div class="f"><label>${t('Offer note')}</label><input name="offerNote" value="${v('offerNote')}" placeholder="${esc(t('e.g. until stock lasts'))}"></div></div>
     <div class="row2"><div class="f"><label>${t('Stock')}</label><select name="stock">${STOCKS.map(c=>`<option value="${c}" ${p.stock===c?'selected':''}>${t(c)}</option>`).join('')}</select></div><div class="f"><label>${t('Visibility')}</label><select name="hidden"><option value="">${t('Shown on website')}</option><option value="1" ${p.hidden?'selected':''}>${t('Hidden')}</option></select></div></div>
     <div class="f"><label>${t('Description')} <i>(${t('optional')})</i></label><textarea name="desc">${v('desc')}</textarea></div>
     <div class="f"><label>${t('Photo')}</label><input type="file" accept="image/*" id="pImg"><div class="thumbs" id="pThumb">${img?`<img src="${esc(img)}">`:''}</div></div>
@@ -991,7 +1014,7 @@ function openPart(id,prefill){
     // a new part: stop if this part number is already in the catalog (any way of writing it)
     if(!id){const key=fd.partNo.replace(/[^0-9A-Z]/gi,'').toLowerCase();let ex=null;try{const r=await PartsAPI.search({q:fd.partNo,lim:5,staff:true});ex=r.rows.find(x=>String(x.partNo).replace(/[^0-9A-Z]/gi,'').toLowerCase()===key)}catch(_){}
       if(ex){toast(t('Part number {p} is already in the catalog. Opening it so you can edit it.',{p:ex.partNo}));closeModal();openPart(ex.id);return}}
-    const data={...(id?p:{}),...fd,modelId:modelIdOf(fd.model||'')||'',yearFrom:num(fd.yearFrom),yearTo:num(fd.yearTo),retailPrice:num(fd.retailPrice),wholesalePrice:num(fd.wholesalePrice),hidden:!!fd.hidden,image:img,updatedAt:Date.now(),createdAt:p.createdAt||Date.now()};const nid=id||partId(fd.partNo);
+    const data={...(id?p:{}),...fd,modelId:modelIdOf(fd.model||'')||'',yearFrom:num(fd.yearFrom),yearTo:num(fd.yearTo),retailPrice:num(fd.retailPrice),wholesalePrice:num(fd.wholesalePrice),offerPrice:num(fd.offerPrice),hidden:!!fd.hidden,image:img,updatedAt:Date.now(),createdAt:p.createdAt||Date.now()};const nid=id||partId(fd.partNo);
     try{await Store.set('parts',nid,data);if(prefill&&prefill._sellId){const s=Store.get('sellRequests',prefill._sellId);if(s)await Store.set('sellRequests',s.id,{...s,status:'bought',listedPart:nid})}closeModal();toast(t('Part saved'))}catch(_){}};
 }
 // owner's part number rules: remove the leading T, dash after the 5th character
@@ -1091,6 +1114,8 @@ function adminSettings(){
     <h3 style="margin-top:20px">${t('Payment')}</h3><p class="sub">${t('How customers and partners can pay.')}</p>
     <label class="chk"><input type="checkbox" name="payCOD" ${s.payCOD!==false?'checked':''}> ${t('Cash on delivery')}</label>
     <label class="chk" style="opacity:.6"><input type="checkbox" name="payOnline" disabled> ${t('Online payment: Qi Card, FIB, ZainCash, Visa / Mastercard')} <i>(${t('available when the payment gateway is connected')})</i></label>
+    <h3 style="margin-top:20px">🏆 ${t('Partner volume rewards')}</h3><p class="sub">${t('Extra discount next month when a partner buys this much in a month. One per line: amount = extra %. Example: 10000000 = 2')}</p>
+    <textarea name="rewardTxt" rows="3" dir="ltr" style="width:100%;font-family:inherit;padding:10px;border:1px solid rgba(0,0,0,.14);border-radius:10px">${esc((s.rewardTiers||[]).map(x=>x.min+' = '+x.pct).join('\n'))}</textarea>
     <h3 style="margin-top:20px">${t('Branches')}</h3><p class="sub">${t('Customers can choose a branch for pickup. Orders and sales staff can be assigned to a branch.')}</p><div id="brList"></div><button type="button" class="btn sm ghost" id="brAdd">+ ${t('Add branch')}</button>
     <div style="margin-top:20px"><button class="btn red">${t('Save settings')}</button></div></form>`;
   const drawBr=()=>{$('#brList').innerHTML=brs.map((b,i)=>`<div class="row3" style="grid-template-columns:2fr 1fr 1fr auto;align-items:end"><div class="f"><label>${t('Branch name')}</label><input data-b="${i}" data-k="name" value="${esc(b.name||'')}"></div><div class="f"><label>${t('City')}</label><input data-b="${i}" data-k="city" value="${esc(b.city||'')}" list="cities"></div><div class="f"><label>${t('Phone')}</label><input data-b="${i}" data-k="phone" value="${esc(b.phone||'')}" dir="ltr"></div><div class="f"><button type="button" class="rm" data-brdel="${i}">✕</button></div></div>`).join('')+citiesList()};drawBr();
@@ -1098,7 +1123,8 @@ function adminSettings(){
   $('#brList').onclick=e=>{const d=e.target.closest('[data-brdel]');if(d){brs.splice(+d.dataset.brdel,1);drawBr()}};
   $('#brAdd').onclick=()=>{brs.push({id:'b_'+rid(5).toLowerCase(),name:'',city:'',phone:''});drawBr()};
   let logo=s.logo||'';$('#logoIn').onchange=async e=>{if(e.target.files[0]){logo=await compressImg(e.target.files[0],500,.85);$('#logoTh').innerHTML=`<img src="${logo}" style="object-fit:contain;background:#fff">`}};
-  $('#setF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));try{await Store.set('config','settings',{...settings(),...fd,payCOD:fd.payCOD==='on',payOnline:false,quoteValidity:+fd.quoteValidity||7,logo,branches:brs.filter(b=>b.name)});toast(t('Settings saved'))}catch(_){}};
+  $('#setF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));try{const rewardTiers=String(fd.rewardTxt||'').split(/\n+/).map(x=>{const m=x.replace(/[, ]/g,'').match(/^(\d+)=(\d+(?:\.\d+)?)%?$/);return m?{min:+m[1],pct:+m[2]}:null}).filter(Boolean).sort((a,b)=>a.min-b.min);delete fd.rewardTxt;
+  await Store.set('config','settings',{...settings(),...fd,rewardTiers,payCOD:fd.payCOD==='on',payOnline:false,quoteValidity:+fd.quoteValidity||7,logo,branches:brs.filter(b=>b.name)});toast(t('Settings saved'))}catch(_){}};
 }
 function applyLogo(){const s=settings();$$('.brand-mark').forEach(m=>{m.innerHTML=s.logo?`<img src="${esc(s.logo)}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;background:#fff">`:'<img src="img/logo-mark.svg" alt="">'})}
 
