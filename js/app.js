@@ -363,16 +363,26 @@ function mountDock(){
 /* Google Images search for an exact part number (a link only; no photos are copied) */
 /* part photos in a small window on our own site (Google Programmable Search, image results from chosen parts sites) */
 const photoSearchOn=()=>!!(window.AE_CONFIG&&AE_CONFIG.photoSearchCx);
-let cseLoad=null,phN=0;
-function loadCse(){if(cseLoad)return cseLoad;cseLoad=new Promise((res,rej)=>{window.__gcse={parsetags:'explicit',callback:res};
+let cseLoad=null,phN=0,phCur=null;
+const pnKey=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+// we draw the window ourselves: from Google's results keep only ONE website whose page is for exactly this part number
+function phReady(name,q,promos,results){const cur=phCur;if(!cur||name!==cur.gn)return true;const box=$('#aePhRes');if(!box)return true;const k=pnKey(cur.pn);
+  const imgOf=r=>{const rs=r.richSnippet||{};const ci=rs.cseImage||{};const mt=rs.metatags||{};return ci.src||mt.ogImage||mt['og:image']||(r.thumbnailImage&&r.thumbnailImage.url)||''};
+  const hit=(results||[]).find(r=>imgOf(r)&&[r.titleNoFormatting,r.contentNoFormatting,r.url,r.title].some(x=>pnKey(x).includes(k)));
+  if(!hit){box.innerHTML=`<div class="empty"><h3>${t('No photo found for this part number')}</h3><p><a href="${gPhotos(cur.pn)}" target="_blank" rel="noopener nofollow">${t('See photos on Google')}</a></p></div>`;return true}
+  let host='';try{host=new URL(hit.url).hostname.replace(/^www\./,'')}catch(e){}
+  box.innerHTML=`<figure class="phone"><img src="${esc(imgOf(hit))}" alt="${esc(cur.pn)}" referrerpolicy="no-referrer" onerror="this.closest('figure').querySelector('.phfail').hidden=false;this.remove()"><p class="phfail empty" hidden>${t('Could not load photos.')}</p>
+    <figcaption><b>${esc(hit.titleNoFormatting||'')}</b><span>${t('Photo from')} <span class="ltr">${esc(host)}</span></span></figcaption></figure>`;
+  return true}
+function loadCse(){if(cseLoad)return cseLoad;cseLoad=new Promise((res,rej)=>{window.__gcse={parsetags:'explicit',callback:res,searchCallbacks:{web:{ready:phReady}}};
   const sc=document.createElement('script');sc.src='https://cse.google.com/cse.js?cx='+encodeURIComponent(AE_CONFIG.photoSearchCx);sc.async=true;sc.onerror=()=>{cseLoad=null;rej()};document.head.appendChild(sc)});return cseLoad}
 async function openPhotos(pn){
-  openModal(mHead(t('Part photos'),`<span class="ltr">${esc(pn)}</span> · ${t('Photos from other websites, shown by Google. Close this window to continue shopping.')}`)+`<div class="modal-body phbox"><div id="aePhRes"><div class="empty">${t('Searching…')}</div></div></div>`,true);
+  openModal(mHead(t('Part photos'),`<span class="ltr">${esc(pn)}</span>`)+`<div class="modal-body phbox"><div id="aePhRes"><div class="empty">${t('Searching…')}</div></div><div id="aePhG" hidden></div></div>`);
   try{await loadCse()}catch(e){$('#aePhRes').innerHTML=`<div class="empty">${t('Could not load photos.')} <a href="${gPhotos(pn)}" target="_blank" rel="noopener nofollow">${t('See photos on Google')}</a></div>`;return}
-  const box=$('#aePhRes');if(!box)return;box.innerHTML='';const g=google.search.cse.element;
-  const gn='aeph'+(++phN);g.render({div:'aePhRes',tag:'searchresults-only',gname:gn,attributes:{defaultToImageSearch:true,disableWebSearch:true,enableHistory:false,linkTarget:'_blank',safeSearch:'active',enableOrderBy:false}});const el=g.getElement(gn);
-  const raw=String(pn||'').replace(/[^A-Za-z0-9]/g,'');
-  el.execute(raw&&raw!==pn?`"${pn}" OR "${raw}"`:`"${pn}"`)}
+  if(!$('#aePhG'))return;const g=google.search.cse.element;
+  const gn='aeph'+(++phN);phCur={gn,pn};g.render({div:'aePhG',tag:'searchresults-only',gname:gn,attributes:{enableHistory:false,safeSearch:'active',enableOrderBy:false}});const el=g.getElement(gn);
+  const raw=pnKey(pn).toUpperCase();
+  el.execute(raw&&raw!==String(pn).toUpperCase()?`"${raw}" OR "${pn}"`:`"${pn}"`)}
 const gPhotos=pn=>'https://www.google.com/search?tbm=isch&q='+encodeURIComponent('"'+(pn||'')+'" Toyota');
 /* Find My Part, filled in with the customer's registered car */
 function carFind(car){if(!car)return openFindPart({model:S.f.model||''});

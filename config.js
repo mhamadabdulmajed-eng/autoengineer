@@ -3,6 +3,6 @@
 window.AE_CONFIG = {
   supabaseUrl: 'https://qkrjvbpdhaqukzbhpeqg.supabase.co',
   // Google Programmable Search engine ID for the part photos window (empty = open Google in a new tab)
-  photoSearchCx: '',
+  photoSearchCx: '46fe54dc114e84bbc',
   supabaseKey: 'sb_publishable_ZpCOArZh0pjeJY3l8LBAkw_rG4fHlDa'
 };
