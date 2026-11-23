@@ -27,6 +27,18 @@ create index if not exists docs_parts_hay on public.docs using gin (hay gin_trgm
 create index if not exists docs_parts_pn  on public.docs (pn text_pattern_ops) where col = 'parts';
 create index if not exists docs_parts_cat on public.docs ((data->>'category')) where col = 'parts';
 
+-- shop order (customers): engine oil first, then oil filters, then brake pads, then everything else;
+-- inside each group the cheapest comes first and "price on request" goes last
+create or replace function public.ae_shop_rank(d jsonb) returns int
+language sql immutable as $$
+  select case
+    when n ~ '(engine oil|motor oil|tgmo|lgmo)' and n !~ '(pan|seal|cooler|pump|cap|level|gage|gauge|dipstick|filter|hose|pipe|tube|strainer|jet|switch|sensor|bolt|plug|gasket)' then 0
+    when n ~ 'oil filter|filter oil' and n !~ '(bracket|cap|gasket|union|wrench|cover|housing|bolt|stud|seal|hose|pipe|tube|plug|o ring|ring|tool)' then 1
+    when n ~ '(brake pad|pad kit.*brake|brake.*pad kit)' and n !~ '(shim|support|clip|indicator|fitting|spring|pin|sensor|guide|retainer)' then 2
+    else 3 end
+  from (select lower(concat_ws(' ', d->>'name', d->>'desc')) as n) x
+$$;
+
 -- q:    words typed by the customer (all must match)
 -- anyw: optional list of alternative words (any one must match), used by Find My Part quick buttons
 drop function if exists public.search_parts(text, text, text, int, text[], int, int);
@@ -72,6 +84,9 @@ language sql stable security definer set search_path = public as $$
     case when sort = 'cat'   then p.data->>'category' end,
     case when sort = 'stock' then p.data->>'stock'    end,
     (p.pn = public.ae_pn(q)) desc, (p.pn like public.ae_pn(q) || '%' and length(public.ae_pn(q)) > 2) desc,
+    -- customers: oil, oil filter, brake pads first, then the rest from lowest to highest price
+    case when not st.on_ and coalesce(sort,'') = '' then public.ae_shop_rank(p.data) end asc nulls last,
+    case when not st.on_ and coalesce(sort,'') = '' then p.rp end asc nulls last,
     -- names that start with what was typed come first, then shorter (simpler) names
     (coalesce(q,'') <> '' and (public.ae_txt(p.data->>'nameAr') like public.ae_txt(q) || '%'
        or public.ae_txt(p.data->>'nameKu') like public.ae_txt(q) || '%' or lower(p.data->>'name') like lower(q) || '%')) desc,

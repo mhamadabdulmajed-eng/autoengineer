@@ -467,6 +467,12 @@ function showTypeGate(){
 }
 
 /* ---------- parts search: on the server for the live site, in the browser for preview ---------- */
+// shop order: engine oil, oil filter, brake pads first, then the rest (same rule as ae_shop_rank in supabase/parts_search.sql)
+function shopRank(p){const n=[p.name,p.desc].join(' ').toLowerCase();
+  if(/(engine oil|motor oil|tgmo|lgmo)/.test(n)&&!/(pan|seal|cooler|pump|cap|level|gage|gauge|dipstick|filter|hose|pipe|tube|strainer|jet|switch|sensor|bolt|plug|gasket)/.test(n))return 0;
+  if(/oil filter|filter oil/.test(n)&&!/(bracket|cap|gasket|union|wrench|cover|housing|bolt|stud|seal|hose|pipe|tube|plug|o ring|ring|tool)/.test(n))return 1;
+  if(/(brake pad|pad kit.*brake|brake.*pad kit)/.test(n)&&!/(shim|support|clip|indicator|fitting|spring|pin|sensor|guide|retainer)/.test(n))return 2;
+  return 3}
 const PartsAPI={
   remote(){return S.mode==='supabase'},
   local(o){const cp=window.commonPartOf?commonPartOf(o.q||''):null;const nq=s=>String(s||'').toLowerCase();
@@ -482,6 +488,8 @@ const PartsAPI={
     rows=rows.filter(p=>(!o.stk||(p.stock||'Ask')===o.stk)&&(!o.staff||!o.vis||(o.vis==='hidden'?p.hidden:!p.hidden))&&(!nz(o.pmin)||(rp(p)!=null&&rp(p)>=+o.pmin))&&(!nz(o.pmax)||(rp(p)!=null&&rp(p)<=+o.pmax))&&(!o.price||(o.price==='has'?rp(p)!=null:rp(p)==null)));
     const by={pn:p=>p.partNo,name:p=>p.name,cat:p=>p.category,stock:p=>p.stock}[o.sort];
     if(o.sort==='price_asc'||o.sort==='price_desc'){const d=o.sort==='price_asc'?1:-1;rows.sort((a,b)=>rp(a)==null?1:rp(b)==null?-1:(rp(a)-rp(b))*d)}
+    else if(!o.staff&&!o.sort){const pnq=String(o.q||'').toLowerCase().replace(/[^a-z0-9]/g,''),hit=p=>pnq.length>2&&String(p.partNo||'').toLowerCase().replace(/[^a-z0-9]/g,'').startsWith(pnq)?0:1;
+      rows.sort((a,b)=>hit(a)-hit(b)||shopRank(a)-shopRank(b)||(rp(a)==null?1:0)-(rp(b)==null?1:0)||(rp(a)||0)-(rp(b)||0)||String(a.name).localeCompare(String(b.name)))}
     else rows.sort((a,b)=>String(by?by(a)||'':a.name).localeCompare(String(by?by(b)||'':b.name)));
     return {rows:rows.slice(o.off||0,(o.off||0)+(o.lim||60)),total:rows.length}},
   async search(o){
