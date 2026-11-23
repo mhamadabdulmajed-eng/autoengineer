@@ -17,7 +17,7 @@ function loadScript(src){return new Promise((res,rej)=>{const s=document.createE
 const LANGS={en:{name:'English',native:'English',dir:'ltr',short:'EN'},ar:{name:'Arabic',native:'العربية',dir:'rtl',short:'ع'},ku:{name:'Kurdish',native:'کوردی',dir:'rtl',short:'کو'}};
 let LANG=ls('ae:lang')||null;
 function t(s,vars,lang){const L=lang||LANG||'en';let out=(L!=='en'&&window.I18N&&I18N[L]&&I18N[L][s])||s;if(vars)out=out.replace(/\{(\w+)\}/g,(m,k)=>vars[k]??m);return out}
-function setLang(l){LANG=l;ls('ae:lang',l);document.documentElement.lang=l==='ku'?'ckb':l;document.documentElement.dir=LANGS[l].dir;buildChrome();buildHome();renderCurrent();}
+function setLang(l){LANG=l;ls('ae:lang',l);document.documentElement.lang=l==='ku'?'ckb':l;document.documentElement.dir=LANGS[l].dir;buildChrome();buildHome();renderCurrent();if(typeof updWaFab==='function')updWaFab();}
 const isRTL=()=>LANGS[LANG||'en'].dir==='rtl';
 const locale=l=>({en:'en-GB',ar:'ar-IQ-u-nu-latn',ku:'ckb-IQ-u-nu-latn'})[l||LANG||'en'];
 const dateStr=(ts,l)=>ts?new Date(ts).toLocaleDateString(locale(l),{day:'2-digit',month:'short',year:'numeric'}):'';
@@ -53,6 +53,17 @@ const S={mode:'local',db:null,sb:null,user:null,admin:false,role:null,staff:null
   data:Object.fromEntries(COLS.map(c=>[c,{}])),loaded:{},
   basket:ls('ae:basket')||[],q:'',f:{cat:'',make:'',model:'',year:'',cond:''},ws:null,wsPrices:{},adminTab:'orders',downloads:null,seenOrders:null,alerts:0};
 const settings=()=>({...DEFAULT_SETTINGS,...(S.data.config.settings||{})});
+/* the business WhatsApp (Settings > WhatsApp, falls back to the owner's number) */
+const WA_DEFAULT='+964 770 996 1816';
+const waNum=()=>phoneKey(settings().whatsapp||WA_DEFAULT)||phoneKey(WA_DEFAULT);
+const waBiz=(msg)=>'https://wa.me/'+waNum()+(msg?'?text='+encodeURIComponent(msg):'');
+function mountWaFab(){if($('#waFab'))return;const a=document.createElement('a');a.id='waFab';a.className='wa-fab';a.target='_blank';a.rel='noopener';
+  a.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.7c-2 0-4-.6-5.7-1.6l-.4-.2-3.9 1 1-3.8-.3-.4A10.7 10.7 0 1 1 16 26.7zm5.9-8c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2l-1 1.2c-.2.2-.4.2-.7.1a8.7 8.7 0 0 1-4.3-3.8c-.3-.5.3-.5.9-1.6.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.3 1.4 3.5c.2.2 2.4 3.7 5.9 5.2 2.2.9 3 1 4.1.8.7-.1 1.9-.8 2.2-1.5.3-.8.3-1.4.2-1.5-.1-.2-.3-.2-.6-.4z"/></svg><span></span>';
+  document.body.appendChild(a);updWaFab()}
+function updWaFab(){const a=$('#waFab');if(!a)return;a.href=waBiz(t('Hello Auto Engineer, I need help finding a part.'));a.setAttribute('aria-label',t('Chat on WhatsApp'));a.querySelector('span').textContent=t('WhatsApp');
+  a.classList.toggle('hidden',/^#(admin|partner)/.test(location.hash))}
+/* country codes for the phone step (Iraq first) */
+const CCODES=[['IQ','964','🇮🇶','Iraq'],['KW','965','🇰🇼','Kuwait'],['SA','966','🇸🇦','Saudi Arabia'],['AE','971','🇦🇪','UAE'],['QA','974','🇶🇦','Qatar'],['BH','973','🇧🇭','Bahrain'],['OM','968','🇴🇲','Oman'],['JO','962','🇯🇴','Jordan'],['SY','963','🇸🇾','Syria'],['LB','961','🇱🇧','Lebanon'],['TR','90','🇹🇷','Turkey'],['IR','98','🇮🇷','Iran'],['EG','20','🇪🇬','Egypt'],['YE','967','🇾🇪','Yemen'],['LY','218','🇱🇾','Libya'],['SD','249','🇸🇩','Sudan'],['DZ','213','🇩🇿','Algeria'],['MA','212','🇲🇦','Morocco'],['TN','216','🇹🇳','Tunisia'],['PS','970','🇵🇸','Palestine'],['GE','995','🇬🇪','Georgia'],['AM','374','🇦🇲','Armenia'],['AZ','994','🇦🇿','Azerbaijan'],['AF','93','🇦🇫','Afghanistan'],['PK','92','🇵🇰','Pakistan'],['IN','91','🇮🇳','India'],['CN','86','🇨🇳','China'],['JP','81','🇯🇵','Japan'],['GB','44','🇬🇧','United Kingdom'],['DE','49','🇩🇪','Germany'],['SE','46','🇸🇪','Sweden'],['NL','31','🇳🇱','Netherlands'],['NO','47','🇳🇴','Norway'],['DK','45','🇩🇰','Denmark'],['FI','358','🇫🇮','Finland'],['FR','33','🇫🇷','France'],['BE','32','🇧🇪','Belgium'],['AT','43','🇦🇹','Austria'],['CH','41','🇨🇭','Switzerland'],['IT','39','🇮🇹','Italy'],['ES','34','🇪🇸','Spain'],['GR','30','🇬🇷','Greece'],['RU','7','🇷🇺','Russia'],['UA','380','🇺🇦','Ukraine'],['US','1','🇺🇸','USA / Canada'],['AU','61','🇦🇺','Australia']];
 const branches=()=>(settings().branches||[]).filter(b=>b&&b.name);
 const can=p=>S.admin&&(PERMS[S.role||'admin']||[]).includes(p);
 
@@ -162,7 +173,7 @@ const availLabel=(a,l)=>t(({available:'In stock',order:'On order (2–5 days)',u
 /* ================= ROUTER ================= */
 const VIEWS=['home','shop','wholesale','sell','track','admin','terms','partner'];
 let current='home';
-function route(){let v=(location.hash||'#home').slice(1);if($('#qDock')&&v!=='shop'&&v!=='wholesale')$('#qDock').classList.remove('show');if(v==='wholesale'){history.replaceState(null,'','#partner');v='partner'}if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
+function route(){let v=(location.hash||'#home').slice(1);setTimeout(updWaFab,0);if($('#qDock')&&v!=='shop'&&v!=='wholesale')$('#qDock').classList.remove('show');if(v==='wholesale'){history.replaceState(null,'','#partner');v='partner'}if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
   $$('.view').forEach(e=>e.classList.toggle('hidden',e.id!=='view-'+sec));$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===v));$('#navLinks').classList.remove('open');
   window.scrollTo(0,0);renderCurrent();updateNav();if(v==='home'&&window.ScrollTrigger)setTimeout(()=>ScrollTrigger.refresh(),60)
   // short room intro the first time a visitor opens Retail or Wholesale (skipped for Find My Part and Google links)
@@ -240,7 +251,7 @@ function buildHome(){
   renderFoot();applyLogo();initMotion();
 }
 function renderFoot(){const s=settings();const fc=$('#footContact');if(!fc)return;
-  fc.innerHTML=[s.address,s.phone&&(t('Phone')+': <span class="ltr">'+esc(s.phone)+'</span>'),s.whatsapp&&('WhatsApp: <span class="ltr">'+esc(s.whatsapp)+'</span>'),s.email].filter(Boolean).map(x=>x.includes('<span')?x:esc(x)).join('<br>');
+  fc.innerHTML=[s.address,s.phone&&(t('Phone')+': <span class="ltr">'+esc(s.phone)+'</span>'),('WhatsApp: <a class="ltr" target="_blank" rel="noopener" href="'+waBiz()+'">'+esc(s.whatsapp||WA_DEFAULT)+'</a>'),s.email].filter(Boolean).map(x=>x.includes('<span')?x:esc(x)).join('<br>');
   $('#footBranches').innerHTML=branches().length?`<b style="color:#fff">${t('Branches')}</b><br>`+branches().map(b=>`${esc(b.name)}${b.phone?' · <span class="ltr">'+esc(b.phone)+'</span>':''}`).join('<br>'):''}
 function engineExplode(tl,rtl){
   // every part flies out along its own vector; the block stays put
@@ -400,7 +411,7 @@ function fitText(p){const yrs=p.yearFrom||p.yearTo?` ${p.yearFrom||''}–${p.yea
 /* ---------- visitors: phone number on first visit + what they search ---------- */
 const Visitor={
   get(){return ls('ae:visitor')},
-  valid(raw,pk){return /^9647\d{9}$/.test(pk)||(/^\s*(\+|00)/.test(raw)&&/^\d{10,15}$/.test(pk))},
+  valid(raw,pk){return /^9647\d{9}$/.test(pk)||(!/^964/.test(pk)&&/^\s*(\+|00)/.test(raw)&&/^\d{8,15}$/.test(pk))},
   async setType(){const v=this.get(),c=ls('ae:ctype');if(!v||!c||S.admin)return;try{
     if(S.mode==='supabase')await S.sb.rpc('track_type',{pk:v.pk,ctype:c.type,seller:!!c.seller});
     else{const id='v_'+v.pk,ex=Store.get('visitors',id);if(ex)await Store.set('visitors',id,{...ex,ctype:c.type,seller:!!c.seller})}}catch(e){}},
@@ -421,11 +432,15 @@ function showPhoneGate(){
   const el=document.createElement('div');el.className='langpick phonegate';
   el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>AUTO ENGINEER</div>
     <div class="pg-box"><h2>${t('Welcome to Auto Engineer')}</h2><p>${t('Enter your mobile number to see genuine Toyota parts and prices.')}</p>
-    <form class="pg-form" novalidate><input name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel" placeholder="0750 123 4567" required><button class="btn red">${t('Continue')} →</button></form>
+    <form class="pg-form" novalidate><div class="pg-num" dir="ltr"><select name="cc" aria-label="${esc(t('Country code'))}">${CCODES.map(([k,c,f,n])=>`<option value="${c}" ${k==='IQ'?'selected':''}>${f} +${c} ${n}</option>`).join('')}</select><span class="pg-cc" aria-hidden="true">🇮🇶 +964</span><input name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel-national" placeholder="750 123 4567" required></div><button class="btn red">${t('Continue')} →</button></form>
     <p class="pg-err hidden">${t('Please enter a valid mobile number, for example 0750 123 4567.')}</p>
     <p class="pg-note">${t('We use your number only to send you prices, offers and order updates.')}</p></div>`;
   document.body.appendChild(el);const f=el.querySelector('form');setTimeout(()=>f.phone.focus(),50);
-  f.onsubmit=e=>{e.preventDefault();const raw=f.phone.value.trim(),pk=phoneKey(raw);
+  const ccSpan=el.querySelector('.pg-cc');
+  f.cc.onchange=()=>{const o=CCODES.find(x=>x[1]===f.cc.value);ccSpan.textContent=o[2]+' +'+o[1];f.phone.placeholder=o[0]==='IQ'?'750 123 4567':t('Phone number');f.phone.focus()};
+  f.onsubmit=e=>{e.preventDefault();const cc=f.cc.value;let raw=f.phone.value.trim(),pk;
+    if(cc==='964'){pk=phoneKey(raw);if(!/^9647\d{9}$/.test(pk)){const d=raw.replace(/\D/g,'').replace(/^0+/,'');pk='964'+d}raw=raw.startsWith('+')?raw:'+964 '+raw.replace(/^0/,'')}
+    else{let d=String(raw).replace(/[٠-٩]/g,c=>'٠١٢٣٤٥٦٧٨٩'.indexOf(c)).replace(/[۰-۹]/g,c=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(c)).replace(/\D/g,'');if(d.startsWith('00'+cc))d=d.slice(2+cc.length);else if(d.startsWith(cc)&&d.length>cc.length+7)d=d.slice(cc.length);d=d.replace(/^0+/,'');pk=cc+d;raw='+'+cc+' '+d}
     if(!Visitor.valid(raw,pk)){el.querySelector('.pg-err').classList.remove('hidden');f.phone.focus();return}
     ls('ae:visitor',{phone:raw,pk,at:Date.now()});ls('ae:me',{...(ls('ae:me')||{}),phone:raw});
     el.remove();storeReady.then(()=>Visitor.visit());showTypeGate()};
@@ -1144,5 +1159,5 @@ let storeReady;
   if(!LANG){LANG='en';document.documentElement.dir='ltr';buildChrome();buildHome();route();showLangPicker()}
   else{document.documentElement.lang=LANG==='ku'?'ckb':LANG;document.documentElement.dir=LANGS[LANG].dir;buildChrome();buildHome();route()}
   if(hadLang&&needsPhone())showPhoneGate();else if(hadLang&&needsType())showTypeGate();
-  storeReady.then(()=>{applyLogo();Visitor.visit()});
+  mountWaFab();storeReady.then(()=>{applyLogo();updWaFab();Visitor.visit()});
 })();

@@ -2,6 +2,10 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Country code":"رمز الدولة",
+"Hello Auto Engineer, I need help finding a part.":"مرحباً أوتو إنجنير، أحتاج مساعدة في إيجاد قطعة.",
+"Chat on WhatsApp":"تحدث معنا على واتساب",
+"WhatsApp":"واتساب",
 "How can we help you?":"كيف يمكننا مساعدتك؟",
 "Choose one, so we show you the right room.":"اختر واحداً لنعرض لك القسم المناسب.",
 "I want to buy parts":"أريد شراء قطع غيار",
@@ -551,6 +555,10 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Country code":"کۆدی وڵات",
+"Hello Auto Engineer, I need help finding a part.":"سڵاو ئۆتۆ ئەندازیار، یارمەتیم پێویستە بۆ دۆزینەوەی پارچەیەک.",
+"Chat on WhatsApp":"لە واتسئاپ قسەمان لەگەڵ بکە",
+"WhatsApp":"واتسئاپ",
 "How can we help you?":"چۆن یارمەتیت بدەین؟",
 "Choose one, so we show you the right room.":"یەکێک هەڵبژێرە بۆ ئەوەی بەشی گونجاوت پیشان بدەین.",
 "I want to buy parts":"دەمەوێت پارچە بکڕم",
