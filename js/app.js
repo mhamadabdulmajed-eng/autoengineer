@@ -368,7 +368,11 @@ const pnKey=x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'');
 // we draw the window ourselves: from Google's results keep only ONE website whose page is for exactly this part number
 function phReady(name,q,promos,results){const cur=phCur;if(!cur||name!==cur.gn)return true;const box=$('#aePhRes');if(!box)return true;const k=pnKey(cur.pn);
   const imgOf=r=>{const rs=r.richSnippet||{};const ci=rs.cseImage||{};const mt=rs.metatags||{};return ci.src||mt.ogImage||mt['og:image']||(r.thumbnailImage&&r.thumbnailImage.url)||''};
-  const hit=(results||[]).find(r=>imgOf(r)&&[r.titleNoFormatting,r.contentNoFormatting,r.url,r.title].some(x=>pnKey(x).includes(k)));
+  // must have a photo and the exact part number in the page title or address; genuine-parts sites win over marketplaces
+  const good=/partsouq|amayama|megazip|toyota|japan-parts|ebay/,weak=/alibaba|aliexpress|amazon/;
+  const score=r=>{const u=String(r.unescapedUrl||r.visibleUrl||r.url||'').toLowerCase(),tl=pnKey(r.titleNoFormatting||r.title);
+    if(!imgOf(r)||!(tl.includes(k)||pnKey(u).includes(k)))return -1;return (tl.includes(k)?4:0)+(good.test(u)?2:0)-(weak.test(u)?3:0)};
+  const hit=(results||[]).map(r=>({r,s:score(r)})).filter(x=>x.s>=0).sort((a,b)=>b.s-a.s).map(x=>x.r)[0];
   if(!hit){box.innerHTML=`<div class="empty"><h3>${t('No photo found for this part number')}</h3><p><a href="${gPhotos(cur.pn)}" target="_blank" rel="noopener nofollow">${t('See photos on Google')}</a></p></div>`;return true}
   let host='';try{host=new URL(hit.unescapedUrl||hit.url).hostname.replace(/^www\./,'')}catch(e){}if(!host||/google\./.test(host))host=String(hit.visibleUrl||'').replace(/^www\./,'').split(/[\/ ]/)[0];
   box.innerHTML=`<figure class="phone"><img src="${esc(imgOf(hit))}" alt="${esc(cur.pn)}" referrerpolicy="no-referrer" onerror="this.closest('figure').querySelector('.phfail').hidden=false;this.remove()"><p class="phfail empty" hidden>${t('Could not load photos.')}</p>
