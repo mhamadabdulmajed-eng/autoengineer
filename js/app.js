@@ -370,7 +370,7 @@ function phReady(name,q,promos,results){const cur=phCur;if(!cur||name!==cur.gn)r
   const imgOf=r=>{const rs=r.richSnippet||{};const ci=rs.cseImage||{};const mt=rs.metatags||{};return ci.src||mt.ogImage||mt['og:image']||(r.thumbnailImage&&r.thumbnailImage.url)||''};
   const hit=(results||[]).find(r=>imgOf(r)&&[r.titleNoFormatting,r.contentNoFormatting,r.url,r.title].some(x=>pnKey(x).includes(k)));
   if(!hit){box.innerHTML=`<div class="empty"><h3>${t('No photo found for this part number')}</h3><p><a href="${gPhotos(cur.pn)}" target="_blank" rel="noopener nofollow">${t('See photos on Google')}</a></p></div>`;return true}
-  let host='';try{host=new URL(hit.url).hostname.replace(/^www\./,'')}catch(e){}
+  let host='';try{host=new URL(hit.unescapedUrl||hit.url).hostname.replace(/^www\./,'')}catch(e){}if(!host||/google\./.test(host))host=String(hit.visibleUrl||'').replace(/^www\./,'').split(/[\/ ]/)[0];
   box.innerHTML=`<figure class="phone"><img src="${esc(imgOf(hit))}" alt="${esc(cur.pn)}" referrerpolicy="no-referrer" onerror="this.closest('figure').querySelector('.phfail').hidden=false;this.remove()"><p class="phfail empty" hidden>${t('Could not load photos.')}</p>
     <figcaption><b>${esc(hit.titleNoFormatting||'')}</b><span>${t('Photo from')} <span class="ltr">${esc(host)}</span></span></figcaption></figure>`;
   return true}
