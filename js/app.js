@@ -376,7 +376,7 @@ function phReady(name,q,promos,results){const cur=phCur;if(!cur||name!==cur.gn)r
   if(!hit){box.innerHTML=`<div class="empty"><h3>${t('No photo found for this part number')}</h3><p><a href="${gPhotos(cur.pn)}" target="_blank" rel="noopener nofollow">${t('See photos on Google')}</a></p></div>`;return true}
   let host='';try{host=new URL(hit.unescapedUrl||hit.url).hostname.replace(/^www\./,'')}catch(e){}if(!host||/google\./.test(host))host=String(hit.visibleUrl||'').replace(/^www\./,'').split(/[\/ ]/)[0];
   box.innerHTML=`<figure class="phone"><img src="${esc(imgOf(hit))}" alt="${esc(cur.pn)}" referrerpolicy="no-referrer" onerror="this.closest('figure').querySelector('.phfail').hidden=false;this.remove()"><p class="phfail empty" hidden>${t('Could not load photos.')}</p>
-    <figcaption><b>${esc(hit.titleNoFormatting||'')}</b><span>${t('Photo from')} <span class="ltr">${esc(host)}</span></span></figcaption></figure>`;
+    <figcaption><b>${esc(hit.titleNoFormatting||'')}</b><span>${t('Photo from')} <span class="ltr">${esc(host)}</span> · ${t('found with Google')}</span></figcaption></figure>`;
   return true}
 function loadCse(){if(cseLoad)return cseLoad;cseLoad=new Promise((res,rej)=>{window.__gcse={parsetags:'explicit',callback:res,searchCallbacks:{web:{ready:phReady}}};
   const sc=document.createElement('script');sc.src='https://cse.google.com/cse.js?cx='+encodeURIComponent(AE_CONFIG.photoSearchCx);sc.async=true;sc.onerror=()=>{cseLoad=null;rej()};document.head.appendChild(sc)});return cseLoad}
