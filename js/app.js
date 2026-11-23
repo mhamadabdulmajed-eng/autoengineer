@@ -361,6 +361,18 @@ function mountDock(){
   dockIO.observe(bar);
 }
 /* Google Images search for an exact part number (a link only; no photos are copied) */
+/* part photos in a small window on our own site (Google Programmable Search, image results from chosen parts sites) */
+const photoSearchOn=()=>!!(window.AE_CONFIG&&AE_CONFIG.photoSearchCx);
+let cseLoad=null,phN=0;
+function loadCse(){if(cseLoad)return cseLoad;cseLoad=new Promise((res,rej)=>{window.__gcse={parsetags:'explicit',callback:res};
+  const sc=document.createElement('script');sc.src='https://cse.google.com/cse.js?cx='+encodeURIComponent(AE_CONFIG.photoSearchCx);sc.async=true;sc.onerror=()=>{cseLoad=null;rej()};document.head.appendChild(sc)});return cseLoad}
+async function openPhotos(pn){
+  openModal(mHead(t('Part photos'),`<span class="ltr">${esc(pn)}</span> · ${t('Photos from other websites, shown by Google. Close this window to continue shopping.')}`)+`<div class="modal-body phbox"><div id="aePhRes"><div class="empty">${t('Searching…')}</div></div></div>`,true);
+  try{await loadCse()}catch(e){$('#aePhRes').innerHTML=`<div class="empty">${t('Could not load photos.')} <a href="${gPhotos(pn)}" target="_blank" rel="noopener nofollow">${t('See photos on Google')}</a></div>`;return}
+  const box=$('#aePhRes');if(!box)return;box.innerHTML='';const g=google.search.cse.element;
+  const gn='aeph'+(++phN);g.render({div:'aePhRes',tag:'searchresults-only',gname:gn,attributes:{defaultToImageSearch:true,disableWebSearch:true,enableHistory:false,linkTarget:'_blank',safeSearch:'active',enableOrderBy:false}});const el=g.getElement(gn);
+  const raw=String(pn||'').replace(/[^A-Za-z0-9]/g,'');
+  el.execute(raw&&raw!==pn?`"${pn}" OR "${raw}"`:`"${pn}"`)}
 const gPhotos=pn=>'https://www.google.com/search?tbm=isch&q='+encodeURIComponent('"'+(pn||'')+'" Toyota');
 /* Find My Part, filled in with the customer's registered car */
 function carFind(car){if(!car)return openFindPart({model:S.f.model||''});
@@ -548,12 +560,12 @@ async function drawResults(more){
   if(!list.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><h3>${t('No parts found')}</h3><p>${t('Try another search, or send us a request and we’ll find it for you.')}</p><br><button class="btn red" id="reqBtn2">${t('Find my part')}</button></div>`;$('#reqBtn2').onclick=()=>openFindPart({model:S.f.model||'',q:S.q});return}
   const inB=new Set(S.basket.map(b=>b.partId));
   el.innerHTML=list.map((p,i)=>{const pr=priceFor(p,r);const cc=p.condition==='Genuine'?'g':p.condition==='Used'?'u':'a';
-    return `<article class="pcard" style="animation-delay:${Math.min(i%60,16)*25}ms"><div class="pimg">${p.image?`<img src="${esc(p.image)}" alt="" loading="lazy">`:icon(p.category,1.2)}${p.condition?`<span class="badge ${cc}">${t(p.condition)}</span>`:''}${p.stock?`<span class="stock">${t(p.stock)}</span>`:''}</div>
+    return `<article class="pcard" style="animation-delay:${Math.min(i%60,16)*25}ms"><div class="pimg${p.image?'':' tapph'}"${p.image?'':` data-ph="${esc(p.partNo)}" role="button" tabindex="0" aria-label="${esc(t('See photos'))}"`}>${p.image?'':`<span class="phhint">${t('Tap to see photos')}</span>`}${p.image?`<img src="${esc(p.image)}" alt="" loading="lazy">`:icon(p.category,1.2)}${p.condition?`<span class="badge ${cc}">${t(p.condition)}</span>`:''}${p.stock?`<span class="stock">${t(p.stock)}</span>`:''}</div>
       <div class="pbody"><span class="pno">${esc(p.partNo)}</span><span class="pname">${esc(pName(p))}</span><span class="pfit">${esc(fitText(p))}${p.brand?' · '+esc(p.brand):''}</span>
-      ${p.image?'':`<a class="gphotos" href="${gPhotos(p.partNo)}" target="_blank" rel="noopener nofollow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>${t('See photos on Google')}</a>`}
+      ${p.image?'':`<a class="gphotos" href="${gPhotos(p.partNo)}" data-ph="${esc(p.partNo)}" target="_blank" rel="noopener nofollow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>${t('See photos on Google')}</a>`}
       <div class="prow">${pr!==null?`<span class="price">${money(pr)}</span>`:`<span class="price req">${t('Price on request')}</span>`}<button class="add ${inB.has(p.id)?'done':''}" data-add="${esc(p.id)}">${inB.has(p.id)?'✓ '+t('Added'):t('Add')}</button></div></div></article>`}).join('')
     +(res.total>list.length?`<div style="grid-column:1/-1;text-align:center;padding:10px"><button class="btn ghost" id="resMore">${t('Show more')}</button></div>`:'');
-  el.onclick=e=>{if(e.target.closest('#resMore')){e.target.closest('#resMore').disabled=true;drawResults(true);return}const b=e.target.closest('[data-add]');if(!b)return;addToBasket(Store.get('parts',b.dataset.add));b.classList.add('done');b.textContent='✓ '+t('Added')};
+  el.onclick=e=>{const ph=e.target.closest('[data-ph]');if(ph&&photoSearchOn()){e.preventDefault();openPhotos(ph.dataset.ph);return}if(ph&&!ph.href){window.open(gPhotos(ph.dataset.ph),'_blank','noopener');return}if(e.target.closest('#resMore')){e.target.closest('#resMore').disabled=true;drawResults(true);return}const b=e.target.closest('[data-add]');if(!b)return;addToBasket(Store.get('parts',b.dataset.add));b.classList.add('done');b.textContent='✓ '+t('Added')};
 }
 const citiesList=()=>`<datalist id="cities">${CITIES.map(c=>`<option value="${t(c)}">`).join('')}</datalist>`;
 function renderWsGate(page){
