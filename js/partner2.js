@@ -337,7 +337,7 @@ function ptOrders(){
       (o.lines || []).forEach(l => { const ex = PS.cart.find(c => c.partId === l.partId); if(ex) ex.qty += l.qty; else PS.cart.push({partId: l.partId, partNo: l.partNo, name: sName(l), qty: l.qty}); });
       toast(t('{n} added to your order', {n: (o.lines || []).length})); PS.tab = 'buy'; renderPartner(); return; }
     const iv = e.target.closest('[data-inv]'); if(iv){ const o = Store.get('porders', iv.dataset.inv);
-      ptPrint({title: t('Invoice'), no: o.id, at: o.createdAt, fromName: s.company, fromCity: s.address, fromPhone: s.phone || s.whatsapp, to: o.shop, lines: (o.lines || []).map(l => ({...l, name: sName(l)})), total: o.total,
+      ptPrint({title: t('Invoice'), no: o.invoiceNo || o.id, at: o.invoicedAt || o.createdAt, fromName: s.company, fromCity: s.address, fromPhone: s.phone || s.whatsapp, to: o.shop, lines: (o.lines || []).map(l => ({...l, name: sName(l)})), total: o.total,
         extra: t('Payment') + ': ' + (o.pay === 'credit' ? t('On credit') : o.pay === 'online' ? t('Online payment') : t('Cash on delivery')), footer: s.invoiceNote || ''}); return; }
     const c = e.target.closest('[data-cancel]'); if(c && ro()) return; if(c && confirm(t('Cancel this order?'))){ await PartnerAPI.cancel(c.dataset.cancel).catch(() => toast(t('Could not save'))); renderPartner(); }
     const r = e.target.closest('[data-recv]'); if(r && ro()) return; if(r && confirm(t('Confirm you received everything? The parts will be added to your stock.'))){ r.disabled = true;

@@ -438,20 +438,46 @@ function adminPOrders(){
 }
 function poModal(o){
   const next = {new: [['approved','Approve'],['rejected','Reject']], approved: [['shipped','Mark as on the way']], paid: [['shipped','Mark as on the way']], shipped: [['delivered','Mark as delivered']]}[o.status] || [];
-  pModal(`<h3>${esc(o.id)} · ${esc(o.shop || '')}</h3><p class="sub">${dtStr(o.createdAt)} · ${poBadge(o.status)} · ${t(o.pay === 'online' ? 'Online payment' : 'Cash on delivery')} · <span class="ltr">${esc(o.phone || '')}</span> · ${esc(o.city || '')}</p>
-    <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Description')}</th><th class="num">${t('Qty')}</th><th class="num">${t('Price')}</th><th class="num">${t('Total')}</th></tr></thead><tbody>
-    ${(o.lines || []).map(l => `<tr><td class="ltr"><b>${esc(l.partNo)}</b></td><td>${esc(l.name || '')}</td><td class="num">${l.qty}</td><td class="num">${money(l.price)}</td><td class="num">${money((l.price || 0) * l.qty)}</td></tr>`).join('')}
-    <tr class="grp"><td colspan="4"><b>${t('Total')}</b></td><td class="num"><b>${money(o.total)}</b></td></tr></tbody></table></div>
+  const canEdit = ['new','approved'].includes(o.status) && !o.ledgered, live = !['rejected','cancelled'].includes(o.status);
+  const sendLbl = o.status === 'new' ? 'Approve & send invoice' : 'Send invoice';
+  pModal(`<h3>${esc(o.id)} · ${esc(o.shop || '')}</h3><p class="sub">${dtStr(o.createdAt)} · ${poBadge(o.status)} · ${t(o.pay === 'credit' ? 'On credit' : o.pay === 'online' ? 'Online payment' : 'Cash on delivery')} · <span class="ltr">${esc(o.phone || '')}</span> · ${esc(o.city || '')}${o.invoiceNo ? ' · 🧾 <span class="ltr">' + esc(o.invoiceNo) + '</span>' : ''}</p>
+    <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Description')}</th><th class="num" style="width:90px">${t('Qty')}</th><th class="num" style="width:130px">${t('Price')}</th><th class="num">${t('Total')}</th></tr></thead><tbody id="poLines">
+    ${(o.lines || []).map((l, i) => `<tr><td class="ltr"><b>${esc(l.partNo)}</b></td><td>${esc(l.name || '')}</td>
+      <td class="num">${canEdit ? `<input type="number" min="0" data-pl="${i}" data-k="qty" value="${l.qty}">` : l.qty}</td>
+      <td class="num">${canEdit ? `<input type="number" min="0" step="any" data-pl="${i}" data-k="price" value="${l.price ?? ''}">` : money(l.price)}</td><td class="num" data-lt="${i}">${money((l.price || 0) * l.qty)}</td></tr>`).join('')}
+    <tr class="grp"><td colspan="4"><b>${t('Total')}</b></td><td class="num"><b id="poTot">${money(o.total)}</b></td></tr></tbody></table></div>
+    ${canEdit ? `<p class="mini">${t('You can change quantities and prices before approving. Set a quantity to 0 to remove a line.')}</p>` : ''}
     ${o.note ? `<p><b>${t('Partner note')}:</b> ${esc(o.note)}</p>` : ''}
     ${o.pay === 'credit' ? (() => { const pt = Store.get('partners', o.pid) || {}, bal = Store.all('pledger').filter(x => x.pid === o.pid).reduce((s, x) => s + (+x.amount || 0), 0), lim = +pt.creditLimit || 0;
       return `<p class="${bal + (o.ledgered ? 0 : +o.total) > lim ? 'err' : 'mini'}">${t('On credit')} · ${t('Credit limit')}: ${money(lim) || '0'} · ${t('They owe')}: ${money(bal) || '0'}${o.ledgered ? '' : ' · ' + t('after this order') + ': ' + money(bal + (+o.total || 0))}</p>`; })() : ''}
     <form id="poF2" class="form grid2"><label>${t('Delivery company')}<input name="courier" value="${esc(o.courier || '')}"></label><label>${t('Tracking number')}<input name="tracking" dir="ltr" value="${esc(o.tracking || '')}"></label>
       <label class="span2">${t('Message to partner')}<input name="reply" value="${esc(o.reply || '')}"></label>
-      <div class="span2 actions"><button type="button" class="btn ghost" data-mclose>${t('Close')}</button><button type="button" class="btn ghost" data-st="">${t('Save')}</button>${next.map(([s, l]) => `<button type="button" class="btn ${s === 'rejected' ? 'ghost' : 'red'}" data-st="${s}">${t(l)}</button>`).join('')}</div></form>`, true);
-  $('#poF2').onclick = async e => { const b = e.target.closest('[data-st]'); if(!b) return; const f = $('#poF2'), d = clone(Store.get('porders', o.id)), now = Date.now();
+      <div class="span2 actions"><button type="button" class="btn ghost" data-mclose>${t('Close')}</button><button type="button" class="btn ghost" data-st="">${t('Save')}</button>${next.map(([s, l]) => `<button type="button" class="btn ${s === 'rejected' ? 'ghost' : 'red'}" data-st="${s}">${t(l)}</button>`).join('')}
+        ${live ? `<button type="button" class="btn wa" data-send="1">📤 ${t(sendLbl)}</button>` : ''}</div>
+      ${o.invoiceNo ? `<p class="mini span2">${o.invoiceSentAt ? t('Last sent {d}.', {d: dtStr(o.invoiceSentAt)}) : t('Not sent yet.')}</p>` : ''}</form>`, true);
+  const lines = clone(o.lines || []);
+  const recalc = () => { let tot = 0; lines.forEach((l, i) => { const v = (+l.price || 0) * (+l.qty || 0); tot += v; const c = document.querySelector(`[data-lt="${i}"]`); if(c) c.textContent = money(v) || '0'; }); $('#poTot').textContent = money(tot) || '0'; return tot; };
+  if(canEdit) $('#poLines').oninput = e => { const el = e.target; if(el.dataset.pl === undefined) return; lines[+el.dataset.pl][el.dataset.k] = el.value === '' ? null : Number(el.value); recalc(); };
+  $('#poF2').onclick = async e => { const b = e.target.closest('[data-st],[data-send]'); if(!b) return; const send = !!b.dataset.send;
+    const f = $('#poF2'), d = clone(Store.get('porders', o.id)), now = Date.now(), before = +d.total || 0;
     d.courier = f.courier.value.trim(); d.tracking = f.tracking.value.trim(); d.reply = f.reply.value.trim(); d.updatedAt = now;
-    if(b.dataset.st){ d.status = b.dataset.st; d.log = [...(d.log || []), {at: now, s: d.status, by: S.me || ''}]; }
-    delete d.id; await Store.set('porders', o.id, d); await poLedger(o.id).catch(() => {}); closeModal(); toast(t('Saved'));
-    if(b.dataset.st){ const pt = Store.get('partners', o.pid) || {}; ptWaPrompt(pt.phone || o.phone, `${t('Auto Engineer')} · ${o.id}: ${t(PO_LABEL[d.status] || d.status)}${d.courier ? ' · ' + d.courier + (d.tracking ? ' (' + d.tracking + ')' : '') : ''}${d.reply ? '\n' + d.reply : ''}`); } };
+    if(canEdit){ const keep = lines.filter(l => (+l.qty || 0) > 0); if(!keep.length){ toast(t('The order needs at least one line.')); return; }
+      if(keep.some(l => !(+l.price > 0))){ toast(t('Set a price for every available line first')); return; }
+      d.lines = keep.map(l => ({...l, qty: Math.round(+l.qty), price: +l.price})); d.total = d.lines.reduce((s, l) => s + l.price * l.qty, 0); }
+    const st = send && d.status === 'new' ? 'approved' : b.dataset.st;
+    if(st){ d.status = st; d.log = [...(d.log || []), {at: now, s: d.status, by: S.me || ''}]; }
+    const w = send ? window.open('about:blank', '_blank') : null;
+    try{
+      if(['approved','paid','shipped','delivered','received'].includes(d.status) && !d.invoiceNo){ d.invoiceNo = await API.nextNo('invoice'); d.invoicedAt = now; }
+      if(d.invoiceNo && !d.shareKey) d.shareKey = shareKey();
+      if(d.invoiceNo && d.invoiceSentAt && d.total !== before) d.revisedAt = now;
+      let url = '';
+      if(send){ const pt = Store.get('partners', o.pid) || {}, L = pt.lang || 'en', upd = d.invoiceSentAt && d.revisedAt && d.revisedAt > d.invoiceSentAt;
+        const msg = `${t('Hello {n},', {n: d.shop}, L)}\n\n${t(upd ? 'Your invoice {no} from {c} has been updated.' : 'Your invoice {no} from {c} is ready.', {no: d.invoiceNo, c: settings().company}, L)}\n${t('Order', null, L)}: ${o.id}\n${t('Total', null, L)}: ${money(d.total, L)}${d.reply ? '\n' + d.reply : ''}\n\n${t('View and download your invoice:', null, L)}\n${invLink(d.shareKey)}\n\n${t('Thank you for your business.', null, L)}`;
+        url = waTo(pt.phone || d.phone, msg); d.invoiceSentAt = now; }
+      delete d.id; await Store.set('porders', o.id, d); await poLedger(o.id).catch(() => {}); closeModal(); toast(send ? t('Invoice {no} sent', {no: d.invoiceNo}) : t('Saved'));
+      if(send){ if(w) w.location.href = url; else location.href = url; return; }
+    }catch(er){ if(w) w.close(); toast(t('Could not save')); return; }
+    if(st){ const pt = Store.get('partners', o.pid) || {}; ptWaPrompt(pt.phone || o.phone, `${t('Auto Engineer')} · ${o.id}: ${t(PO_LABEL[d.status] || d.status)}${d.courier ? ' · ' + d.courier + (d.tracking ? ' (' + d.tracking + ')' : '') : ''}${d.reply ? '\n' + d.reply : ''}${d.shareKey ? '\n' + t('Invoice') + ': ' + invLink(d.shareKey) : ''}`); } };
 }
 window.adminPartners = adminPartners; window.adminPOrders = adminPOrders;

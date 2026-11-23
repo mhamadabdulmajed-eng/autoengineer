@@ -171,15 +171,15 @@ function priceFor(p,room){if(room==='wholesale'){const w=S.wsPrices[p.id]??p.who
 const availLabel=(a,l)=>t(({available:'In stock',order:'On order (2–5 days)',unavailable:'Not available','':'To confirm'})[a||'']||a,null,l);
 
 /* ================= ROUTER ================= */
-const VIEWS=['home','shop','wholesale','sell','track','admin','terms','partner'];
+const VIEWS=['home','shop','wholesale','sell','track','admin','terms','partner','inv'];
 let current='home';
-function route(){let v=(location.hash||'#home').slice(1);setTimeout(updWaFab,0);if($('#qDock')&&v!=='shop'&&v!=='wholesale')$('#qDock').classList.remove('show');if(v==='wholesale'){history.replaceState(null,'','#partner');v='partner'}if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
+function route(){let v=(location.hash||'#home').slice(1);setTimeout(updWaFab,0);if($('#qDock')&&v!=='shop'&&v!=='wholesale')$('#qDock').classList.remove('show');if(v==='wholesale'){history.replaceState(null,'','#partner');v='partner'}if(v.startsWith('inv/')){S.invKey=v.slice(4);v='inv'}if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
   $$('.view').forEach(e=>e.classList.toggle('hidden',e.id!=='view-'+sec));$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===v));$('#navLinks').classList.remove('open');
   window.scrollTo(0,0);renderCurrent();updateNav();if(v==='home'&&window.ScrollTrigger)setTimeout(()=>ScrollTrigger.refresh(),60)
   // short room intro the first time a visitor opens Retail or Wholesale (skipped for Find My Part and Google links)
   if((v==='shop'||v==='partner')&&window.playRoomIntro){if(S.skipIntro)S.skipIntro=false;else if(v==='partner')playRoomIntro('wholesale',()=>{const q=$('#q');if(q&&current===v&&innerWidth>700)q.focus({preventScroll:true})})}}
 function renderCurrent(fromData){
-  if(current==='shop'||current==='wholesale')renderShop(fromData);else if(current==='sell')renderSell(fromData);else if(current==='track')renderTrack(fromData);
+  if(current==='shop'||current==='wholesale')renderShop(fromData);else if(current==='sell')renderSell(fromData);else if(current==='track')renderTrack(fromData);else if(current==='inv'&&!fromData)renderInv();
   else if(current==='admin')renderAdmin(fromData);else if(current==='partner'&&window.renderPartner)renderPartner(fromData);else if(current==='terms')renderTerms();else renderFoot();
   renderBasketCount();}
 window.addEventListener('hashchange',route);
@@ -797,7 +797,8 @@ function drawOrderModal(){
     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center;margin-top:18px;border-top:1px solid rgba(0,0,0,.08);padding-top:16px">
       <label class="mini">${t('Document language')} <select id="o_pl" class="sel">${Object.entries(LANGS).map(([k,v])=>`<option value="${k}" ${o.pdfLang===k?'selected':''}>${v.native}</option>`).join('')}</select></label>
       ${cust?`<button class="btn ghost" id="o_cust">${t('Customer profile')}</button>`:''}<a class="btn wa" id="o_wa" href="#" target="_blank" rel="noopener">WhatsApp</a>
-      <button class="btn ghost" id="o_save">${t('Save')}</button><button class="btn" id="o_quote">${t('Quotation PDF')}</button><button class="btn red" id="o_inv">${t('Invoice PDF')}</button></div></div>`,true);
+      <button class="btn ghost" id="o_save">${t('Save')}</button><button class="btn ghost" id="o_quote">${t('Quotation PDF')}</button><button class="btn ghost" id="o_inv">${t('Invoice PDF')}</button><button class="btn wa" id="o_send">📤 ${t(o.invoiceNo?'Send invoice':'Accept & send invoice')}</button></div>
+    ${o.invoiceNo?`<p class="mini inv-state">🧾 ${t('Invoice {no} is ready.',{no:esc(o.invoiceNo)})} ${o.invoiceSentAt?t('Last sent {d}.',{d:dtStr(o.invoiceSentAt)}):t('Not sent yet.')}${o.revisedAt&&o.invoiceSentAt&&o.revisedAt>o.invoiceSentAt?' <b>'+t('Changed since it was sent: send it again.')+'</b>':''}</p>`:`<p class="mini inv-state">${t('When you accept or confirm this order and save, the invoice is created automatically.')}</p>`}</div>`,true);
   const box=$('#modalBox');
   const drawTot=()=>{const x=totals(editing);$('#o_tot').innerHTML=`<div><span>${t('Subtotal')}</span><span>${money(x.sub)}</span></div><div><span>${t('Discount')}</span><span>−${money(x.disc)}</span></div><div><span>${t('Delivery')}</span><span>${money(x.del)}</span></div><div class="grand"><span>${t('Total')}</span><span>${money(x.total)}</span></div>${x.credit?`<div><span>${t('Credit notes')}</span><span>−${money(x.credit)}</span></div>`:''}${invd?`<div><span>${t('Paid')}</span><span>${money(x.paid)}</span></div><div><b>${x.balance<0?t('Refund due'):t('Balance due')}</b><b>${money(Math.abs(x.balance))}</b></div>`:''}`;$('#o_wa').href=waLink(editing)};
   drawTot();
@@ -812,16 +813,48 @@ function drawOrderModal(){
     const pd=e.target.closest('[data-pdel]');if(pd){editing.payments.splice(+pd.dataset.pdel,1);await saveOrder();drawOrderModal();return}
     const cp=e.target.closest('[data-cnpdf]');if(cp){makePdf(editing,'credit',editing.credits[+cp.dataset.cnpdf]);return}
     if(e.target.id==='addLine'){editing.lines.push({partId:null,partNo:'',name:t('New item'),fit:'',qty:1,price:null,listPrice:null,avail:''});drawOrderModal()}};
-  $('#o_save').onclick=async()=>{await saveOrder();toast(t('Order saved'))};
+  $('#o_save').onclick=async()=>{const had=editing.invoiceNo;await saveOrder();if(!had&&editing.invoiceNo)toast(t('Invoice {no} created. Tap "Send invoice" to send it.',{no:editing.invoiceNo}));else toast(t('Order saved'));if(editing.invoiceNo)drawOrderModal()};
   $('#o_quote').onclick=async()=>{try{if(!editing.quoteNo)editing.quoteNo=await API.nextNo('quote');if(editing.status==='new')setStatus('quoted');editing.quotedAt=editing.quotedAt||Date.now();await saveOrder();makePdf(editing,'quote')}catch(_){}};
-  $('#o_inv').onclick=async()=>{if(editing.lines.some(l=>l.avail!=='unavailable'&&!nz(l.price))){toast(t('Set a price for every available line first'));return}
-    try{if(!editing.invoiceNo)editing.invoiceNo=await API.nextNo('invoice');if(!['confirmed','delivered'].includes(editing.status))setStatus('confirmed');editing.invoicedAt=editing.invoicedAt||Date.now();await saveOrder();makePdf(editing,'invoice')}catch(_){}};
+  $('#o_inv').onclick=async()=>{if(!invPriced(editing)){toast(t('Set a price for every available line first'));return}
+    try{await ensureInvoice(editing);await saveOrder();makePdf(editing,'invoice')}catch(_){}};
+  $('#o_send').onclick=async()=>{if(!invPriced(editing)){toast(t('Set a price for every available line first'));return}
+    if(!editing.customer.phoneKey){toast(t('Add the customer phone number first'));return}
+    const w=window.open('about:blank','_blank');
+    try{await ensureInvoice(editing);const url=invWaUrl(editing);editing.invoiceSentAt=Date.now();await saveOrder();if(w)w.location.href=url;else location.href=url;toast(t('Invoice {no} sent',{no:editing.invoiceNo}));drawOrderModal()}
+    catch(e){if(w)w.close();toast(t('Could not save'))}};
   if($('#o_cust'))$('#o_cust').onclick=()=>openCustomer('c_'+editing.customer.phoneKey);
   if($('#pAdd'))$('#pAdd').onclick=async()=>{const a=Number($('#pAmt').value);if(!(a>0)){toast(t('Enter an amount'));return}editing.payments.push({at:Date.now(),amount:a,method:$('#pMeth').value,note:$('#pNote').value,by:S.me||''});await saveOrder();toast(t('Payment recorded'));drawOrderModal()};
   if($('#cnNew'))$('#cnNew').onclick=openCreditNote;
 }
 function setStatus(s){editing.status=s;editing.log=[...(editing.log||[]),{at:Date.now(),s}]}
+/* ---- invoices: created automatically when an order is accepted/confirmed; one tap sends a link on WhatsApp ---- */
+function shareKey(){const a=new Uint8Array(20);crypto.getRandomValues(a);return Array.from(a,b=>(b%36).toString(36)).join('')+Date.now().toString(36)}
+function invPriced(o){const ls=(o.lines||[]).filter(l=>l.avail!=='unavailable');return ls.length>0&&ls.every(l=>nz(l.price))}
+async function ensureInvoice(o){if(!o.invoiceNo)o.invoiceNo=await API.nextNo('invoice');if(!['confirmed','delivered'].includes(o.status)){o.status='confirmed';o.log=[...(o.log||[]),{at:Date.now(),s:'confirmed'}]}
+  o.invoicedAt=o.invoicedAt||Date.now();if(!o.shareKey)o.shareKey=shareKey();if(o.invoiceTotal==null)o.invoiceTotal=totals(o).total}
+function invLink(key){return (/^https?:/.test(location.origin)?location.origin:'https://autoengineeriq.com')+'/#inv/'+key}
+function invWaText(o,L){const s=settings(),x=totals(o),upd=o.invoiceSentAt&&o.revisedAt&&o.revisedAt>o.invoiceSentAt;
+  return `${t('Hello {n},',{n:o.customer.name},L)}\n\n${t(upd?'Your invoice {no} from {c} has been updated.':'Your invoice {no} from {c} is ready.',{no:o.invoiceNo,c:s.company},L)}\n${t('Total',null,L)}: ${money(x.net,L)}${x.paid?`\n${t('Paid',null,L)}: ${money(x.paid,L)}\n${t('Balance due',null,L)}: ${money(Math.max(0,x.balance),L)}`:''}\n\n${t('View and download your invoice:',null,L)}\n${invLink(o.shareKey)}\n\n${t('Thank you for your business.',null,L)}`}
+function invWaUrl(o){return `https://wa.me/${o.customer.phoneKey}?text=${encodeURIComponent(invWaText(o,o.pdfLang||o.lang||'en'))}`}
+/* the page a customer opens from the link */
+function poAsInvoice(o,id){return {src:'porder',no:id||o.id,invoiceNo:o.invoiceNo,invoicedAt:o.invoicedAt,status:o.status,lang:(Store.get('partners',o.pid)||{}).lang||'en',customer:{name:o.shop,phone:o.phone,location:o.city},fulfil:'delivery',
+  lines:(o.lines||[]).map(l=>({partNo:l.partNo,name:l.name,qty:l.qty,price:l.price,avail:''})),discount:0,delivery:+o.deliveryFee||0,notes:[o.pay==='credit'?'Payment: on credit':o.pay==='online'?'Payment: online':'Payment: cash on delivery',o.reply].filter(Boolean).join('\n'),payments:[],credits:[]}}
+async function renderInv(){const el=$('#invPage');if(!el)return;const key=S.invKey||'';el.innerHTML=`<div class="inv-wait">${t('Loading…')}</div>`;await storeReady;let d=null;
+  try{if(S.mode==='supabase'){const r=await S.sb.rpc('public_invoice',{p_key:key});d=r.data||null}
+    else{const o=Store.all('orders').find(x=>x.shareKey===key&&x.invoiceNo);if(o)d=clone(o);else{const p=Store.all('porders').find(x=>x.shareKey===key&&x.invoiceNo);if(p)d=poAsInvoice(p)}}}catch(_){}
+  if(current!=='inv'||S.invKey!==key)return;
+  if(!d){el.innerHTML=`<div class="panel inv-none"><h2>${t('Invoice not found')}</h2><p>${t('This invoice link is not valid any more. Please contact us on WhatsApp.')}</p><a class="btn wa" href="https://wa.me/${phoneKey(waNum())}" target="_blank" rel="noopener">WhatsApp</a></div>`;return}
+  const L=d.pdfLang||d.lang||'en',T=k=>t(k,null,L),x=totals(d),html=docHtml(d,'invoice');
+  el.innerHTML=`<div class="inv-bar"><div><div class="mini">${T('Invoice')} · <span class="ltr">${esc(d.invoiceNo)}</span></div><div class="inv-amt">${money(x.net,L)}${x.paid&&x.balance>0?` <span class="mini">· ${T('Balance due')}: ${money(x.balance,L)}</span>`:x.paid&&x.balance<=0?` <span class="pay paid">${T('Paid')}</span>`:''}</div></div>
+    <div class="inv-btns"><button class="btn ghost" id="invPr">${T('Print')}</button><button class="btn red" id="invDl">${T('Download PDF')}</button></div></div>
+    <div class="preview-frame" id="invF"><div id="invD" style="width:794px">${html}</div></div><p class="mini" id="invMsg" style="text-align:center;margin-top:8px"></p>`;
+  const fit=()=>{const f=$('#invF'),dd=$('#invD');if(!f||!dd)return;const sc=Math.min(1,(f.clientWidth-16)/794);dd.style.transform=`scale(${sc})`;dd.style.transformOrigin=isRTL()?'top right':'top left';dd.style.height=(1123*sc)+'px'};fit();addEventListener('resize',fit);
+  $('#invDl').onclick=async()=>{const b=$('#invDl');b.disabled=true;$('#invMsg').textContent=await savePdf(html,`${d.invoiceNo} - ${d.customer.name||''}.pdf`);b.disabled=false};
+  $('#invPr').onclick=()=>{const w=window.open('','_blank');if(!w){toast(t('Allow pop-ups to print.'));return}const fonts=[...document.querySelectorAll('link[rel=stylesheet]')].filter(l=>/fonts/.test(l.href)).map(l=>l.outerHTML).join('');
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(d.invoiceNo)}</title>${fonts}<style>@page{size:A4;margin:0}body{margin:0}</style></head><body>${html}<script>document.fonts.ready.then(()=>setTimeout(()=>print(),300))<\/script></body></html>`);w.document.close()}}
 async function saveOrder(){const prev=Store.get('orders',editing.id);if(prev&&prev.status!==editing.status&&!(editing.log||[]).some(x=>x.s===editing.status&&Date.now()-x.at<5000))editing.log=[...(editing.log||[]),{at:Date.now(),s:editing.status}];
+  if(['accepted','confirmed','delivered'].includes(editing.status)&&!editing.invoiceNo&&invPriced(editing)){try{await ensureInvoice(editing)}catch(_){}}
+  if(editing.invoiceNo){const tot=totals(editing).total;if(editing.invoiceTotal!=null&&editing.invoiceTotal!==tot)editing.revisedAt=Date.now();editing.invoiceTotal=tot}
   editing.updatedAt=Date.now();const data={...editing};delete data.pdfLang;data.pdfLang=editing.pdfLang;
   if(data.status==='delivered'&&!data.partnerSettled&&window.settlePartnerLines&&await settlePartnerLines(data).catch(()=>false)){data.partnerSettled=true;editing.partnerSettled=true}
   try{await Store.set('orders',editing.id,data);const c=Store.get('customers','c_'+editing.customer.phoneKey);if(!c||c.name!==editing.customer.name||c.location!==editing.customer.location)await API.upsertCustomer({...editing,createdAt:editing.createdAt})}catch(_){}}
@@ -1161,29 +1194,31 @@ function docHtml(o,kind,cn){
 async function makePdf(o,kind,cn){
   const html=docHtml(o,kind,cn);const no=kind==='quote'?o.quoteNo:kind==='invoice'?o.invoiceNo:cn.no;const title={quote:'Quotation',invoice:'Invoice',credit:'Credit note'}[kind];
   openModal(mHead(`${t(title)} <span class="ltr">${esc(no)}</span>`)+`<div class="modal-body"><div class="preview-frame" id="pvF"><div id="pvD" style="width:794px">${html}</div></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button class="btn ghost" id="pvBack">${t('Back to order')}</button><a class="btn wa" href="${waLink(o)}" target="_blank" rel="noopener">${t('Send summary on WhatsApp')}</a><button class="btn red" id="pvDl">${t('Download PDF')}</button></div><p class="mini" id="pvMsg" style="text-align:end;margin-top:8px"></p></div>`,true);
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button class="btn ghost" id="pvBack">${t('Back to order')}</button>${kind==='invoice'&&o.shareKey&&o.customer.phoneKey?`<button class="btn wa" id="pvSend">📤 ${t('Send invoice')}</button>`:`<a class="btn wa" href="${waLink(o)}" target="_blank" rel="noopener">${t('Send summary on WhatsApp')}</a>`}<button class="btn red" id="pvDl">${t('Download PDF')}</button></div><p class="mini" id="pvMsg" style="text-align:end;margin-top:8px"></p></div>`,true);
   const fit=()=>{const w=$('#pvF').clientWidth-32;const sc=Math.min(1,w/794);const d=$('#pvD');d.style.transform=`scale(${sc})`;d.style.transformOrigin=isRTL()?'top right':'top left';d.style.height=(1123*sc)+'px'};fit();
   $('#pvBack').onclick=()=>openOrder(o.id);
-  $('#pvDl').onclick=async()=>{const btn=$('#pvDl');btn.disabled=true;btn.textContent=t('Preparing…');
+  if($('#pvSend'))$('#pvSend').onclick=async()=>{const url=invWaUrl(o);window.open(url,'_blank');o.invoiceSentAt=Date.now();if(editing&&editing.id===o.id){editing.invoiceSentAt=o.invoiceSentAt;await saveOrder()}toast(t('Invoice {no} sent',{no:o.invoiceNo}))};
+  $('#pvDl').onclick=async()=>{const btn=$('#pvDl');btn.disabled=true;btn.textContent=t('Preparing…');$('#pvMsg').textContent=await savePdf(html,`${no} - ${o.customer.name}.pdf`);btn.disabled=false;btn.textContent=t('Download PDF')};
+}
+async function savePdf(html,fname){fname=fname.replace(/[\\/:*?"<>|]/g,'');
     try{if(!window.html2canvas||!window.jspdf)throw new Error(t('PDF tools still loading. Try again.'));
       const stage=$('#pdf-stage');stage.innerHTML=html;await document.fonts.ready;const canvas=await html2canvas(stage.firstElementChild,{scale:2,backgroundColor:'#fff',useCORS:true});stage.innerHTML='';
       const pdf=new window.jspdf.jsPDF({unit:'mm',format:'a4'});const pw=210,ph=297;const per=Math.floor(canvas.width*ph/pw);let y=0,pg=0;
       while(y<canvas.height){const h=Math.min(per,canvas.height-y);const c=document.createElement('canvas');c.width=canvas.width;c.height=h;c.getContext('2d').drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);if(pg)pdf.addPage();pdf.addImage(c.toDataURL('image/jpeg',.92),'JPEG',0,0,pw,h*pw/canvas.width);y+=per;pg++}
-      const blob=pdf.output('blob');const fname=`${no} - ${o.customer.name}.pdf`.replace(/[\\/:*?"<>|]/g,'');
-      if(S.downloads){await S.downloads.save({filename:fname,data:blob});$('#pvMsg').textContent=t('Saved.')}
-      else if(S.mode!=='claude'){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);$('#pvMsg').textContent=t('Saved.')}
-      else $('#pvMsg').textContent=t('Downloads are not available in this view.');
-    }catch(e){$('#pvMsg').textContent=e&&e.code==='declined'?t('Download cancelled.'):(t('Could not create PDF')+': '+(e.message||e.code||e))}
-    btn.disabled=false;btn.textContent=t('Download PDF')};
+      const blob=pdf.output('blob');
+      if(S.downloads){await S.downloads.save({filename:fname,data:blob});return t('Saved.')}
+      if(S.mode!=='claude'){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);return t('Saved.')}
+      return t('Downloads are not available in this view.');
+    }catch(e){return e&&e.code==='declined'?t('Download cancelled.'):(t('Could not create PDF')+': '+(e.message||e.code||e))}
 }
 
 /* ================= BOOT ================= */
 let storeReady;
-(function boot(){storeReady=initStore();const hadLang=!!LANG;
+(function boot(){storeReady=initStore();const hadLang=!!LANG;const isInv=/^#inv\//.test(location.hash);
   // links like autoengineeriq.com/?q=04465-0K290 (from Google) open the shop with that search
   try{const uq=new URLSearchParams(location.search).get('q');if(uq){S.q=uq.slice(0,80);S.skipIntro=true;S.jump=true;history.replaceState(null,'',location.pathname+'#shop')}}catch(e){}
-  if(!LANG){LANG='en';document.documentElement.dir='ltr';buildChrome();buildHome();route();showLangPicker()}
+  if(!LANG){LANG='en';document.documentElement.dir='ltr';buildChrome();buildHome();route();if(!isInv)showLangPicker()}
   else{document.documentElement.lang=LANG==='ku'?'ckb':LANG;document.documentElement.dir=LANGS[LANG].dir;buildChrome();buildHome();route()}
-  if(hadLang&&needsPhone())showPhoneGate();else if(hadLang&&needsType())showTypeGate();
+  if(isInv){}else if(hadLang&&needsPhone())showPhoneGate();else if(hadLang&&needsType())showTypeGate();
   mountWaFab();storeReady.then(()=>{applyLogo();updWaFab();Visitor.visit()});
 })();
