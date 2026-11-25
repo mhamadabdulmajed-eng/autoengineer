@@ -243,10 +243,10 @@ function ptBuy(){
   const canOrder = pay.cod || pay.online || lim > 0;
   $('#ptBody').innerHTML = `<div class="pt-buy"><div>
       <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="ptBuyQ" type="search" placeholder="${esc(t('Search: 04465-0K290, brake pads, oil filter…'))}" value="${esc(PS.buyQ)}"></div>
-      <div class="pt-row" style="margin:-2px 0 6px"><p class="mini" style="margin:0">${t('Your partner prices. Every order is confirmed by Auto Engineer before delivery.')}</p><button class="btn sm ghost" id="ptPaste">📋 ${t('Paste a list / Excel')}</button></div>
+      <div class="pt-row" style="margin:-2px 0 6px"><p class="mini" style="margin:0">${t('Your partner prices. Every order is confirmed by Auto Engineer before delivery.')}${settings().stockUpdatedAt ? `<br>📦 ${t('Stock updated {d}', {d: dtStr(settings().stockUpdatedAt)})}` : ''}</p><button class="btn sm ghost" id="ptPaste">📋 ${t('Paste a list / Excel')}</button></div>
       <div id="ptBuyRes" class="pt-res"></div></div>
     <aside class="panel pt-cart"><h3>${t('Your order')}</h3>
-      ${PS.cart.length ? `<div class="pt-lines">${PS.cart.map((c, i) => `<div class="pt-line"><div><b class="ltr">${esc(c.partNo)}</b><span>${esc(c.name || '')}</span></div>
+      ${PS.cart.length ? `<div class="pt-lines">${PS.cart.map((c, i) => `<div class="pt-line"><div><b class="ltr">${esc(c.partNo)}</b><span>${esc(c.name || '')}</span>${(() => { const p = PS.cache[c.partId]; const q = p && p.qty != null && p.qty !== '' ? +p.qty : null; return q != null && c.qty > q ? `<small class="err">${q > 0 ? t('Only {n} in stock', {n: q}) : t('Out of stock')}</small>` : ''; })()}</div>
         <input type="number" min="1" step="1" value="${c.qty}" data-cq="${i}" dir="ltr"><span class="num">${PS.buyPrices[c.partId] ? money(PS.buyPrices[c.partId] * c.qty) : '—'}</span><button class="linkbtn" data-cx="${i}" aria-label="${esc(t('Remove'))}">×</button></div>`).join('')}</div>
         <div class="pt-tot"><span>${t('Total')}</span><b>${money(cartTot) || '—'}</b></div>
         <label class="mini">${t('Payment')}<select id="ptPay" class="sel">${pay.cod ? `<option value="cod" ${PS.pay === 'cod' ? 'selected' : ''}>${t('Cash on delivery')}</option>` : ''}${pay.online ? `<option value="online" ${PS.pay === 'online' ? 'selected' : ''}>${t('Online payment')}</option>` : ''}${lim > 0 ? `<option value="credit" ${PS.pay === 'credit' || (!pay.cod && !pay.online) ? 'selected' : ''}>${t('On credit (available {a})', {a: money(avail) || '0'})}</option>` : ''}</select></label>
@@ -283,8 +283,8 @@ async function ptBuySearch(keep){
   el.innerHTML = PS.buyRows.length ? PS.buyRows.map(p => ptItemRow(p, PS.buyPrices[p.id], nz(p.offerPrice))).join('') : `<div class="empty">${t('No parts found')}</div>`;
 }
 function ptItemRow(p, pr, offer){
-  const inC = PS.cart.some(c => c.partId === p.id), stockOk = !p.stock || p.stock === 'In stock', alert = Store.get('pnotify', 'pn_' + S.partner.id + '_' + p.id);
-  return `<div class="pt-item"><div><b class="ltr">${esc(p.partNo)}</b><span>${esc(pName(p))}${offer ? ` <span class="pst new">🔥 ${t('Offer')}</span>` : ''}</span>${p.stock ? `<small>${t(p.stock)}${p.offerNote ? ' · ' + esc(p.offerNote) : ''}</small>` : ''}</div>
+  const inC = PS.cart.some(c => c.partId === p.id), stockOk = p.qty != null && p.qty !== '' ? +p.qty > 0 : (!p.stock || p.stock === 'In stock'), alert = Store.get('pnotify', 'pn_' + S.partner.id + '_' + p.id);
+  return `<div class="pt-item"><div><b class="ltr">${esc(p.partNo)}</b><span>${esc(pName(p))}${offer ? ` <span class="pst new">🔥 ${t('Offer')}</span>` : ''}</span>${p.stock || p.qty != null ? `<small class="${(+p.qty || 0) > 0 || p.stock === 'In stock' ? 'pt-in' : ''}">${stockText(p, true)}${p.offerNote ? ' · ' + esc(p.offerNote) : ''}</small>` : ''}</div>
     <div class="num">${pr ? `<b>${money(pr)}</b>` : `<small>${t('Price on request')}</small>`}</div>
     <div class="pt-acts">${!stockOk ? (alert ? `<span class="mini">🔔 ${t('Alert on')}</span>` : `<button class="btn sm ghost" data-ntf="${esc(p.id)}">🔔 ${t('Notify me')}</button>`) : ''}
     <button class="btn sm ${inC ? 'ghost' : 'red'}" data-add="${esc(p.id)}" ${pr ? '' : 'disabled'}>${inC ? '✓ ' + t('Added') : t('Add')}</button></div></div>`;
