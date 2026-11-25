@@ -35,14 +35,14 @@ const PartnerAPI = {
   },
   async prices(ids){
     if(!ids.length) return {};
-    if(ptPreview()){ const o = {}; ids.forEach(id => { const p = PS.cache[id] || Store.get('parts', id); if(p) o[id] = ptLocalPrice(p); }); return o; }
+    if(ptPreview()){ const o = {}; ids.forEach(id => { const p = PS.cache[id] || Store.get('wparts', id); if(p) o[id] = ptLocalPrice({...p, retailPrice: null}); }); return o; }
     if(this.remote()){ const {data} = await S.sb.rpc('partner_prices', {ids}); return data || {}; }
-    const o = {}; ids.forEach(id => { const p = Store.get('parts', id); if(p && !p.hidden) o[id] = ptLocalPrice(p); }); return o;
+    const o = {}; ids.forEach(id => { const p = Store.get('wparts', id); if(p && !p.hidden) o[id] = ptLocalPrice({...p, retailPrice: null}); }); return o;
   },
   async placeOrder(lines, pay, note){
     if(this.remote()){ const {data, error} = await S.sb.rpc('partner_place_order', {p_lines: lines, p_pay: pay, p_note: note}); if(error) throw error; await this.load(); return data; }
     const out = []; let tot = 0;
-    lines.forEach(l => { const p = Store.get('parts', l.partId); if(!p || p.hidden) return; const pr = ptLocalPrice(p); out.push({partId: l.partId, partNo: p.partNo, name: p.name, nameAr: p.nameAr, nameKu: p.nameKu, qty: +l.qty, price: pr}); tot += (pr || 0) * l.qty; });
+    lines.forEach(l => { const p = Store.get('wparts', l.partId); if(!p || p.hidden) return; const pr = ptLocalPrice({...p, retailPrice: null}); out.push({partId: l.partId, partNo: p.partNo, name: p.name, nameAr: p.nameAr, nameKu: p.nameKu, qty: +l.qty, price: pr}); tot += (pr || 0) * l.qty; });
     if(pay === 'credit'){ const lim = +S.partner.creditLimit || 0; if(!lim) throw new Error('no credit'); if(ptBalance() + tot > lim) throw new Error('credit limit'); }
     const c = clone((S.data.config || {}).pocounter || {}); const y = new Date().getFullYear(); if(c.year !== y){ c.year = y; c.n = 0; } c.n = (c.n || 0) + 1; await Store.set('config', 'pocounter', c);
     const no = 'PO-' + y + '-' + String(c.n).padStart(4, '0'), now = Date.now();
@@ -182,8 +182,8 @@ function ptOverview(){
         ${need.slice(0, 50).map(s => `<tr><td class="ltr"><b>${esc(s.partNo)}</b></td><td>${esc(sName(s))}</td><td class="num"><span class="qty ${lowOf(s)}">${+s.qty || 0}</span></td><td class="num">${+s.min || 0}</td><td class="num">${needQty(s)}</td>
           <td><button class="btn sm ghost" data-need="${esc(s.partNo)}" data-q="${needQty(s)}">${t('Add to order')}</button></td></tr>`).join('')}</tbody></table></div>`
         : `<div class="empty">${st.length ? t('Everything is above its minimum level. Set minimum levels in My stock to get reminders.') : t('Add your items in My stock to start. You can import them from Excel.')}</div>`}</div>`;
-  const add = async list => { const ids = list.map(([no]) => partId(no)); const pr = await PartnerAPI.prices(ids); let n = 0;
-    list.forEach(([no, q]) => { const id = partId(no); if(pr[id] === undefined) return; const ex = PS.cart.find(c => c.partId === id); if(ex) ex.qty = Math.max(ex.qty, q); else PS.cart.push({partId: id, partNo: no, qty: q}); n++; });
+  const add = async list => { const ids = list.map(([no]) => wpId(no)); const pr = await PartnerAPI.prices(ids); let n = 0;
+    list.forEach(([no, q]) => { const id = wpId(no); if(pr[id] === undefined) return; const ex = PS.cart.find(c => c.partId === id); if(ex) ex.qty = Math.max(ex.qty, q); else PS.cart.push({partId: id, partNo: no, qty: q}); n++; });
     toast(n ? t('{n} added to your order', {n}) : t('Auto Engineer does not have these parts in the catalog.')); if(n){ PS.tab = 'buy'; renderPartner(); } };
   $('#ptBody').onclick = e => { const g = e.target.closest('[data-go]'); if(g){ PS.tab = g.dataset.go; renderPartner(); return; } const b = e.target.closest('[data-need]'); if(b) add([[b.dataset.need, +b.dataset.q]]); if(e.target.closest('#ptNeedAll')) add(need.map(s => [s.partNo, needQty(s)])); };
 }

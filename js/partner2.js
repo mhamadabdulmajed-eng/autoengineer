@@ -29,8 +29,8 @@ function ptLocalPrice(p){
 function ptLocalRpc(name){
   const pid = S.partner.id;
   if(name === 'partner_reward_status') return {thisMonth: ptMonthTotal(pid, 0), lastMonth: ptMonthTotal(pid, 1), activePct: rewardPct(ptMonthTotal(pid, 1)), tiers: rewardTiers()};
-  if(name === 'partner_offers') return Store.all('parts').filter(p => !p.hidden && nz(p.offerPrice) && +p.offerPrice > 0).map(p => ({id: p.id, partNo: p.partNo, name: p.name, nameAr: p.nameAr, nameKu: p.nameKu, stock: p.stock, price: ptLocalPrice(p), offerNote: p.offerNote}));
-  if(name === 'partner_notify_status') return Store.all('pnotify').filter(n => n.pid === pid).map(n => { const p = Store.get('parts', n.partId) || PS.cache[n.partId]; return {id: n.id, partId: n.partId, stock: p ? p.stock : null}; });
+  if(name === 'partner_offers') return Store.all('wparts').filter(p => !p.hidden && nz(p.offerPrice) && +p.offerPrice > 0).map(p => ({id: p.id, partNo: p.partNo, name: p.name, nameAr: p.nameAr, nameKu: p.nameKu, stock: p.stock, qty: p.qty, wholesalePrice: p.wholesalePrice, price: ptLocalPrice({...p, retailPrice: null}), offerNote: p.offerNote}));
+  if(name === 'partner_notify_status') return Store.all('pnotify').filter(n => n.pid === pid).map(n => { const p = Store.get('wparts', n.partId) || PS.cache[n.partId]; return {id: n.id, partId: n.partId, stock: p ? p.stock : null, qty: p ? p.qty : null}; });
   if(name === 'partner_sales') return Store.all('orders').flatMap(o => (o.lines || []).filter(l => l.pid === pid).map(l => ({order: o.no, at: o.createdAt, status: o.status, partNo: l.partNo, name: l.name, qty: l.qty, price: l.price, listingId: l.listingId}))).sort((a, b) => b.at - a.at);
   if(name === 'partner_trends'){ const since = Date.now() - 30 * 864e5, top = {}, miss = {};
     Store.all('visitors').forEach(v => (v.searches || []).forEach(x => { if((x.at || 0) < since || String(x.q || '').length < 3) return; const k = String(x.q).trim().toLowerCase();
@@ -245,7 +245,7 @@ function ptBuy(){
   const canOrder = pay.cod || pay.online || lim > 0;
   $('#ptBody').innerHTML = `<div class="pt-buy"><div>
       <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="ptBuyQ" type="search" placeholder="${esc(t('Search: 04465-0K290, brake pads, oil filter…'))}" value="${esc(PS.buyQ)}"></div>
-      <div class="pt-row" style="margin:-2px 0 6px"><p class="mini" style="margin:0">${t('Your partner prices. Every order is confirmed by Auto Engineer before delivery.')}${settings().stockUpdatedAt ? `<br>📦 ${t('Stock updated {d}', {d: dtStr(settings().stockUpdatedAt)})}` : ''}</p><button class="btn sm ghost" id="ptPaste">📋 ${t('Paste a list / Excel')}</button></div>
+      <div class="pt-row" style="margin:-2px 0 6px"><p class="mini" style="margin:0">${t('Your partner prices. Every order is confirmed by Auto Engineer before delivery.')}${settings().wStockUpdatedAt ? `<br>📦 ${t('Stock updated {d}', {d: dtStr(settings().wStockUpdatedAt)})}` : ''}</p><button class="btn sm ghost" id="ptPaste">📋 ${t('Paste a list / Excel')}</button></div>
       <div id="ptBuyRes" class="pt-res"></div></div>
     <aside class="panel pt-cart"><h3>${t('Your order')}</h3>
       ${PS.cart.length ? `<div class="pt-lines">${PS.cart.map((c, i) => `<div class="pt-line"><div><b class="ltr">${esc(c.partNo)}</b><span>${esc(c.name || '')}</span>${(() => { const p = PS.cache[c.partId]; const q = p && p.qty != null && p.qty !== '' ? +p.qty : null; return q != null && c.qty > q ? `<small class="err">${q > 0 ? t('Only {n} in stock', {n: q}) : t('Out of stock')}</small>` : ''; })()}</div>
@@ -279,8 +279,8 @@ async function ptBuySearch(keep){
       el.innerHTML = `<h3 style="margin:4px 0 8px">🔥 ${t('Special offers for partners')}</h3>` + of.slice(0, 60).map(p => ptItemRow(p, p.price, true)).join(''); }
     return; }
   if(!(keep && PS.buyRows.length && PS.buyRows.q === q)){ el.innerHTML = `<div class="empty">${t('Searching…')}</div>`;
-    const r = await PartsAPI.search({q, lim: 30, off: 0}).catch(() => ({rows: []})); const rows = r.rows || []; rows.q = q; PS.buyRows = rows; rows.forEach(p => PS.cache[p.id] = p);
-    Object.assign(PS.buyPrices, await PartnerAPI.prices(rows.map(p => p.id).filter(id => PS.buyPrices[id] === undefined))); }
+    const r = await WPartsAPI.search({q, lim: 30, off: 0}).catch(() => ({rows: []})); const rows = r.rows || []; rows.q = q; PS.buyRows = rows;
+    rows.forEach(p => { PS.cache[p.id] = p; PS.buyPrices[p.id] = p.price ?? null; }); }
   if(PS.buyQ.trim() !== q) return;
   el.innerHTML = PS.buyRows.length ? PS.buyRows.map(p => ptItemRow(p, PS.buyPrices[p.id], nz(p.offerPrice))).join('') : `<div class="empty">${t('No parts found')}</div>`;
 }
@@ -312,8 +312,8 @@ function ptPasteList(){
       const nums = toks.filter(z => z !== pn && /^\d{1,4}$/.test(z)); want.push({pn: fmtPartNo(pn), qty: nums.length ? Math.max(1, +nums[nums.length - 1]) : 1}); });
     if(!want.length){ toast(t('No part numbers found in the list.')); return; }
     const b = $('#ptPLGo'); b.disabled = true; b.textContent = t('Checking…'); const miss = []; let added = 0;
-    for(const w of want){ const r = await PartsAPI.search({q: w.pn, lim: 5, off: 0}).catch(() => ({rows: []}));
-      const p = (r.rows || []).find(x => pk2(x.partNo) === pk2(w.pn)); if(!p){ miss.push(w.pn); continue; } PS.cache[p.id] = p;
+    for(const w of want){ const r = await WPartsAPI.search({q: w.pn, lim: 5, off: 0}).catch(() => ({rows: []}));
+      const p = (r.rows || []).find(x => pk2(x.partNo) === pk2(w.pn)); if(!p){ miss.push(w.pn); continue; } PS.cache[p.id] = p; PS.buyPrices[p.id] = p.price ?? null;
       const ex = PS.cart.find(c => c.partId === p.id); if(ex) ex.qty += w.qty; else PS.cart.push({partId: p.id, partNo: p.partNo, name: pName(p), qty: w.qty}); added++; }
     Object.assign(PS.buyPrices, await PartnerAPI.prices(PS.cart.map(c => c.partId).filter(id => PS.buyPrices[id] === undefined)));
     b.disabled = false; b.textContent = t('Add to my order');
