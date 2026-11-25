@@ -159,7 +159,9 @@ const partId=no=>'p_'+String(no||rid(8)).toUpperCase().replace(/[^A-Z0-9_.-]/g,'
 let rq=0;Store.listeners.add(c=>{if(c==='orders')checkAlerts();if(c==='config')applyLogo();cancelAnimationFrame(rq);rq=requestAnimationFrame(()=>renderCurrent(true))});
 
 /* ================= MONEY ================= */
-function money(v,l){if(!nz(v))return '';const cur=settings().currency;const n=Number(v);
+/* wholesale business (catalog, partner orders, partner credit) is in US dollars */
+const usd=(v,l)=>money(v,l,'USD');
+function money(v,l,c){if(!nz(v))return '';const cur=c||settings().currency;const n=Number(v);
   if(cur==='USD')return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   return n.toLocaleString('en-US',{maximumFractionDigits:0})+' '+t('IQD',null,l)}
 function totals(o){const lines=o.lines||[];const sub=lines.reduce((s,l)=>s+(l.avail==='unavailable'?0:(Number(l.price)||0)*(Number(l.qty)||0)),0);
@@ -871,14 +873,14 @@ function invWaText(o,L){const s=settings(),x=totals(o),upd=o.invoiceSentAt&&o.re
   return `${t('Hello {n},',{n:o.customer.name},L)}\n\n${t(upd?'Your invoice {no} from {c} has been updated.':'Your invoice {no} from {c} is ready.',{no:o.invoiceNo,c:s.company},L)}\n${t('Total',null,L)}: ${money(x.net,L)}${x.paid?`\n${t('Paid',null,L)}: ${money(x.paid,L)}\n${t('Balance due',null,L)}: ${money(Math.max(0,x.balance),L)}`:''}\n\n${t('View and download your invoice:',null,L)}\n${invLink(o.shareKey)}\n\n${t('Thank you for your business.',null,L)}`}
 function invWaUrl(o){return `https://wa.me/${o.customer.phoneKey}?text=${encodeURIComponent(invWaText(o,o.pdfLang||o.lang||'en'))}`}
 /* the page a customer opens from the link */
-function poAsInvoice(o,id){return {src:'porder',no:id||o.id,invoiceNo:o.invoiceNo,invoicedAt:o.invoicedAt,status:o.status,lang:(Store.get('partners',o.pid)||{}).lang||'en',customer:{name:o.shop,phone:o.phone,location:o.city},fulfil:'delivery',
+function poAsInvoice(o,id){return {src:'porder',cur:'USD',no:id||o.id,invoiceNo:o.invoiceNo,invoicedAt:o.invoicedAt,status:o.status,lang:(Store.get('partners',o.pid)||{}).lang||'en',customer:{name:o.shop,phone:o.phone,location:o.city},fulfil:'delivery',
   lines:(o.lines||[]).map(l=>({partNo:l.partNo,name:l.name,qty:l.qty,price:l.price,avail:''})),discount:0,delivery:+o.deliveryFee||0,notes:[o.pay==='credit'?'Payment: on credit':o.pay==='online'?'Payment: online':'Payment: cash on delivery',o.reply].filter(Boolean).join('\n'),payments:[],credits:[]}}
 async function renderInv(){const el=$('#invPage');if(!el)return;const key=S.invKey||'';el.innerHTML=`<div class="inv-wait">${t('Loading…')}</div>`;await storeReady;let d=null;
   try{if(S.mode==='supabase'){const r=await S.sb.rpc('public_invoice',{p_key:key});d=r.data||null}
     else{const o=Store.all('orders').find(x=>x.shareKey===key&&x.invoiceNo);if(o)d=clone(o);else{const p=Store.all('porders').find(x=>x.shareKey===key&&x.invoiceNo);if(p)d=poAsInvoice(p)}}}catch(_){}
   if(current!=='inv'||S.invKey!==key)return;
   if(!d){el.innerHTML=`<div class="panel inv-none"><h2>${t('Invoice not found')}</h2><p>${t('This invoice link is not valid any more. Please contact us on WhatsApp.')}</p><a class="btn wa" href="https://wa.me/${phoneKey(waNum())}" target="_blank" rel="noopener">WhatsApp</a></div>`;return}
-  const L=d.pdfLang||d.lang||'en',T=k=>t(k,null,L),x=totals(d),html=docHtml(d,'invoice');
+  const L=d.pdfLang||d.lang||'en',T=k=>t(k,null,L),x=totals(d),html=docHtml(d,'invoice'),money=(v,l)=>window.money(v,l,d.cur);
   el.innerHTML=`<div class="inv-bar"><div><div class="mini">${T('Invoice')} · <span class="ltr">${esc(d.invoiceNo)}</span></div><div class="inv-amt">${money(x.net,L)}${x.paid&&x.balance>0?` <span class="mini">· ${T('Balance due')}: ${money(x.balance,L)}</span>`:x.paid&&x.balance<=0?` <span class="pay paid">${T('Paid')}</span>`:''}</div></div>
     <div class="inv-btns"><button class="btn ghost" id="invPr">${T('Print')}</button><button class="btn red" id="invDl">${T('Download PDF')}</button></div></div>
     <div class="preview-frame" id="invF"><div id="invD" style="width:794px">${html}</div></div><p class="mini" id="invMsg" style="text-align:center;margin-top:8px"></p>`;
@@ -1182,7 +1184,7 @@ function adminSettings(){
     <h3 style="margin-top:20px">${t('Payment')}</h3><p class="sub">${t('How customers and partners can pay.')}</p>
     <label class="chk"><input type="checkbox" name="payCOD" ${s.payCOD!==false?'checked':''}> ${t('Cash on delivery')}</label>
     <label class="chk" style="opacity:.6"><input type="checkbox" name="payOnline" disabled> ${t('Online payment: Qi Card, FIB, ZainCash, Visa / Mastercard')} <i>(${t('available when the payment gateway is connected')})</i></label>
-    <h3 style="margin-top:20px">🏆 ${t('Partner volume rewards')}</h3><p class="sub">${t('Extra discount next month when a partner buys this much in a month. One per line: amount = extra %. Example: 10000000 = 2')}</p>
+    <h3 style="margin-top:20px">🏆 ${t('Partner volume rewards')}</h3><p class="sub">${t('Extra discount next month when a partner buys this much (USD) in a month. One per line: amount = extra %. Example: 10000 = 2')}</p>
     <textarea name="rewardTxt" rows="3" dir="ltr" style="width:100%;font-family:inherit;padding:10px;border:1px solid rgba(0,0,0,.14);border-radius:10px">${esc((s.rewardTiers||[]).map(x=>x.min+' = '+x.pct).join('\n'))}</textarea>
     <h3 style="margin-top:20px">${t('Branches')}</h3><p class="sub">${t('Customers can choose a branch for pickup. Orders and sales staff can be assigned to a branch.')}</p><div id="brList"></div><button type="button" class="btn sm ghost" id="brAdd">+ ${t('Add branch')}</button>
     <div style="margin-top:20px"><button class="btn red">${t('Save settings')}</button></div></form>`;
@@ -1198,7 +1200,7 @@ function applyLogo(){const s=settings();$$('.brand-mark').forEach(m=>{m.innerHTM
 
 /* ================= PDF (quotation / invoice / credit note) ================= */
 function docHtml(o,kind,cn){
-  const L=o.pdfLang||o.lang||'en',rtl=LANGS[L].dir==='rtl',s=settings(),x=totals(o),T=(k,v)=>t(k,v,L),al=rtl?'left':'right',st=rtl?'right':'left';
+  const L=o.pdfLang||o.lang||'en',money=(v,l)=>window.money(v,l,o.cur),rtl=LANGS[L].dir==='rtl',s=settings(),x=totals(o),T=(k,v)=>t(k,v,L),al=rtl?'left':'right',st=rtl?'right':'left';
   const title={quote:'Quotation',invoice:'Invoice',credit:'Credit note'}[kind];const no=kind==='quote'?o.quoteNo:kind==='invoice'?o.invoiceNo:cn.no;
   const dt=kind==='quote'?(o.quotedAt||Date.now()):kind==='invoice'?(o.invoicedAt||Date.now()):cn.at;const valid=kind==='quote'?new Date(dt+(+s.quoteValidity||7)*864e5):null;
   let lines;if(kind==='credit')lines=cn.lines.map(r=>({...o.lines[r.i],qty:r.qty,price:r.price}));else lines=o.lines.filter(l=>kind==='quote'||l.avail!=='unavailable');

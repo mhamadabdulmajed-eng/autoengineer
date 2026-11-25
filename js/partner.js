@@ -57,8 +57,8 @@ const PartnerAPI = {
     if(this.remote()){ const {error} = await S.sb.rpc('partner_receive_order', {p_no: no}); if(error) throw error; return this.load(); }
     const o = clone(Store.get('porders', no)); if(!o || !['shipped','delivered'].includes(o.status)) return; const now = Date.now();
     for(const l of o.lines){ const sid = stockId(l.partNo), cur = Store.get('pstock', sid);
-      await Store.set('pstock', sid, cur ? {...cur, qty: (+cur.qty || 0) + (+l.qty), cost: l.price, updatedAt: now, lastMove: now}
-                                         : {pid: S.partner.id, partNo: l.partNo, name: l.name, nameAr: l.nameAr, nameKu: l.nameKu, qty: +l.qty, cost: l.price, min: 0, reorder: 0, createdAt: now, updatedAt: now, lastMove: now});
+      await Store.set('pstock', sid, cur ? {...cur, qty: (+cur.qty || 0) + (+l.qty), cost: l.price, costCur: 'USD', updatedAt: now, lastMove: now}
+                                         : {pid: S.partner.id, partNo: l.partNo, name: l.name, nameAr: l.nameAr, nameKu: l.nameKu, qty: +l.qty, cost: l.price, costCur: 'USD', min: 0, reorder: 0, createdAt: now, updatedAt: now, lastMove: now});
       await Store.set('pmoves', 'pm_' + rid(12), {pid: S.partner.id, stockId: sid, partNo: l.partNo, delta: +l.qty, kind: 'purchase', note: no, at: now}); }
     o.status = 'received'; o.updatedAt = now; o.log = [...(o.log || []), {at: now, s: 'received'}]; await Store.set('porders', no, o);
   },
@@ -85,7 +85,11 @@ const PT_TABS = {overview: ['owner','buyer','seller'], counter: ['owner','buyer'
 const ROLE_LABEL = {owner: 'Owner', buyer: 'Buyer', seller: 'Seller'};
 const ptRole = () => (S.partner && S.partner.role) || 'owner';
 const ptOwner = () => ptRole() === 'owner';
-const ptBalance = () => Store.all('pledger').filter(x => x.pid === (S.partner || {}).id).reduce((s, x) => s + (+x.amount || 0), 0);
+// credit account with Auto Engineer is in USD; money owed to the shop for website sales is in IQD
+const ptBalance = () => Store.all('pledger').filter(x => x.pid === (S.partner || {}).id && x.cur !== 'IQD').reduce((s, x) => s + (+x.amount || 0), 0);
+const costTxt = s => s.cost === null || s.cost === undefined || s.cost === '' ? '—' : (s.costCur === 'USD' ? usd : money)(s.cost);
+const stockValue = st => { const v = {IQD: 0, USD: 0}; st.forEach(x => { v[x.costCur === 'USD' ? 'USD' : 'IQD'] += (+x.qty || 0) * (+x.cost || 0); }); return [v.IQD ? money(v.IQD) : '', v.USD ? usd(v.USD) : ''].filter(Boolean).join(' + ') || '0'; };
+const ptBalanceIQD = () => Store.all('pledger').filter(x => x.pid === (S.partner || {}).id && x.cur === 'IQD').reduce((s, x) => s + (+x.amount || 0), 0);
 const ptPreview = () => !!(S.partnerPreview && S.partner && S.partner.id === S.partnerPreview);
 const ro = () => { if(ptPreview()){ toast(t('Staff preview: read-only. The shop does this from its own account.')); return true; } return false; };
 const stockId = no => 'ps_' + (S.partner ? S.partner.id : '') + '_' + String(no || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -171,7 +175,7 @@ function ptOverview(){
       <button data-go="sell"><i>🏪</i><b>${t('Sell my parts')}</b><span>${t('List your parts on autoengineeriq.com.')}</span></button></div>
     <div class="kpis">
       <div class="kpi"><span>${t('Items in stock')}</span><b>${st.length.toLocaleString('en')}</b></div>
-      <div class="kpi"><span>${t('Stock value (cost)')}</span><b>${money(val) || '0'}</b></div>
+      <div class="kpi"><span>${t('Stock value (cost)')}</span><b>${stockValue(st)}</b></div>
       <div class="kpi warn"><span>${t('Running low')}</span><b>${low.length}</b></div>
       <div class="kpi bad"><span>${t('Out of stock')}</span><b>${out.length}</b></div>
       <div class="kpi"><span>${t('Not moving 90+ days')}</span><b>${slow.length}</b></div>
@@ -201,7 +205,7 @@ function ptStock(){
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Description')}</th><th>${t('Shelf')}</th><th class="num">${t('In stock')}</th><th class="num">${t('Minimum')}</th><th class="num">${t('Cost')}</th><th class="num">${t('Selling price')}</th><th></th></tr></thead><tbody>
     ${shown.length ? shown.map(s => `<tr data-id="${esc(s.id)}"><td class="ltr"><b>${esc(s.partNo)}</b></td><td>${esc(sName(s))}${slowOf(s) ? ` <span class="mini">· ${t('not moving')}</span>` : ''}</td><td>${esc(s.shelf || '')}</td>
       <td class="num"><span class="qbtns"><button data-mv="-1" aria-label="−">−</button><span class="qty ${lowOf(s)}">${+s.qty || 0}</span><button data-mv="1" aria-label="+">+</button></span></td>
-      <td class="num">${+s.min || 0}</td><td class="num">${s.cost ? money(s.cost) : '—'}</td><td class="num">${s.price ? money(s.price) : '—'}</td>
+      <td class="num">${+s.min || 0}</td><td class="num">${costTxt(s)}</td><td class="num">${s.price ? money(s.price) : '—'}</td>
       <td><button class="linkbtn" data-ed>${t('Edit')}</button> · <button class="linkbtn" data-hist>${t('History')}</button></td></tr>`).join('')
       : `<tr><td colspan="8" class="empty">${myStock().length ? t('No items match.') : t('No items yet. Add them one by one or import your Excel list.')}</td></tr>`}</tbody></table></div>`;
   $('#ptQ').oninput = e => { PS.q = e.target.value; ptStock(); const i = $('#ptQ'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); };
@@ -231,7 +235,7 @@ function ptItemModal(s){
     ${isNew ? `<label>${t('Quantity in stock')}<input name="qty" type="number" min="0" step="1" value="0" dir="ltr"></label>` : `<label>${t('Quantity in stock')}<input value="${+s.qty || 0}" disabled dir="ltr"><small>${t('Use stock in / out to change the quantity.')}</small></label>`}
     <label>${t('Minimum level')}<input name="min" type="number" min="0" step="1" value="${+s.min || 0}" dir="ltr"><small>${t('Warn me when stock reaches this.')}</small></label>
     <label>${t('Reorder quantity')}<input name="reorder" type="number" min="0" step="1" value="${+s.reorder || 0}" dir="ltr"></label>
-    <label>${t('Cost (IQD)')}<input name="cost" type="number" min="0" step="250" value="${esc(s.cost ?? '')}" dir="ltr"></label>
+    <label>${t('Cost')} (${s.costCur === 'USD' ? 'USD $' : 'IQD'})<input name="cost" type="number" min="0" step="any" value="${esc(s.cost ?? '')}" dir="ltr"></label>
     <label>${t('Selling price (IQD)')}<input name="price" type="number" min="0" step="250" value="${esc(s.price ?? '')}" dir="ltr"></label>
     ${isNew ? '' : `<div class="span2 pt-io"><b>${t('Stock in / out')}</b><input name="mvq" type="number" min="1" step="1" placeholder="${esc(t('Quantity'))}" dir="ltr"><input name="mvn" placeholder="${esc(t('Note (optional)'))}">
       <button type="button" class="btn sm" data-io="in">+ ${t('Stock in')}</button><button type="button" class="btn sm" data-io="out">− ${t('Stock out / sold')}</button></div>`}
@@ -295,8 +299,8 @@ function ptBuy(){
       <p class="mini">${t('Your partner prices. Every order is confirmed by Auto Engineer before delivery.')}</p><div id="ptBuyRes" class="pt-res"></div></div>
     <aside class="panel pt-cart"><h3>${t('Your order')}</h3>
       ${PS.cart.length ? `<div class="pt-lines">${PS.cart.map((c, i) => `<div class="pt-line"><div><b class="ltr">${esc(c.partNo)}</b><span>${esc(c.name || '')}</span></div>
-        <input type="number" min="1" step="1" value="${c.qty}" data-cq="${i}" dir="ltr"><span class="num">${PS.buyPrices[c.partId] ? money(PS.buyPrices[c.partId] * c.qty) : '—'}</span><button class="linkbtn" data-cx="${i}" aria-label="${esc(t('Remove'))}">×</button></div>`).join('')}</div>
-        <div class="pt-tot"><span>${t('Total')}</span><b>${money(cartTot) || '—'}</b></div>
+        <input type="number" min="1" step="1" value="${c.qty}" data-cq="${i}" dir="ltr"><span class="num">${PS.buyPrices[c.partId] ? usd(PS.buyPrices[c.partId] * c.qty) : '—'}</span><button class="linkbtn" data-cx="${i}" aria-label="${esc(t('Remove'))}">×</button></div>`).join('')}</div>
+        <div class="pt-tot"><span>${t('Total')}</span><b>${usd(cartTot) || '—'}</b></div>
         <label class="mini">${t('Payment')}<select id="ptPay" class="sel">${pay.cod ? `<option value="cod">${t('Cash on delivery')}</option>` : ''}${pay.online ? `<option value="online">${t('Online payment')}</option>` : ''}</select></label>
         ${!pay.cod && !pay.online ? `<p class="err">${t('Online payment is coming soon. Ordering will open then.')}</p>` : ''}
         <textarea id="ptNote" class="input" rows="2" placeholder="${esc(t('Note for Auto Engineer (optional)'))}"></textarea>
@@ -325,7 +329,7 @@ async function ptBuySearch(keep){
   const inC = new Set(PS.cart.map(c => c.partId));
   el.innerHTML = PS.buyRows.length ? PS.buyRows.map(p => { const pr = PS.buyPrices[p.id];
     return `<div class="pt-item"><div><b class="ltr">${esc(p.partNo)}</b><span>${esc(pName(p))}</span>${p.stock ? `<small>${t(p.stock)}</small>` : ''}</div>
-      <div class="num">${pr ? `<b>${money(pr)}</b>` : `<small>${t('Price on request')}</small>`}</div>
+      <div class="num">${pr ? `<b>${usd(pr)}</b>` : `<small>${t('Price on request')}</small>`}</div>
       <button class="btn sm ${inC.has(p.id) ? 'ghost' : 'red'}" data-add="${esc(p.id)}" ${pr ? '' : 'disabled'}>${inC.has(p.id) ? '✓ ' + t('Added') : t('Add')}</button></div>`; }).join('')
     : `<div class="empty">${t('No parts found')}</div>`;
   el.onclick = e => { const b = e.target.closest('[data-add]'); if(!b) return; const p = PS.buyRows.find(x => x.id === b.dataset.add); const ex = PS.cart.find(c => c.partId === p.id);
@@ -334,9 +338,9 @@ async function ptBuySearch(keep){
 
 function ptOrders(){
   const ords = myOrders();
-  $('#ptBody').innerHTML = ords.length ? ords.map(o => `<div class="panel pt-order"><div class="pt-row"><div><b>${esc(o.id)}</b> · ${dateStr(o.createdAt)} · ${poBadge(o.status)}</div><b>${money(o.total) || ''}</b></div>
+  $('#ptBody').innerHTML = ords.length ? ords.map(o => `<div class="panel pt-order"><div class="pt-row"><div><b>${esc(o.id)}</b> · ${dateStr(o.createdAt)} · ${poBadge(o.status)}</div><b>${usd(o.total) || ''}</b></div>
       ${['rejected','cancelled'].includes(o.status) ? '' : `<div class="pt-steps">${PO_FLOW.map((s, i) => `<span class="${PO_FLOW.indexOf(o.status) >= i ? 'on' : ''}">${t(PO_LABEL[s])}</span>`).join('')}</div>`}
-      <div class="tblwrap"><table class="tbl"><tbody>${(o.lines || []).map(l => `<tr><td class="ltr">${esc(l.partNo)}</td><td>${esc(sName(l))}</td><td class="num">× ${l.qty}</td><td class="num">${money((l.price || 0) * l.qty)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="tblwrap"><table class="tbl"><tbody>${(o.lines || []).map(l => `<tr><td class="ltr">${esc(l.partNo)}</td><td>${esc(sName(l))}</td><td class="num">× ${l.qty}</td><td class="num">${usd((l.price || 0) * l.qty)}</td></tr>`).join('')}</tbody></table></div>
       <p class="mini">${t('Payment')}: ${o.pay === 'online' ? t('Online payment') : t('Cash on delivery')}${o.courier ? ' · ' + t('Delivery') + ': ' + esc(o.courier) + (o.tracking ? ' (' + esc(o.tracking) + ')' : '') : ''}${o.reply ? '<br>' + t('Auto Engineer') + ': ' + esc(o.reply) : ''}</p>
       <div class="actions">${o.status === 'new' ? `<button class="btn sm ghost" data-cancel="${esc(o.id)}">${t('Cancel order')}</button>` : ''}
         ${['shipped','delivered'].includes(o.status) ? `<button class="btn sm red" data-recv="${esc(o.id)}">${t('I received it → add to my stock')}</button>` : ''}</div></div>`).join('')
@@ -401,7 +405,7 @@ function partnerModal(p, pre){
     <label class="span2">${t('Address')}<input name="address" value="${esc(p.address || '')}"></label>
     <label>${t('Extra discount % for this partner (on top of the wholesale price)')}<input name="discount" type="number" min="0" max="90" step="0.5" dir="ltr" value="${+p.discount || 0}"></label>
     <label>${t('Commission % on their sales')}<input name="commission" type="number" min="0" max="50" step="0.1" dir="ltr" value="${p.commission ?? 1.5}"></label>
-    <label>${t('Credit limit (IQD, 0 = no credit)')}<input name="creditLimit" type="number" min="0" step="50000" dir="ltr" value="${+p.creditLimit || 0}"></label><span></span>
+    <label>${t('Credit limit (USD, 0 = no credit)')}<input name="creditLimit" type="number" min="0" step="any" dir="ltr" value="${+p.creditLimit || 0}"></label><span></span>
     <label class="span2">${t('Private notes (partner cannot see)')}<input name="notes" value="${esc(p.notes || '')}"></label>
     ${isNew ? `<label class="span2">${t('Starting password')}<input name="pw" dir="ltr" required minlength="8" value="${genPw()}"><small>${t('Give this to the partner. They can change it in Account.')}</small></label>` : ''}
     <p class="err hidden span2" id="apErr"></p>
@@ -432,7 +436,7 @@ function adminPOrders(){
   const shown = list.filter(o => f === 'all' || (f === 'open' ? !['received','cancelled','rejected'].includes(o.status) : o.status === f));
   $('#adminBody').innerHTML = `<div class="admin-bar"><select id="poF" class="sel">${[['open','Open orders'],['new','Waiting for approval'],['all','All orders']].map(([v, l]) => `<option value="${v}" ${f === v ? 'selected' : ''}>${t(l)}</option>`).join('')}</select></div>
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Order')}</th><th>${t('Shop')}</th><th>${t('Date')}</th><th class="num">${t('Items')}</th><th class="num">${t('Total')}</th><th>${t('Payment')}</th><th>${t('Status')}</th></tr></thead><tbody>
-    ${shown.length ? shown.map(o => `<tr data-id="${esc(o.id)}" style="cursor:pointer"><td><b>${esc(o.id)}</b></td><td>${esc(o.shop || '')}</td><td>${dtStr(o.createdAt)}</td><td class="num">${(o.lines || []).reduce((s, l) => s + l.qty, 0)}</td><td class="num">${money(o.total)}</td><td>${t(o.pay === 'online' ? 'Online payment' : 'Cash on delivery')}</td><td>${poBadge(o.status)}</td></tr>`).join('')
+    ${shown.length ? shown.map(o => `<tr data-id="${esc(o.id)}" style="cursor:pointer"><td><b>${esc(o.id)}</b></td><td>${esc(o.shop || '')}</td><td>${dtStr(o.createdAt)}</td><td class="num">${(o.lines || []).reduce((s, l) => s + l.qty, 0)}</td><td class="num">${usd(o.total)}</td><td>${t(o.pay === 'online' ? 'Online payment' : 'Cash on delivery')}</td><td>${poBadge(o.status)}</td></tr>`).join('')
       : `<tr><td colspan="7" class="empty">${t('No partner orders.')}</td></tr>`}</tbody></table></div>`;
   $('#poF').onchange = e => { S.poF = e.target.value; adminPOrders(); };
   $('#adminBody').querySelector('tbody').onclick = e => { const tr = e.target.closest('tr[data-id]'); if(tr) poModal(Store.get('porders', tr.dataset.id)); };
@@ -445,19 +449,19 @@ function poModal(o){
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Description')}</th><th class="num" style="width:90px">${t('Qty')}</th><th class="num" style="width:130px">${t('Price')}</th><th class="num">${t('Total')}</th></tr></thead><tbody id="poLines">
     ${(o.lines || []).map((l, i) => `<tr><td class="ltr"><b>${esc(l.partNo)}</b></td><td>${esc(l.name || '')}</td>
       <td class="num">${canEdit ? `<input type="number" min="0" data-pl="${i}" data-k="qty" value="${l.qty}">` : l.qty}</td>
-      <td class="num">${canEdit ? `<input type="number" min="0" step="any" data-pl="${i}" data-k="price" value="${l.price ?? ''}">` : money(l.price)}</td><td class="num" data-lt="${i}">${money((l.price || 0) * l.qty)}</td></tr>`).join('')}
-    <tr class="grp"><td colspan="4"><b>${t('Total')}</b></td><td class="num"><b id="poTot">${money(o.total)}</b></td></tr></tbody></table></div>
+      <td class="num">${canEdit ? `<input type="number" min="0" step="any" data-pl="${i}" data-k="price" value="${l.price ?? ''}">` : usd(l.price)}</td><td class="num" data-lt="${i}">${usd((l.price || 0) * l.qty)}</td></tr>`).join('')}
+    <tr class="grp"><td colspan="4"><b>${t('Total')}</b></td><td class="num"><b id="poTot">${usd(o.total)}</b></td></tr></tbody></table></div>
     ${canEdit ? `<p class="mini">${t('You can change quantities and prices before approving. Set a quantity to 0 to remove a line.')}</p>` : ''}
     ${o.note ? `<p><b>${t('Partner note')}:</b> ${esc(o.note)}</p>` : ''}
     ${o.pay === 'credit' ? (() => { const pt = Store.get('partners', o.pid) || {}, bal = Store.all('pledger').filter(x => x.pid === o.pid).reduce((s, x) => s + (+x.amount || 0), 0), lim = +pt.creditLimit || 0;
-      return `<p class="${bal + (o.ledgered ? 0 : +o.total) > lim ? 'err' : 'mini'}">${t('On credit')} · ${t('Credit limit')}: ${money(lim) || '0'} · ${t('They owe')}: ${money(bal) || '0'}${o.ledgered ? '' : ' · ' + t('after this order') + ': ' + money(bal + (+o.total || 0))}</p>`; })() : ''}
+      return `<p class="${bal + (o.ledgered ? 0 : +o.total) > lim ? 'err' : 'mini'}">${t('On credit')} · ${t('Credit limit')}: ${usd(lim) || '0'} · ${t('They owe')}: ${usd(bal) || '0'}${o.ledgered ? '' : ' · ' + t('after this order') + ': ' + usd(bal + (+o.total || 0))}</p>`; })() : ''}
     <form id="poF2" class="form grid2"><label>${t('Delivery company')}<input name="courier" value="${esc(o.courier || '')}"></label><label>${t('Tracking number')}<input name="tracking" dir="ltr" value="${esc(o.tracking || '')}"></label>
       <label class="span2">${t('Message to partner')}<input name="reply" value="${esc(o.reply || '')}"></label>
       <div class="span2 actions"><button type="button" class="btn ghost" data-mclose>${t('Close')}</button><button type="button" class="btn ghost" data-st="">${t('Save')}</button>${next.map(([s, l]) => `<button type="button" class="btn ${s === 'rejected' ? 'ghost' : 'red'}" data-st="${s}">${t(l)}</button>`).join('')}
         ${live ? `<button type="button" class="btn wa" data-send="1">📤 ${t(sendLbl)}</button>` : ''}</div>
       ${o.invoiceNo ? `<p class="mini span2">${o.invoiceSentAt ? t('Last sent {d}.', {d: dtStr(o.invoiceSentAt)}) : t('Not sent yet.')}</p>` : ''}</form>`, true);
   const lines = clone(o.lines || []);
-  const recalc = () => { let tot = 0; lines.forEach((l, i) => { const v = (+l.price || 0) * (+l.qty || 0); tot += v; const c = document.querySelector(`[data-lt="${i}"]`); if(c) c.textContent = money(v) || '0'; }); $('#poTot').textContent = money(tot) || '0'; return tot; };
+  const recalc = () => { let tot = 0; lines.forEach((l, i) => { const v = (+l.price || 0) * (+l.qty || 0); tot += v; const c = document.querySelector(`[data-lt="${i}"]`); if(c) c.textContent = usd(v) || '0'; }); $('#poTot').textContent = usd(tot) || '0'; return tot; };
   if(canEdit) $('#poLines').oninput = e => { const el = e.target; if(el.dataset.pl === undefined) return; lines[+el.dataset.pl][el.dataset.k] = el.value === '' ? null : Number(el.value); recalc(); };
   $('#poF2').onclick = async e => { const b = e.target.closest('[data-st],[data-send]'); if(!b) return; const send = !!b.dataset.send;
     const f = $('#poF2'), d = clone(Store.get('porders', o.id)), now = Date.now(), before = +d.total || 0;
@@ -474,7 +478,7 @@ function poModal(o){
       if(d.invoiceNo && d.invoiceSentAt && d.total !== before) d.revisedAt = now;
       let url = '';
       if(send){ const pt = Store.get('partners', o.pid) || {}, L = pt.lang || 'en', upd = d.invoiceSentAt && d.revisedAt && d.revisedAt > d.invoiceSentAt;
-        const msg = `${t('Hello {n},', {n: d.shop}, L)}\n\n${t(upd ? 'Your invoice {no} from {c} has been updated.' : 'Your invoice {no} from {c} is ready.', {no: d.invoiceNo, c: settings().company}, L)}\n${t('Order', null, L)}: ${o.id}\n${t('Total', null, L)}: ${money(d.total, L)}${d.reply ? '\n' + d.reply : ''}\n\n${t('View and download your invoice:', null, L)}\n${invLink(d.shareKey)}\n\n${t('Thank you for your business.', null, L)}`;
+        const msg = `${t('Hello {n},', {n: d.shop}, L)}\n\n${t(upd ? 'Your invoice {no} from {c} has been updated.' : 'Your invoice {no} from {c} is ready.', {no: d.invoiceNo, c: settings().company}, L)}\n${t('Order', null, L)}: ${o.id}\n${t('Total', null, L)}: ${usd(d.total, L)}${d.reply ? '\n' + d.reply : ''}\n\n${t('View and download your invoice:', null, L)}\n${invLink(d.shareKey)}\n\n${t('Thank you for your business.', null, L)}`;
         url = waTo(pt.phone || d.phone, msg); d.invoiceSentAt = now; }
       delete d.id; await Store.set('porders', o.id, d); await poLedger(o.id).catch(() => {}); closeModal(); toast(send ? t('Invoice {no} sent', {no: d.invoiceNo}) : t('Saved'));
       if(send){ if(w) w.location.href = url; else location.href = url; return; }

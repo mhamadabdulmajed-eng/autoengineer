@@ -44,7 +44,7 @@ function ptLocalRpc(name){
 function ptPrint(o){
   const s = settings(), w = window.open('', '_blank'); if(!w){ toast(t('Allow pop-ups to print.')); return; }
   const rtl = LANGS[LANG] && LANGS[LANG].dir === 'rtl';
-  const rows = (o.lines || []).map(l => `<tr><td style="direction:ltr;text-align:left">${esc(l.partNo || '')}</td><td>${esc(l.name || '')}</td><td class=n>${l.qty}</td><td class=n>${money(l.price)}</td><td class=n>${money((+l.price || 0) * l.qty)}</td></tr>`).join('');
+  const rows = (o.lines || []).map(l => `<tr><td style="direction:ltr;text-align:left">${esc(l.partNo || '')}</td><td>${esc(l.name || '')}</td><td class=n>${l.qty}</td><td class=n>${money(l.price, null, o.cur)}</td><td class=n>${money((+l.price || 0) * l.qty, null, o.cur)}</td></tr>`).join('');
   w.document.write(`<!doctype html><html dir="${rtl ? 'rtl' : 'ltr'}"><head><meta charset="utf-8"><title>${esc(o.no || '')}</title><style>
     body{font-family:Inter,Arial,sans-serif;color:#101318;margin:32px;font-size:14px}h1{margin:0;font-size:26px}.top{display:flex;justify-content:space-between;gap:20px;border-bottom:3px solid #FF3B1F;padding-bottom:14px;margin-bottom:18px}
     table{width:100%;border-collapse:collapse;margin-top:14px}th,td{padding:8px;border-bottom:1px solid #e4e7eb;text-align:start}th{background:#f6f7f9;font-size:12px;text-transform:uppercase}.n{text-align:end;white-space:nowrap}
@@ -53,7 +53,7 @@ function ptPrint(o){
       <div style="text-align:end"><b style="font-size:18px">${esc(o.title)}</b><div>${esc(o.no || '')}</div><div class="muted">${dtStr(o.at || Date.now())}</div></div></div>
     ${o.to ? `<div><span class="muted">${t('Customer')}:</span> <b>${esc(o.to)}</b></div>` : ''}
     <table><thead><tr><th>${t('Part number')}</th><th>${t('Description')}</th><th class=n>${t('Qty')}</th><th class=n>${t('Price')}</th><th class=n>${t('Total')}</th></tr></thead><tbody>${rows}
-    ${o.discount ? `<tr><td colspan=4>${t('Discount')}</td><td class=n>− ${money(o.discount)}</td></tr>` : ''}<tr class="tot"><td colspan=4>${t('Total')}</td><td class=n>${money(o.total)}</td></tr></tbody></table>
+    ${o.discount ? `<tr><td colspan=4>${t('Discount')}</td><td class=n>− ${money(o.discount, null, o.cur)}</td></tr>` : ''}<tr class="tot"><td colspan=4>${t('Total')}</td><td class=n>${money(o.total, null, o.cur)}</td></tr></tbody></table>
     ${o.extra ? `<p>${o.extra}</p>` : ''}<div class="foot">${esc(o.footer || '')}</div><p><button onclick="print()">${t('Print')}</button></p><script>setTimeout(()=>print(),300)<\/script></body></html>`);
   w.document.close();
 }
@@ -70,7 +70,7 @@ async function ptOverview(){
     <div id="ptAlerts"></div>
     <div class="kpis"><div class="kpi"><span>${t('Sales today')}</span><b>${money(today.reduce((s, x) => s + (+x.total || 0), 0)) || '0'}</b></div>
       <div class="kpi"><span>${t('Items in stock')}</span><b>${st.length.toLocaleString('en')}</b></div>
-      ${seesCost() ? `<div class="kpi"><span>${t('Stock value (cost)')}</span><b>${money(val) || '0'}</b></div>` : ''}
+      ${seesCost() ? `<div class="kpi"><span>${t('Stock value (cost)')}</span><b>${stockValue(st)}</b></div>` : ''}
       <div class="kpi warn"><span>${t('Running low')}</span><b>${low.length}</b></div><div class="kpi bad"><span>${t('Out of stock')}</span><b>${out.length}</b></div>
       <div class="kpi"><span>${t('Not moving 90+ days')}</span><b>${slow.length}</b></div>${buyer ? `<div class="kpi"><span>${t('Open orders')}</span><b>${ords.length}</b></div>` : ''}</div>
     <div class="panel"><div class="pt-row"><h3>${t('What you need')}</h3>${need.length && buyer ? `<button class="btn red sm" id="ptNeedAll">${t('Order all from Auto Engineer')}</button>` : ''}</div>
@@ -94,7 +94,7 @@ async function ptOverview(){
     al.push(`<div class="pt-alert ok">🔔 <span><b class="ltr">${esc(d.partNo || '')}</b> ${esc(d.name || '')} — ${t('back in stock')}</span><button class="btn sm red" data-bis="${esc(n.partId)}" data-no="${esc(d.partNo || '')}" data-nid="${esc(n.id)}">${t('Add to order')}</button><button class="linkbtn" data-bisx="${esc(n.id)}">${t('Dismiss')}</button></div>`); });
   if(rw && (rw.tiers || []).length){ const next = rw.tiers.find(x => rw.thisMonth < x.min), pct = next ? Math.min(100, Math.round(rw.thisMonth / next.min * 100)) : 100;
     al.push(`<div class="pt-alert rw"><div style="flex:1"><b>🏆 ${t('Volume reward')}</b> · ${rw.activePct ? t('You have an extra {p}% off this month.', {p: rw.activePct}) : t('Buy more this month to unlock an extra discount next month.')}
-      <div class="pt-bar"><i style="width:${pct}%"></i></div><small>${t('This month')}: <b>${money(rw.thisMonth) || '0'}</b>${next ? ' · ' + t('{a} more to unlock {p}% next month', {a: money(next.min - rw.thisMonth), p: next.pct}) : ' · ' + t('Top reward reached!')}</small></div></div>`); }
+      <div class="pt-bar"><i style="width:${pct}%"></i></div><small>${t('This month')}: <b>${usd(rw.thisMonth) || '0'}</b>${next ? ' · ' + t('{a} more to unlock {p}% next month', {a: usd(next.min - rw.thisMonth), p: next.pct}) : ' · ' + t('Top reward reached!')}</small></div></div>`); }
   if((of || []).length) al.push(`<div class="pt-alert of">🔥 <span>${t('{n} special offers for partners', {n: of.length})}</span><button class="btn sm" data-goffers>${t('See offers')}</button></div>`);
   const box = $('#ptAlerts'); if(box) box.innerHTML = al.join('');
 }
@@ -249,9 +249,9 @@ function ptBuy(){
       <div id="ptBuyRes" class="pt-res"></div></div>
     <aside class="panel pt-cart"><h3>${t('Your order')}</h3>
       ${PS.cart.length ? `<div class="pt-lines">${PS.cart.map((c, i) => `<div class="pt-line"><div><b class="ltr">${esc(c.partNo)}</b><span>${esc(c.name || '')}</span>${(() => { const p = PS.cache[c.partId]; const q = p && p.qty != null && p.qty !== '' ? +p.qty : null; return q != null && c.qty > q ? `<small class="err">${q > 0 ? t('Only {n} in stock', {n: q}) : t('Out of stock')}</small>` : ''; })()}</div>
-        <input type="number" min="1" step="1" value="${c.qty}" data-cq="${i}" dir="ltr"><span class="num">${PS.buyPrices[c.partId] ? money(PS.buyPrices[c.partId] * c.qty) : '—'}</span><button class="linkbtn" data-cx="${i}" aria-label="${esc(t('Remove'))}">×</button></div>`).join('')}</div>
-        <div class="pt-tot"><span>${t('Total')}</span><b>${money(cartTot) || '—'}</b></div>
-        <label class="mini">${t('Payment')}<select id="ptPay" class="sel">${pay.cod ? `<option value="cod" ${PS.pay === 'cod' ? 'selected' : ''}>${t('Cash on delivery')}</option>` : ''}${pay.online ? `<option value="online" ${PS.pay === 'online' ? 'selected' : ''}>${t('Online payment')}</option>` : ''}${lim > 0 ? `<option value="credit" ${PS.pay === 'credit' || (!pay.cod && !pay.online) ? 'selected' : ''}>${t('On credit (available {a})', {a: money(avail) || '0'})}</option>` : ''}</select></label>
+        <input type="number" min="1" step="1" value="${c.qty}" data-cq="${i}" dir="ltr"><span class="num">${PS.buyPrices[c.partId] ? usd(PS.buyPrices[c.partId] * c.qty) : '—'}</span><button class="linkbtn" data-cx="${i}" aria-label="${esc(t('Remove'))}">×</button></div>`).join('')}</div>
+        <div class="pt-tot"><span>${t('Total')}</span><b>${usd(cartTot) || '—'}</b></div>
+        <label class="mini">${t('Payment')}<select id="ptPay" class="sel">${pay.cod ? `<option value="cod" ${PS.pay === 'cod' ? 'selected' : ''}>${t('Cash on delivery')}</option>` : ''}${pay.online ? `<option value="online" ${PS.pay === 'online' ? 'selected' : ''}>${t('Online payment')}</option>` : ''}${lim > 0 ? `<option value="credit" ${PS.pay === 'credit' || (!pay.cod && !pay.online) ? 'selected' : ''}>${t('On credit (available {a})', {a: usd(avail) || '$0'})}</option>` : ''}</select></label>
         ${!canOrder ? `<p class="err">${t('Online payment is coming soon. Ordering will open then.')}</p>` : ''}
         <textarea id="ptNote" class="input" rows="2" placeholder="${esc(t('Note for Auto Engineer (optional)'))}"></textarea>
         <button class="btn red" id="ptSend" style="width:100%" ${canOrder ? '' : 'disabled'}>${t('Send order for approval')}</button>`
@@ -263,11 +263,11 @@ function ptBuy(){
   cart.onchange = e => { if(e.target.id === 'ptPay'){ PS.pay = e.target.value; return; } if(e.target.dataset.cq !== undefined) ptBuy(); };
   cart.onclick = async e => { const x = e.target.closest('[data-cx]'); if(x){ PS.cart.splice(+x.dataset.cx, 1); ptBuy(); return; }
     if(e.target.closest('#ptSend')){ if(ro()) return; const b = $('#ptSend'), pm = $('#ptPay').value;
-      if(pm === 'credit' && cartTot > avail){ toast(t('This order is more than your available credit ({a}).', {a: money(avail) || '0'})); return; }
+      if(pm === 'credit' && cartTot > avail){ toast(t('This order is more than your available credit ({a}).', {a: usd(avail) || '0'})); return; }
       b.disabled = true;
       try{ const no = await PartnerAPI.placeOrder(PS.cart.map(c => ({partId: c.partId, qty: c.qty})), pm, $('#ptNote').value.trim());
         PS.cart = []; PS.tab = 'orders'; toast(t('Order {no} sent. Auto Engineer will confirm it.', {no})); renderPartner();
-      }catch(er){ toast(/credit/.test(String(er && er.message)) ? t('This order is more than your available credit ({a}).', {a: money(avail) || '0'}) : t('Could not send the order. Try again.')); b.disabled = false; } } };
+      }catch(er){ toast(/credit/.test(String(er && er.message)) ? t('This order is more than your available credit ({a}).', {a: usd(avail) || '0'}) : t('Could not send the order. Try again.')); b.disabled = false; } } };
   ptBuySearch(true); ptCartPrices();
 }
 async function ptBuySearch(keep){
@@ -287,7 +287,7 @@ async function ptBuySearch(keep){
 function ptItemRow(p, pr, offer){
   const inC = PS.cart.some(c => c.partId === p.id), stockOk = p.qty != null && p.qty !== '' ? +p.qty > 0 : (!p.stock || p.stock === 'In stock'), alert = Store.get('pnotify', 'pn_' + S.partner.id + '_' + p.id);
   return `<div class="pt-item"><div><b class="ltr">${esc(p.partNo)}</b><span>${esc(pName(p))}${offer ? ` <span class="pst new">🔥 ${t('Offer')}</span>` : ''}</span>${p.stock || p.qty != null ? `<small class="${(+p.qty || 0) > 0 || p.stock === 'In stock' ? 'pt-in' : ''}">${stockText(p, true)}${p.offerNote ? ' · ' + esc(p.offerNote) : ''}</small>` : ''}</div>
-    <div class="num">${pr ? `<b>${money(pr)}</b>${nz(p.retailPrice) && +p.retailPrice > pr ? `<small class="pt-rrp">${t('Retail')} <s>${money(p.retailPrice)}</s></small>` : ''}` : `<small>${t('Price on request')}</small>`}</div>
+    <div class="num">${pr ? `<b>${usd(pr)}</b>${nz(p.retailPrice) && +p.retailPrice > pr ? `<small class="pt-rrp">${t('Retail')} <s>${usd(p.retailPrice)}</s></small>` : ''}` : `<small>${t('Price on request')}</small>`}</div>
     <div class="pt-acts">${!stockOk ? (alert ? `<span class="mini">🔔 ${t('Alert on')}</span>` : `<button class="btn sm ghost" data-ntf="${esc(p.id)}">🔔 ${t('Notify me')}</button>`) : ''}
     <button class="btn sm ${inC ? 'ghost' : 'red'}" data-add="${esc(p.id)}" ${pr ? '' : 'disabled'}>${inC ? '✓ ' + t('Added') : t('Add')}</button></div></div>`;
 }
@@ -324,9 +324,9 @@ function ptPasteList(){
 /* ================= MY ORDERS (replaces step-1 version) ================= */
 function ptOrders(){
   const ords = myOrders(), s = settings();
-  $('#ptBody').innerHTML = ords.length ? ords.map(o => `<div class="panel pt-order"><div class="pt-row"><div><b>${esc(o.id)}</b> · ${dateStr(o.createdAt)} · ${poBadge(o.status)}</div><b>${money(o.total) || ''}</b></div>
+  $('#ptBody').innerHTML = ords.length ? ords.map(o => `<div class="panel pt-order"><div class="pt-row"><div><b>${esc(o.id)}</b> · ${dateStr(o.createdAt)} · ${poBadge(o.status)}</div><b>${usd(o.total) || ''}</b></div>
       ${['rejected','cancelled'].includes(o.status) ? '' : `<div class="pt-steps">${PO_FLOW.map((x, i) => `<span class="${PO_FLOW.indexOf(o.status) >= i ? 'on' : ''}">${t(PO_LABEL[x])}</span>`).join('')}</div>`}
-      <div class="tblwrap"><table class="tbl"><tbody>${(o.lines || []).map(l => `<tr><td class="ltr">${esc(l.partNo)}</td><td>${esc(sName(l))}</td><td class="num">× ${l.qty}</td><td class="num">${money((l.price || 0) * l.qty)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="tblwrap"><table class="tbl"><tbody>${(o.lines || []).map(l => `<tr><td class="ltr">${esc(l.partNo)}</td><td>${esc(sName(l))}</td><td class="num">× ${l.qty}</td><td class="num">${usd((l.price || 0) * l.qty)}</td></tr>`).join('')}</tbody></table></div>
       <p class="mini">${t('Payment')}: ${o.pay === 'online' ? t('Online payment') : o.pay === 'credit' ? t('On credit') : t('Cash on delivery')}${o.courier ? ' · ' + t('Delivery') + ': ' + esc(o.courier) + (o.tracking ? ' (' + esc(o.tracking) + ')' : '') : ''}${o.reply ? '<br>' + t('Auto Engineer') + ': ' + esc(o.reply) : ''}</p>
       <div class="actions"><button class="btn sm ghost" data-again="${esc(o.id)}">↻ ${t('Order again')}</button>
         ${['approved','paid','shipped','delivered','received'].includes(o.status) ? `<button class="btn sm ghost" data-inv="${esc(o.id)}">🧾 ${t('Invoice')}</button>` : ''}
@@ -339,7 +339,7 @@ function ptOrders(){
       (o.lines || []).forEach(l => { const ex = PS.cart.find(c => c.partId === l.partId); if(ex) ex.qty += l.qty; else PS.cart.push({partId: l.partId, partNo: l.partNo, name: sName(l), qty: l.qty}); });
       toast(t('{n} added to your order', {n: (o.lines || []).length})); PS.tab = 'buy'; renderPartner(); return; }
     const iv = e.target.closest('[data-inv]'); if(iv){ const o = Store.get('porders', iv.dataset.inv);
-      ptPrint({title: t('Invoice'), no: o.invoiceNo || o.id, at: o.invoicedAt || o.createdAt, fromName: s.company, fromCity: s.address, fromPhone: s.phone || s.whatsapp, to: o.shop, lines: (o.lines || []).map(l => ({...l, name: sName(l)})), total: o.total,
+      ptPrint({cur: 'USD', title: t('Invoice'), no: o.invoiceNo || o.id, at: o.invoicedAt || o.createdAt, fromName: s.company, fromCity: s.address, fromPhone: s.phone || s.whatsapp, to: o.shop, lines: (o.lines || []).map(l => ({...l, name: sName(l)})), total: o.total,
         extra: t('Payment') + ': ' + (o.pay === 'credit' ? t('On credit') : o.pay === 'online' ? t('Online payment') : t('Cash on delivery')), footer: s.invoiceNote || ''}); return; }
     const c = e.target.closest('[data-cancel]'); if(c && ro()) return; if(c && confirm(t('Cancel this order?'))){ await PartnerAPI.cancel(c.dataset.cancel).catch(() => toast(t('Could not save'))); renderPartner(); }
     const r = e.target.closest('[data-recv]'); if(r && ro()) return; if(r && confirm(t('Confirm you received everything? The parts will be added to your stock.'))){ r.disabled = true;
@@ -349,13 +349,13 @@ function ptOrders(){
 
 /* ================= ACCOUNT (replaces step-1 version) ================= */
 async function ptAccount(){
-  const p = S.partner, own = ptOwner(), lim = +p.creditLimit || 0, led = myLedger(); let run = 0;
+  const p = S.partner, own = ptOwner(), lim = +p.creditLimit || 0, led = myLedger(); const runs = {};
   const KL = {invoice: 'Purchase (on credit)', payment: 'Payment received', sale: 'Website sale (owed to you)', payout: 'Paid to you', adjust: 'Adjustment'};
   const users = Store.all('pusers').filter(u => u.pid === p.id);
   $('#ptBody').innerHTML = `${seesCost() && (lim > 0 || led.length) ? `<div class="panel"><div class="pt-row"><h3>${t('Credit account')}</h3><button class="btn sm ghost" id="ptStmt">🖨 ${t('Print statement')}</button></div>
-      <div class="kpis" style="margin:10px 0"><div class="kpi"><span>${t('Credit limit')}</span><b>${money(lim) || '0'}</b></div><div class="kpi ${ptBalance() > 0 ? 'warn' : ''}"><span>${ptBalance() >= 0 ? t('You owe') : t('We owe you')}</span><b>${money(Math.abs(ptBalance())) || '0'}</b></div><div class="kpi"><span>${t('Available credit')}</span><b>${money(Math.max(0, lim - ptBalance())) || '0'}</b></div></div>
+      <div class="kpis" style="margin:10px 0"><div class="kpi"><span>${t('Credit limit')}</span><b>${usd(lim) || '$0'}</b></div><div class="kpi ${ptBalance() > 0 ? 'warn' : ''}"><span>${ptBalance() >= 0 ? t('You owe') : t('We owe you')}</span><b>${usd(Math.abs(ptBalance())) || '$0'}</b></div><div class="kpi"><span>${t('Available credit')}</span><b>${usd(Math.max(0, lim - ptBalance())) || '$0'}</b></div>${ptBalanceIQD() ? `<div class="kpi"><span>${t('Website sales owed to you')}</span><b>${money(Math.abs(ptBalanceIQD()))}</b></div>` : ''}</div>
       <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Date')}</th><th>${t('Type')}</th><th>${t('Reference')}</th><th class="num">${t('Amount')}</th><th class="num">${t('Balance')}</th></tr></thead><tbody>
-      ${led.length ? led.map(x => { run += +x.amount || 0; return `<tr><td>${dateStr(x.at)}</td><td>${t(KL[x.kind] || x.kind)}${x.note ? `<br><span class="mini">${esc(x.note)}</span>` : ''}</td><td class="ltr">${esc(x.ref || '')}</td><td class="num"><b class="${x.amount < 0 ? 'pos' : 'neg'}">${x.amount > 0 ? '+' : '−'}${money(Math.abs(x.amount))}</b></td><td class="num">${money(run)}</td></tr>`; }).reverse().join('') : `<tr><td colspan="5" class="empty">${t('No entries yet.')}</td></tr>`}</tbody></table></div>
+      ${led.length ? led.map(x => { const lc = x.cur === 'IQD' ? 'IQD' : 'USD'; runs[lc] = (runs[lc] || 0) + (+x.amount || 0); const run = runs[lc]; return `<tr><td>${dateStr(x.at)}</td><td>${t(KL[x.kind] || x.kind)}${x.note ? `<br><span class="mini">${esc(x.note)}</span>` : ''}</td><td class="ltr">${esc(x.ref || '')}</td><td class="num"><b class="${x.amount < 0 ? 'pos' : 'neg'}">${x.amount > 0 ? '+' : '−'}${money(Math.abs(x.amount), null, lc)}</b></td><td class="num">${money(run, null, lc) || '0'}</td></tr>`; }).reverse().join('') : `<tr><td colspan="5" class="empty">${t('No entries yet.')}</td></tr>`}</tbody></table></div>
       <p class="mini">${t('+ means you owe Auto Engineer; − means a payment or money owed to you.')}</p></div>` : ''}
     <div id="ptRw"></div>
     <div class="grid2"><div class="panel"><h3>${t('Shop details')}</h3>
@@ -366,8 +366,8 @@ async function ptAccount(){
       <p class="err hidden" id="ptPwErr"></p><button class="btn red">${t('Save')}</button></form></div></div>
     ${own ? `<div class="panel"><div class="pt-row"><div><h3>${t('My team')}</h3><p class="sub" style="margin:4px 0 0">${t('Give your employees their own sign-in. Sellers can make counter sales and update stock; buyers can also order from Auto Engineer. Only you see costs, credit and website listings.')}</p></div><button class="btn red sm" id="ptUNew">+ ${t('Add employee')}</button></div>
       <div class="tblwrap"><table class="tbl"><tbody>${users.length ? users.map(u => `<tr data-u="${esc(u.id)}"><td><b>${esc(u.name || '')}</b></td><td class="ltr">${esc(u.phone || '')}</td><td>${t(ROLE_LABEL[u.role] || u.role)}</td><td><span class="vst ${u.active === false ? 'vis' : 'cust'}">${t(u.active === false ? 'Paused' : 'Active')}</span></td><td><button class="linkbtn" data-ued>${t('Edit')}</button></td></tr>`).join('') : `<tr><td class="empty">${t('No employees yet.')}</td></tr>`}</tbody></table></div></div>` : ''}`;
-  if($('#ptStmt')) $('#ptStmt').onclick = () => { let r2 = 0; const lines = led.map(x => { r2 += +x.amount || 0; return {partNo: dateStr(x.at), name: t(KL[x.kind] || x.kind) + (x.ref ? ' · ' + x.ref : ''), qty: 1, price: x.amount}; });
-    ptPrint({title: t('Statement of account'), no: p.shop, at: Date.now(), fromName: settings().company, fromPhone: settings().phone || settings().whatsapp, to: p.shop, lines, total: ptBalance(), extra: t('Credit limit') + ': ' + (money(lim) || '0')}); };
+  if($('#ptStmt')) $('#ptStmt').onclick = () => { const lines = led.filter(x => x.cur !== 'IQD').map(x => ({partNo: dateStr(x.at), name: t(KL[x.kind] || x.kind) + (x.ref ? ' · ' + x.ref : ''), qty: 1, price: x.amount}));
+    ptPrint({cur: 'USD', title: t('Statement of account'), no: p.shop, at: Date.now(), fromName: settings().company, fromPhone: settings().phone || settings().whatsapp, to: p.shop, lines, total: ptBalance(), extra: t('Credit limit') + ': ' + (usd(lim) || '$0') + (ptBalanceIQD() ? ' · ' + t('Website sales owed to you') + ': ' + money(Math.abs(ptBalanceIQD())) : '')}); };
   $('#ptPw').onsubmit = async e => { e.preventDefault(); if(ro()) return; const f = e.target, er = $('#ptPwErr'); er.classList.add('hidden');
     if(f.a.value !== f.b.value){ er.textContent = t('The two passwords are different.'); er.classList.remove('hidden'); return; }
     try{ if(S.mode === 'supabase'){ const {error} = await S.sb.auth.updateUser({password: f.a.value}); if(error) throw error; } else { const id = p.role && p.role !== 'owner' ? 'pu_' + phoneKey(p.userPhone || '') : p.id; const d = clone(Store.get(p.role && p.role !== 'owner' ? 'pusers' : 'partners', id) || {}); d.demoPassword = f.a.value; delete d.id; await Store.set(p.role && p.role !== 'owner' ? 'pusers' : 'partners', id, d); }
@@ -376,8 +376,8 @@ async function ptAccount(){
   const tb = $('#ptBody').querySelector('[data-u]'); if(tb) tb.closest('tbody').onclick = e => { const tr = e.target.closest('tr[data-u]'); if(tr && e.target.closest('[data-ued]')) ptUserModal(Store.get('pusers', tr.dataset.u)); };
   if(PT_TABS.buy.includes(ptRole())){ const rw = await PartnerAPI.rpc('partner_reward_status').catch(() => null); const el = $('#ptRw');
     if(el && rw && (rw.tiers || []).length) el.innerHTML = `<div class="panel"><h3>🏆 ${t('Volume rewards')}</h3><p class="sub">${t('Buy more in a month and get an extra discount on everything the next month.')}</p>
-      <div class="tblwrap"><table class="tbl"><tbody>${rw.tiers.map(x => `<tr class="${rw.thisMonth >= x.min ? 'pt-hit' : ''}"><td>${t('Buy {a} in a month', {a: money(x.min)})}</td><td class="num"><b>+${x.pct}%</b> ${t('next month')}</td><td>${rw.thisMonth >= x.min ? '✓' : ''}</td></tr>`).join('')}</tbody></table></div>
-      <p class="mini">${t('This month')}: <b>${money(rw.thisMonth) || '0'}</b> · ${t('Last month')}: ${money(rw.lastMonth) || '0'} · ${t('Extra discount now')}: <b>${rw.activePct || 0}%</b></p></div>`; }
+      <div class="tblwrap"><table class="tbl"><tbody>${rw.tiers.map(x => `<tr class="${rw.thisMonth >= x.min ? 'pt-hit' : ''}"><td>${t('Buy {a} in a month', {a: usd(x.min)})}</td><td class="num"><b>+${x.pct}%</b> ${t('next month')}</td><td>${rw.thisMonth >= x.min ? '✓' : ''}</td></tr>`).join('')}</tbody></table></div>
+      <p class="mini">${t('This month')}: <b>${usd(rw.thisMonth) || '0'}</b> · ${t('Last month')}: ${usd(rw.lastMonth) || '0'} · ${t('Extra discount now')}: <b>${rw.activePct || 0}%</b></p></div>`; }
 }
 function ptUserModal(u){
   if(ro()) return; const isNew = !u; u = u || {role: 'seller', active: true};
@@ -425,20 +425,20 @@ function ptWaPrompt(phone, msg){ // WhatsApp update button for staff (one tap to
   pModal(`<h3>${t('Saved')}</h3><p>${t('Send the shop an update on WhatsApp?')}</p><pre class="pt-pre">${esc(msg)}</pre><div class="actions"><a class="btn red" target="_blank" rel="noopener" href="${waTo(phone, msg)}" data-mclose>WhatsApp</a><button class="btn ghost" data-mclose>${t('Not now')}</button></div>`);
 }
 function ledgerModal(pid){
-  const p = Store.get('partners', pid), led = Store.all('pledger').filter(x => x.pid === pid).sort((a, b) => (b.at || 0) - (a.at || 0)), bal = led.reduce((s, x) => s + (+x.amount || 0), 0);
-  pModal(`<h3>${esc(p.shop)} · ${t('Credit account')}</h3><p class="sub">${t('Credit limit')}: <b>${money(+p.creditLimit || 0) || '0'}</b> · ${bal >= 0 ? t('They owe') : t('We owe them')}: <b>${money(Math.abs(bal)) || '0'}</b></p>
+  const p = Store.get('partners', pid), led = Store.all('pledger').filter(x => x.pid === pid).sort((a, b) => (b.at || 0) - (a.at || 0)), bal = led.filter(x => x.cur !== 'IQD').reduce((s, x) => s + (+x.amount || 0), 0), balI = led.filter(x => x.cur === 'IQD').reduce((s, x) => s + (+x.amount || 0), 0);
+  pModal(`<h3>${esc(p.shop)} · ${t('Credit account')}</h3><p class="sub">${t('Credit limit')}: <b>${usd(+p.creditLimit || 0) || '0'}</b> · ${bal >= 0 ? t('They owe') : t('We owe them')}: <b>${usd(Math.abs(bal)) || '$0'}</b>${balI ? ` · ${t('Website sales owed to them')}: <b>${money(Math.abs(balI))}</b>` : ''}</p>
     <form id="lgF" class="form grid2"><label>${t('Type')}<select name="kind"><option value="payment">${t('Payment received from shop')}</option><option value="payout">${t('Paid to shop (website sales)')}</option><option value="adjust">${t('Adjustment (+ they owe more, − less)')}</option></select></label>
-      <label>${t('Amount (IQD)')}<input name="amount" type="number" step="250" dir="ltr" required></label><label class="span2">${t('Note')}<input name="note"></label>
+      <label>${t('Amount')}<div style="display:flex;gap:6px"><input name="amount" type="number" step="any" dir="ltr" required style="flex:1"><select name="cur" class="sel" style="width:90px"><option value="USD">USD $</option><option value="IQD">IQD</option></select></div></label><label class="span2">${t('Note')}<input name="note"></label>
       <div class="span2 actions"><span style="flex:1"></span><button type="button" class="btn ghost" data-mclose>${t('Close')}</button><button class="btn red">${t('Record')}</button></div></form>
-    <div class="tblwrap"><table class="tbl"><tbody>${led.slice(0, 60).map(x => `<tr><td>${dateStr(x.at)}</td><td>${esc(x.kind)}${x.note ? ' · ' + esc(x.note) : ''}</td><td class="ltr">${esc(x.ref || '')}</td><td class="num"><b class="${x.amount < 0 ? 'pos' : 'neg'}">${x.amount > 0 ? '+' : '−'}${money(Math.abs(x.amount))}</b></td></tr>`).join('') || `<tr><td class="empty">${t('No entries yet.')}</td></tr>`}</tbody></table></div>`, true);
-  $('#lgF').onsubmit = async e => { e.preventDefault(); const f = e.target; let a = Math.round(+f.amount.value); if(!a) return;
+    <div class="tblwrap"><table class="tbl"><tbody>${led.slice(0, 60).map(x => `<tr><td>${dateStr(x.at)}</td><td>${esc(x.kind)}${x.note ? ' · ' + esc(x.note) : ''}</td><td class="ltr">${esc(x.ref || '')}</td><td class="num"><b class="${x.amount < 0 ? 'pos' : 'neg'}">${x.amount > 0 ? '+' : '−'}${(x.cur === 'IQD' ? money : usd)(Math.abs(x.amount))}</b></td></tr>`).join('') || `<tr><td class="empty">${t('No entries yet.')}</td></tr>`}</tbody></table></div>`, true);
+  $('#lgF').onsubmit = async e => { e.preventDefault(); const f = e.target; const cur = f.cur.value; let a = cur === 'IQD' ? Math.round(+f.amount.value) : Math.round(+f.amount.value * 100) / 100; if(!a) return;
     if(f.kind.value === 'payment') a = -Math.abs(a); if(f.kind.value === 'payout') a = Math.abs(a);
-    await Store.set('pledger', 'lg_' + rid(12), {pid, kind: f.kind.value, amount: a, note: f.note.value.trim(), ref: '', by: S.me || '', at: Date.now()}); toast(t('Saved')); ledgerModal(pid); };
+    await Store.set('pledger', 'lg_' + rid(12), {pid, kind: f.kind.value, amount: a, cur, note: f.note.value.trim(), ref: '', by: S.me || '', at: Date.now()}); toast(t('Saved')); ledgerModal(pid); };
 }
 /* when Auto Engineer ships a credit order, it goes on the shop's account (once) */
 async function poLedger(no){
   const o = Store.get('porders', no); if(!o || o.pay !== 'credit' || o.ledgered || !['shipped','delivered','received'].includes(o.status)) return;
-  await Store.set('pledger', 'lg_po_' + no, {pid: o.pid, kind: 'invoice', amount: +o.total || 0, ref: no, at: Date.now(), by: S.me || ''});
+  await Store.set('pledger', 'lg_po_' + no, {pid: o.pid, kind: 'invoice', amount: +o.total || 0, cur: 'USD', ref: no, at: Date.now(), by: S.me || ''});
   const d = clone(o); d.ledgered = true; delete d.id; await Store.set('porders', no, d);
 }
 /* when a customer order with partner items is delivered: take the items off the shop's stock and credit the shop (price − commission) */
@@ -446,7 +446,7 @@ async function settlePartnerLines(order){
   if(!order || order.partnerSettled || !(order.lines || []).some(l => l.pid)) return false;
   for(const l of order.lines.filter(x => x.pid)){
     const pt = Store.get('partners', l.pid) || {}, com = pt.commission ?? 1.5, gross = (+l.price || 0) * (+l.qty || 0), net = Math.round(gross * (1 - com / 100));
-    await Store.set('pledger', 'lg_' + order.no + '_' + (l.listingId || rid(6)), {pid: l.pid, kind: 'sale', amount: -net, ref: order.no, note: `${l.partNo} × ${l.qty} (−${com}%)`, at: Date.now(), by: S.me || ''});
+    await Store.set('pledger', 'lg_' + order.no + '_' + (l.listingId || rid(6)), {pid: l.pid, kind: 'sale', amount: -net, cur: 'IQD', ref: order.no, note: `${l.partNo} × ${l.qty} (−${com}%)`, at: Date.now(), by: S.me || ''});
     const li = l.listingId && Store.get('plistings', l.listingId);
     if(li){ const s = Store.get('pstock', li.stockId); const now = Date.now();
       if(s){ await Store.set('pstock', li.stockId, {...s, qty: Math.max(0, (+s.qty || 0) - l.qty), updatedAt: now, lastMove: now});

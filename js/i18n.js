@@ -2,6 +2,10 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Website sales owed to you":"مستحق لك من مبيعات الموقع",
+"Website sales owed to them":"مستحق لهم من مبيعات الموقع",
+"Credit limit (USD, 0 = no credit)":"حد الائتمان (دولار، 0 = بدون آجل)",
+"Extra discount next month when a partner buys this much (USD) in a month. One per line: amount = extra %. Example: 10000 = 2":"خصم إضافي في الشهر التالي عندما يشتري الشريك هذا المبلغ (بالدولار) في الشهر. سطر لكل مستوى: المبلغ = النسبة الإضافية. مثال: 10000 = 2",
 "Columns in your file":"الأعمدة في ملفك",
 "none":"لا شيء",
 "Column {n}":"العمود {n}",
@@ -805,6 +809,10 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Website sales owed to you":"قەرزی تۆ لە فرۆشتنی ماڵپەڕ",
+"Website sales owed to them":"قەرزی ئەوان لە فرۆشتنی ماڵپەڕ",
+"Credit limit (USD, 0 = no credit)":"سنووری قەرز (دۆلار، 0 = بێ قەرز)",
+"Extra discount next month when a partner buys this much (USD) in a month. One per line: amount = extra %. Example: 10000 = 2":"داشکاندنی زیادە لە مانگی دواتر کاتێک هاوبەش ئەم بڕە (دۆلار) لە مانگێکدا دەکڕێت. هەر ئاستێک لە هێڵێک: بڕ = ڕێژەی زیادە. نموونە: 10000 = 2",
 "Columns in your file":"ستوونەکانی فایلەکەت",
 "none":"هیچ",
 "Column {n}":"ستوونی {n}",

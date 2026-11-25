@@ -33,7 +33,7 @@ async function adminWParts(){
   const draw = () => { const rows = WP.rows || [];
     $('#wpCount').textContent = t('{n} parts', {n: (WP.total || 0).toLocaleString('en-US')});
     $('#wpRows').innerHTML = rows.length ? rows.map(p => `<tr class="click" data-wp="${esc(p.id)}"><td class="ltr"><b>${esc(p.partNo)}</b></td><td>${esc(pName(p))}${p.hidden ? ` <span class="mini">(${t('hidden')})</span>` : ''}</td>
-        <td class="num">${nz(p.wholesalePrice) ? money(p.wholesalePrice) : '<span class="mini">' + t('Price on request') + '</span>'}</td><td class="num">${nz(p.offerPrice) && +p.offerPrice > 0 ? money(p.offerPrice) : '—'}</td>
+        <td class="num">${nz(p.wholesalePrice) ? usd(p.wholesalePrice) : '<span class="mini">' + t('Price on request') + '</span>'}</td><td class="num">${nz(p.offerPrice) && +p.offerPrice > 0 ? usd(p.offerPrice) : '—'}</td>
         <td class="mini">${stockText(p, true)}</td><td>${can('delete') ? `<button class="rm" data-wpdel="${esc(p.id)}">${t('Delete')}</button>` : ''}</td></tr>`).join('')
       : `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">${WP.q ? t('No parts found') : t('No wholesale parts yet. Tap "Upload stock & prices" and upload your wholesale list (PartNo, Name, Qty, Wholesale).')}</td></tr>`;
     $('#wpMoreW').innerHTML = rows.length < WP.total ? `<button class="btn sm ghost" id="wpMore">${t('Show more')}</button>` : ''; };
@@ -58,7 +58,7 @@ function wpEdit(p){
     <div class="row2"><div class="f"><label>${t('Part number')}</label><input name="partNo" dir="ltr" required value="${v('partNo')}" ${isNew ? '' : 'readonly'}></div><div class="f"><label>${t('Brand')}</label><input name="brand" value="${v('brand')}" placeholder="Toyota Genuine"></div></div>
     <div class="f"><label>${t('Name')}</label><input name="name" required value="${v('name')}"></div>
     <div class="row2"><div class="f"><label>${t('Arabic name')}</label><input name="nameAr" dir="rtl" value="${v('nameAr')}"></div><div class="f"><label>${t('Kurdish name')}</label><input name="nameKu" dir="rtl" value="${v('nameKu')}"></div></div>
-    <div class="row2"><div class="f"><label>${t('Wholesale price')} <i>(${t('empty = on request')})</i></label><input name="wholesalePrice" type="number" min="0" step="any" value="${v('wholesalePrice')}"></div>
+    <div class="row2"><div class="f"><label>${t('Wholesale price')} (USD $) <i>(${t('empty = on request')})</i></label><input name="wholesalePrice" type="number" min="0" step="any" value="${v('wholesalePrice')}"></div>
       <div class="f"><label>${t('Stock')}</label><div style="display:flex;gap:6px"><select name="stock" style="flex:1">${STOCKS.map(c => `<option value="${c}" ${p.stock === c ? 'selected' : ''}>${t(c)}</option>`).join('')}</select><input name="qty" type="number" min="0" step="1" style="width:110px" placeholder="${esc(t('Quantity'))}" value="${v('qty')}"></div></div></div>
     <div class="row2"><div class="f"><label>🔥 ${t('Offer price')} <i>(${t('empty = no offer')})</i></label><input name="offerPrice" type="number" min="0" step="any" value="${v('offerPrice')}"></div><div class="f"><label>${t('Offer note')}</label><input name="offerNote" value="${v('offerNote')}" placeholder="${esc(t('e.g. until stock lasts'))}"></div></div>
     <div class="f"><label>${t('Visibility')}</label><select name="hidden"><option value="">${t('Shown to partner shops')}</option><option value="1" ${p.hidden ? 'selected' : ''}>${t('Hidden')}</option></select></div>
