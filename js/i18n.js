@@ -2,6 +2,12 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Extra discount % for this partner (on top of the wholesale price)":"خصم إضافي % لهذا الشريك (فوق سعر الجملة)",
+"Wholesale prices for partner shops":"أسعار الجملة للمتاجر الشريكة",
+"Partners pay the Wholesale price of each part. For parts without a wholesale price, they pay the retail price minus this %. Only partner shops see these prices.":"يدفع الشركاء سعر الجملة لكل قطعة. للقطع التي ليس لها سعر جملة، يدفعون سعر المفرد ناقص هذه النسبة. المتاجر الشريكة فقط ترى هذه الأسعار.",
+"Default wholesale % below retail":"نسبة الجملة الافتراضية % أقل من المفرد",
+"{n} wholesale prices will be updated too":"سيتم تحديث {n} سعر جملة أيضاً",
+"Add a Wholesale column to update partner prices at the same time.":"أضف عمود Wholesale لتحديث أسعار الشركاء في نفس الوقت.",
 "Stock has not been uploaded yet.":"لم يتم رفع المخزون بعد.",
 "Last stock update: {d} · {n} part numbers":"آخر تحديث للمخزون: {d} · {n} رقم قطعة",
 "Daily stock update":"تحديث المخزون اليومي",
@@ -768,6 +774,12 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Extra discount % for this partner (on top of the wholesale price)":"داشکاندنی زیادە % بۆ ئەم هاوبەشە (سەرەوەی نرخی کۆ)",
+"Wholesale prices for partner shops":"نرخی کۆ بۆ دوکانە هاوبەشەکان",
+"Partners pay the Wholesale price of each part. For parts without a wholesale price, they pay the retail price minus this %. Only partner shops see these prices.":"هاوبەشەکان نرخی کۆی هەر پارچەیەک دەدەن. بۆ ئەو پارچانەی نرخی کۆیان نییە، نرخی تاک کەم ئەم ڕێژەیە دەدەن. تەنها دوکانە هاوبەشەکان ئەم نرخانە دەبینن.",
+"Default wholesale % below retail":"ڕێژەی بنەڕەتی کۆ % کەمتر لە تاک",
+"{n} wholesale prices will be updated too":"{n} نرخی کۆ هەروەها نوێ دەکرێنەوە",
+"Add a Wholesale column to update partner prices at the same time.":"ستوونی Wholesale زیاد بکە بۆ نوێکردنەوەی نرخی هاوبەشان لە هەمان کاتدا.",
 "Stock has not been uploaded yet.":"هێشتا کۆگا بار نەکراوە.",
 "Last stock update: {d} · {n} part numbers":"دوایین نوێکردنەوەی کۆگا: {d} · {n} ژمارەی پارچە",
 "Daily stock update":"نوێکردنەوەی ڕۆژانەی کۆگا",

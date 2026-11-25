@@ -999,3 +999,5 @@ b.neg{color:#c4200b}b.pos{color:#11753d}
 .phbox .gsc-control-cse{padding:0;border:0;background:transparent;font-family:inherit}
 .phbox .gsc-above-wrapper-area,.phbox .gsc-tabsArea{display:none}
 .pt-item small.pt-in{color:#18A35A;font-weight:600}
+
+.pt-item small.pt-rrp{display:block;color:var(--muted);font-size:11.5px}

@@ -10,11 +10,12 @@ const ZERO_OPTS = [['On order', 'On order (2–5 days)'], ['Out of stock', 'Out 
 function parseStockRows(rows){
   const H_PN = ['partno','partnumber','pn','part','partnum','number','item','itemno','itemnumber','material','code','partcode'];
   const H_Q = ['qty','quantity','stock','onhand','soh','available','availableqty','balance','qoh','stockqty','freestock','free','qtyonhand','instock'];
-  let pi = -1, qi = -1, start = 0;
+  const H_W = ['wholesale','wholesaleprice','trade','tradeprice','dealer','dealerprice','wsprice','ws','partnerprice','wholesaleiqd'];
+  let pi = -1, qi = -1, wi = -1, start = 0;
   for(let r = 0; r < Math.min(rows.length, 15); r++){
     const h = (rows[r] || []).map(x => String(x).toLowerCase().replace(/[^a-z]/g, ''));
     const a = h.findIndex(x => H_PN.includes(x)), b = h.findIndex(x => H_Q.includes(x));
-    if(a >= 0 && b >= 0 && a !== b){ pi = a; qi = b; start = r + 1; break; }
+    if(a >= 0 && b >= 0 && a !== b){ pi = a; qi = b; wi = h.findIndex(x => H_W.includes(x)); start = r + 1; break; }
   }
   const out = new Map(); let bad = 0;
   for(let r = start; r < rows.length; r++){
@@ -24,7 +25,8 @@ function parseStockRows(rows){
       const nums = cells.filter(z => z !== pn && /^-?\d+(\.\d+)?$/.test(z.replace(/,/g, ''))); q = nums.length ? nums[nums.length - 1] : ''; }
     const k = pnKey(pn); if(k.length < 4){ if(row.some(Boolean)) bad++; continue; }
     const n = Number(String(q).replace(/,/g, '')); if(q === '' || !isFinite(n)){ bad++; continue; }
-    const e = out.get(k); out.set(k, {pn: e ? e.pn : String(pn).trim(), key: k, qty: (e ? e.qty : 0) + Math.max(0, Math.floor(n))});
+    const wv = wi >= 0 ? Number(String(row[wi] || '').replace(/[^0-9.]/g, '')) : 0, w = wv > 0 ? wv : null;
+    const e = out.get(k); out.set(k, {pn: e ? e.pn : String(pn).trim(), key: k, qty: (e ? e.qty : 0) + Math.max(0, Math.floor(n)), w: w || (e ? e.w : null)});
   }
   return {items: [...out.values()], bad};
 }
@@ -41,10 +43,10 @@ const StockAPI = {
   },
   async apply(items, zs, onProgress){ let changed = 0;
     for(let i = 0; i < items.length; i += 1500){ const part = items.slice(i, i + 1500);
-      if(this.live()){ const {data, error} = await S.sb.rpc('stock_apply', {p_rows: part.map(x => ({k: x.key, q: x.qty})), p_zero_status: zs}); if(error) throw error; changed += data || 0; }
-      else{ const by = new Map(part.map(x => [x.key, x.qty]));
-        for(const p of Store.all('parts')){ const q = by.get(pnKey(p.partNo)); if(q === undefined) continue; const st = q > 0 ? 'In stock' : zs;
-          if(p.qty === q && p.stock === st) continue; const d = {...p, qty: q, stock: st}; delete d.id; await Store.set('parts', p.id, d); changed++; } }
+      if(this.live()){ const {data, error} = await S.sb.rpc('stock_apply', {p_rows: part.map(x => (x.w ? {k: x.key, q: x.qty, w: x.w} : {k: x.key, q: x.qty})), p_zero_status: zs}); if(error) throw error; changed += data || 0; }
+      else{ const by = new Map(part.map(x => [x.key, x]));
+        for(const p of Store.all('parts')){ const x = by.get(pnKey(p.partNo)); if(!x) continue; const q = x.qty, st = q > 0 ? 'In stock' : zs;
+          if(p.qty === q && p.stock === st && (!x.w || +p.wholesalePrice === x.w)) continue; const d = {...p, qty: q, stock: st}; if(x.w) d.wholesalePrice = x.w; delete d.id; await Store.set('parts', p.id, d); changed++; } }
       onProgress && onProgress(Math.min(items.length, i + 1500), items.length); }
     return changed; },
   async zeroMissing(keys, zs){ let total = 0;
@@ -63,7 +65,7 @@ function stockInfoLine(){ const si = Store.get('config', 'stockinfo'); if(!si ||
 function openStockUpdate(){
   const st = {items: [], bad: 0, pv: null};
   openModal(mHead(t('Daily stock update'), stockInfoLine()) + `<div class="modal-body">
-    <p class="mini">${t('Upload your stock report (Excel or CSV) or paste it below: one part number and its quantity per line. Columns are found automatically (e.g. PartNo and Qty).')}</p>
+    <p class="mini">${t('Upload your stock report (Excel or CSV) or paste it below: one part number and its quantity per line. Columns are found automatically (e.g. PartNo and Qty).')} ${t('Add a Wholesale column to update partner prices at the same time.')}</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><label class="btn red" style="cursor:pointer">📄 ${t('Choose Excel / CSV')}<input type="file" id="skF" accept=".xlsx,.xls,.csv,.txt" hidden></label><span class="mini" id="skFile" style="align-self:center"></span></div>
     <textarea id="skT" class="sel" rows="7" dir="ltr" style="width:100%;font-family:monospace" placeholder="04465-0K290   12\n90915-YZZE1   140\n48510-0K330   0"></textarea>
     <div class="row2" style="margin-top:12px"><div class="f"><label>${t('When the quantity is 0, show customers')}</label><select id="skZ" class="sel">${ZERO_OPTS.map(([v, l]) => `<option value="${v}">${t(l)}</option>`).join('')}</select></div>
@@ -85,9 +87,10 @@ function openStockUpdate(){
     try{ st.pv = await StockAPI.preview(st.items.map(x => x.key)); showPv(); }catch(x){ $('#skR').innerHTML = `<p class="err">${t('Could not check the list')}: ${esc(x.message || x)}</p>`; }
     b.disabled = false; b.textContent = t('Check list'); };
   const showPv = () => { const pv = st.pv, byKey = new Map(st.items.map(x => [x.key, x.pn])), zero = $('#skM').checked;
-    const inStock = st.items.filter(x => x.qty > 0).length;
+    const inStock = st.items.filter(x => x.qty > 0).length, withW = st.items.filter(x => x.w).length;
     $('#skR').innerHTML = `<div class="box" style="margin-top:12px"><h4>${t('Ready to update')}</h4>
       <p>✅ ${t('{n} parts found in your catalog', {n: (+pv.matched).toLocaleString('en-US')})} · ${t('{n} with quantity above 0', {n: inStock.toLocaleString('en-US')})}</p>
+      ${withW ? `<p>🏪 ${t('{n} wholesale prices will be updated too', {n: withW.toLocaleString('en-US')})}</p>` : ''}
       ${zero ? `<p>⬇️ ${t('{n} parts not in the list will go to 0', {n: (+pv.missing).toLocaleString('en-US')})}</p>` : `<p class="mini">${t('Parts not in the list keep their current stock.')}</p>`}
       ${pv.unknownCount ? `<p class="err">⚠️ ${t('{n} part numbers are not in your catalog and will be skipped', {n: (+pv.unknownCount).toLocaleString('en-US')})}:<br><span class="mini ltr">${(pv.unknown || []).slice(0, 60).map(k => esc(byKey.get(k) || k)).join(', ')}${pv.unknownCount > 60 ? ' …' : ''}</span></p>` : ''}
       ${st.bad ? `<p class="mini">${t('{n} lines without a part number or quantity were ignored.', {n: st.bad})}</p>` : ''}</div>`;

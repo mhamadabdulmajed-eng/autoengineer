@@ -398,7 +398,7 @@ function partnerModal(p, pre){
     <label>${t('Shop name')}<input name="shop" required value="${esc(p.shop || '')}"></label><label>${t('Owner name')}<input name="owner" value="${esc(p.owner || '')}"></label>
     <label>${t('Phone (sign-in)')}<input name="phone" type="tel" dir="ltr" required value="${esc(p.phone || '')}" ${isNew ? '' : 'readonly'}></label><label>${t('City')}<input name="city" value="${esc(p.city || '')}"></label>
     <label class="span2">${t('Address')}<input name="address" value="${esc(p.address || '')}"></label>
-    <label>${t('Partner discount % (off retail price)')}<input name="discount" type="number" min="0" max="90" step="0.5" dir="ltr" value="${+p.discount || 0}"></label>
+    <label>${t('Extra discount % for this partner (on top of the wholesale price)')}<input name="discount" type="number" min="0" max="90" step="0.5" dir="ltr" value="${+p.discount || 0}"></label>
     <label>${t('Commission % on their sales')}<input name="commission" type="number" min="0" max="50" step="0.1" dir="ltr" value="${p.commission ?? 1.5}"></label>
     <label>${t('Credit limit (IQD, 0 = no credit)')}<input name="creditLimit" type="number" min="0" step="50000" dir="ltr" value="${+p.creditLimit || 0}"></label><span></span>
     <label class="span2">${t('Private notes (partner cannot see)')}<input name="notes" value="${esc(p.notes || '')}"></label>

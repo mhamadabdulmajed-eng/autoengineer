@@ -20,7 +20,9 @@ const seesCost = () => ptRole() !== 'seller';
 function ptMonthTotal(pid, k){ return Store.all('porders').filter(o => o.pid === pid && ['approved','paid','shipped','delivered','received'].includes(o.status) && o.createdAt >= monthStart(k) && o.createdAt < monthStart(k - 1)).reduce((s, o) => s + (+o.total || 0), 0); }
 function ptLocalPrice(p){
   if(!p) return null; const disc = (Number((S.partner || {}).discount) || 0) + rewardPct(ptMonthTotal((S.partner || {}).id, 1));
-  let base = nz(p.wholesalePrice) && +p.wholesalePrice > 0 ? +p.wholesalePrice : (nz(p.retailPrice) && +p.retailPrice > 0 ? Math.ceil(+p.retailPrice * (1 - Math.min(90, Math.max(0, disc)) / 100) / 250) * 250 : null);
+  const d = Math.min(90, Math.max(0, disc)), dd = Math.min(90, Math.max(0, +((Store.get('config', 'pricing') || {}).wholesaleDiscount) || 0));
+  const ws = nz(p.wholesalePrice) && +p.wholesalePrice > 0 ? +p.wholesalePrice : null, rp = nz(p.retailPrice) && +p.retailPrice > 0 ? +p.retailPrice : null;
+  let base = ws !== null ? (d ? Math.ceil(ws * (1 - d / 100) / 250) * 250 : ws) : rp !== null ? (d || dd ? Math.ceil(rp * (1 - dd / 100) * (1 - d / 100) / 250) * 250 : rp) : null;
   const off = nz(p.offerPrice) && +p.offerPrice > 0 ? +p.offerPrice : null;
   return base === null ? off : (off === null ? base : Math.min(base, off));
 }
@@ -285,7 +287,7 @@ async function ptBuySearch(keep){
 function ptItemRow(p, pr, offer){
   const inC = PS.cart.some(c => c.partId === p.id), stockOk = p.qty != null && p.qty !== '' ? +p.qty > 0 : (!p.stock || p.stock === 'In stock'), alert = Store.get('pnotify', 'pn_' + S.partner.id + '_' + p.id);
   return `<div class="pt-item"><div><b class="ltr">${esc(p.partNo)}</b><span>${esc(pName(p))}${offer ? ` <span class="pst new">🔥 ${t('Offer')}</span>` : ''}</span>${p.stock || p.qty != null ? `<small class="${(+p.qty || 0) > 0 || p.stock === 'In stock' ? 'pt-in' : ''}">${stockText(p, true)}${p.offerNote ? ' · ' + esc(p.offerNote) : ''}</small>` : ''}</div>
-    <div class="num">${pr ? `<b>${money(pr)}</b>` : `<small>${t('Price on request')}</small>`}</div>
+    <div class="num">${pr ? `<b>${money(pr)}</b>${nz(p.retailPrice) && +p.retailPrice > pr ? `<small class="pt-rrp">${t('Retail')} <s>${money(p.retailPrice)}</s></small>` : ''}` : `<small>${t('Price on request')}</small>`}</div>
     <div class="pt-acts">${!stockOk ? (alert ? `<span class="mini">🔔 ${t('Alert on')}</span>` : `<button class="btn sm ghost" data-ntf="${esc(p.id)}">🔔 ${t('Notify me')}</button>`) : ''}
     <button class="btn sm ${inC ? 'ghost' : 'red'}" data-add="${esc(p.id)}" ${pr ? '' : 'disabled'}>${inC ? '✓ ' + t('Added') : t('Add')}</button></div></div>`;
 }
