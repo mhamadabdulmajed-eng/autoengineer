@@ -3,7 +3,7 @@
    Upload an Excel/CSV or paste "part number  quantity" lines. Every matching part gets the
    quantity. Partner shops see the exact quantity; retail customers see In stock / On order.
    ===================================================================== */
-const pnKey = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');
+/* pnKey (part number → letters/digits, lower case) comes from app.js */
 const ZERO_OPTS = [['On order', 'On order (2–5 days)'], ['Out of stock', 'Out of stock'], ['Ask', 'Ask']];
 
 /* rows: array of arrays (from Excel or pasted text) → [{pn, key, qty}] (same part on several lines is added up) */
