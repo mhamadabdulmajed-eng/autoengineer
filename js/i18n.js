@@ -2,6 +2,13 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Share account":"مشاركة الحساب",
+"Password: the one you already have. If you forgot it, ask us for a new one.":"كلمة المرور: التي لديك مسبقاً. إذا نسيتها، اطلب منا كلمة جديدة.",
+"Sign in to see your prices and stock, order, and manage your shop stock for free.":"سجّل الدخول لترى أسعارك والمخزون، وتطلب، وتدير مخزون محلك مجاناً.",
+"Send the sign-in details to the shop. The phone number is their username.":"أرسل بيانات الدخول إلى المحل. رقم الهاتف هو اسم المستخدم.",
+"More…":"المزيد…",
+"New password + share":"كلمة مرور جديدة + مشاركة",
+"Make a new password for {s}? The old password stops working.":"إنشاء كلمة مرور جديدة لـ {s}؟ ستتوقف كلمة المرور القديمة عن العمل.",
 "Retail catalog":"كتالوج المفرد",
 "Wholesale catalog":"كتالوج الجملة",
 "Separate from the retail shop: these parts, prices and stock are shown only to your partner shops in the wholesale room. Retail customers never see them.":"منفصل عن متجر المفرد: هذه القطع والأسعار والمخزون تظهر فقط للمتاجر الشريكة في قسم الجملة. زبائن المفرد لا يرونها أبداً.",
@@ -791,6 +798,13 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Share account":"هاوبەشکردنی هەژمار",
+"Password: the one you already have. If you forgot it, ask us for a new one.":"وشەی نهێنی: ئەوەی پێشتر هەتە. ئەگەر لەبیرت کردووە، داوای نوێمان لێ بکە.",
+"Sign in to see your prices and stock, order, and manage your shop stock for free.":"بچۆ ژوورەوە بۆ بینینی نرخ و کۆگا، داواکردن، و بەڕێوەبردنی کۆگای دوکانەکەت بە خۆڕایی.",
+"Send the sign-in details to the shop. The phone number is their username.":"زانیاری چوونەژوورەوە بۆ دوکانەکە بنێرە. ژمارەی مۆبایل ناوی بەکارهێنەرە.",
+"More…":"زیاتر…",
+"New password + share":"وشەی نهێنی نوێ + هاوبەشکردن",
+"Make a new password for {s}? The old password stops working.":"وشەی نهێنی نوێ بۆ {s} دروست بکرێت؟ وشە کۆنەکە ئیتر کار ناکات.",
 "Retail catalog":"کەتەلۆگی تاک",
 "Wholesale catalog":"کەتەلۆگی کۆ",
 "Separate from the retail shop: these parts, prices and stock are shown only to your partner shops in the wholesale room. Retail customers never see them.":"جیایە لە فرۆشگای تاک: ئەم پارچانە و نرخ و کۆگایان تەنها بۆ دوکانە هاوبەشەکان لە بەشی کۆ پیشان دەدرێن. کڕیارانی تاک هەرگیز نایانبینن.",

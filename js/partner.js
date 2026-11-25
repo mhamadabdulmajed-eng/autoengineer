@@ -381,13 +381,14 @@ function adminPartners(){
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Shop')}</th><th>${t('Phone')}</th><th>${t('City')}</th><th class="num">${t('Discount')}</th><th class="num">${t('Commission')}</th><th class="num">${t('Stock items')}</th><th class="num">${t('Orders')}</th><th>${t('Status')}</th><th></th></tr></thead><tbody>
     ${list.length ? list.map(p => `<tr data-id="${esc(p.id)}"><td><b>${esc(p.shop)}</b><br><span class="mini">${esc(p.owner || '')}</span></td><td class="ltr">${esc(p.phone)}</td><td>${esc(p.city || '')}</td><td class="num">${+p.discount || 0}%</td><td class="num">${p.commission ?? 1.5}%</td>
       <td class="num">${stock.filter(s => s.pid === p.id).length}</td><td class="num">${pos.filter(o => o.pid === p.id).length}</td><td><span class="vst ${p.status === 'paused' ? 'vis' : 'cust'}">${t(p.status === 'paused' ? 'Paused' : 'Active')}</span></td>
-      <td style="white-space:nowrap"><button class="linkbtn" data-pv>${t('Open portal')}</button> · <button class="linkbtn" data-acc>${t('Account')}</button> · <button class="linkbtn" data-ed>${t('Edit')}</button></td></tr>`).join('') : `<tr><td colspan="9" class="empty">${t('No partners yet.')}</td></tr>`}</tbody></table></div>`;
+      <td style="white-space:nowrap"><button class="pt-share" data-sh title="${esc(t('Share account'))}" aria-label="${esc(t('Share account'))}"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button> <button class="linkbtn" data-pv>${t('Open portal')}</button> · <button class="linkbtn" data-acc>${t('Account')}</button> · <button class="linkbtn" data-ed>${t('Edit')}</button></td></tr>`).join('') : `<tr><td colspan="9" class="empty">${t('No partners yet.')}</td></tr>`}</tbody></table></div>`;
   $('#apNew').onclick = () => partnerModal(null);
   $('#adminBody').onclick = async e => {
     const mk = e.target.closest('[data-mk]'); if(mk){ const w = Store.get('wholesalers', mk.dataset.mk); partnerModal(null, {shop: w.company, owner: w.name, phone: w.phone, city: w.location, appId: w.id}); return; }
     const rj = e.target.closest('[data-rj]'); if(rj){ const w = clone(Store.get('wholesalers', rj.dataset.rj)); w.status = 'rejected'; w.reviewedAt = Date.now(); delete w.id; await Store.set('wholesalers', rj.dataset.rj, w); return; }
     const tr = e.target.closest('tr[data-id]'); if(!tr) return;
     if(e.target.closest('[data-acc]')){ ledgerModal(tr.dataset.id); return; }
+    if(e.target.closest('[data-sh]')){ shareAccount(Store.get('partners', tr.dataset.id)); return; }
     if(e.target.closest('[data-pv]')){ S.partnerPreview = tr.dataset.id; S.partner = Store.get('partners', tr.dataset.id); PS.tab = 'overview'; location.hash = 'partner'; return; }
     partnerModal(Store.get('partners', tr.dataset.id)); };
 }
@@ -480,4 +481,17 @@ function poModal(o){
     }catch(er){ if(w) w.close(); toast(t('Could not save')); return; }
     if(st){ const pt = Store.get('partners', o.pid) || {}; ptWaPrompt(pt.phone || o.phone, `${t('Auto Engineer')} · ${o.id}: ${t(PO_LABEL[d.status] || d.status)}${d.courier ? ' · ' + d.courier + (d.tracking ? ' (' + d.tracking + ')' : '') : ''}${d.reply ? '\n' + d.reply : ''}${d.shareKey ? '\n' + t('Invoice') + ': ' + invLink(d.shareKey) : ''}`); } };
 }
+/* share a partner's sign-in details (WhatsApp / copy); optionally with a fresh password */
+function shareAccount(p, pw){
+  const L = p.lang || 'en', link = (/^https?:/.test(location.origin) ? location.origin : 'https://autoengineeriq.com') + '/#partner';
+  const msg = `${t('Hello {n},', {n: p.owner || p.shop}, L)}\n\n${t('Your Auto Engineer partner account', null, L)} · ${p.shop}\n${link}\n\n${t('Phone', null, L)}: ${p.phone}\n${pw ? t('Password', null, L) + ': ' + pw : t('Password: the one you already have. If you forgot it, ask us for a new one.', null, L)}\n\n${t('Sign in to see your prices and stock, order, and manage your shop stock for free.', null, L)}`;
+  pModal(`<h3>📤 ${t('Share account')} · ${esc(p.shop)}</h3><p class="sub">${t('Send the sign-in details to the shop. The phone number is their username.')}</p><pre class="pt-pre">${esc(msg)}</pre>
+    <div class="actions"><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${phoneKey(p.phone)}?text=${encodeURIComponent(msg)}" id="shWa">WhatsApp</a><button class="btn ghost" id="shCopy">${t('Copy')}</button>${navigator.share ? `<button class="btn ghost" id="shMore">${t('More…')}</button>` : ''}
+      ${pw ? '' : `<span style="flex:1"></span><button class="btn ghost" id="shNew">🔑 ${t('New password + share')}</button>`}<button class="btn" data-mclose>${t('Done')}</button></div>`);
+  $('#shCopy').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(msg); toast(t('Copied')); };
+  if($('#shMore')) $('#shMore').onclick = () => navigator.share({title: 'Auto Engineer', text: msg}).catch(() => {});
+  if($('#shNew')) $('#shNew').onclick = () => confirmBox(t('Make a new password for {s}? The old password stops working.', {s: p.shop}), async () => {
+    const np = genPw(); try{ await PartnerAPI.setLogin(p.id, np); shareAccount(p, np); }catch(x){ toast(t('Could not save')); } });
+}
+window.shareAccount = shareAccount;
 window.adminPartners = adminPartners; window.adminPOrders = adminPOrders;
