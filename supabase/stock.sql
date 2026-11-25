@@ -149,6 +149,9 @@ language sql stable security definer set search_path = public as $$
     case when sort = 'cat'   then p.data->>'category' end,
     case when sort = 'stock' then p.data->>'stock'    end,
     (p.pn = public.ae_pn(q)) desc, (p.pn like public.ae_pn(q) || '%' and length(public.ae_pn(q)) > 2) desc,
+    -- customers: oil, oil filter, brake pads first, then the rest from lowest to highest price
+    case when not st.on_ and coalesce(sort,'') = '' then public.ae_shop_rank(p.data) end asc nulls last,
+    case when not st.on_ and coalesce(sort,'') = '' then p.rp end asc nulls last,
     -- names that start with what was typed come first, then shorter (simpler) names
     (coalesce(q,'') <> '' and (public.ae_txt(p.data->>'nameAr') like public.ae_txt(q) || '%'
        or public.ae_txt(p.data->>'nameKu') like public.ae_txt(q) || '%' or lower(p.data->>'name') like lower(q) || '%')) desc,

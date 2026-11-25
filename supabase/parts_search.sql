@@ -55,7 +55,7 @@ returns table(id text, data jsonb, total bigint)
 language sql stable security definer set search_path = public as $$
   with words as (
     select w from unnest(string_to_array(public.ae_txt(trim(coalesce(q,''))), ' ')) w where length(w) > 0
-  ), st as (select (staff and public.my_staff() is not null) as on_), p as (
+  ), st as (select (staff and public.my_staff() is not null) as on_, public.my_staff() is not null as stf, public.my_partner() is not null as ptn), p as (
     select d.id, d.data, d.hay, d.pn, nullif(d.data->>'retailPrice', '')::numeric as rp,
            coalesce((d.data->>'hidden')::boolean, false) as hid
     from docs d
@@ -67,7 +67,8 @@ language sql stable security definer set search_path = public as $$
       and (coalesce(stk,'') = '' or coalesce(d.data->>'stock','Ask') = stk)
   )
   select p.id,
-         case when public.my_staff() is not null then p.data else p.data - 'wholesalePrice' end,
+         case when st.stf then p.data when st.ptn then p.data - 'wholesalePrice'
+              else p.data - 'wholesalePrice' - 'qty' - 'offerPrice' - 'offerNote' end,
          count(*) over ()
   from p, st
   where (not p.hid or (st.on_ and coalesce(vis,'') <> 'shown'))
