@@ -2,6 +2,13 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Columns in your file":"الأعمدة في ملفك",
+"none":"لا شيء",
+"Column {n}":"العمود {n}",
+"No heading row found. Add a first row with column names, e.g. PartNo, Name, Qty, Wholesale.":"لم يتم العثور على صف العناوين. أضف صفاً أول بأسماء الأعمدة، مثل PartNo, Name, Qty, Wholesale.",
+"No prices found in this list: partner shops will see \"Price on request\". Choose the price column above.":"لم يتم العثور على أسعار في هذه القائمة: ستظهر للمتاجر الشريكة \"السعر عند الطلب\". اختر عمود السعر أعلاه.",
+"{n} names will be updated":"سيتم تحديث {n} اسم",
+"No names found: partner shops will only see the part number. Choose the name column above.":"لم يتم العثور على أسماء: ستظهر للمتاجر الشريكة أرقام القطع فقط. اختر عمود الاسم أعلاه.",
 "Share account":"مشاركة الحساب",
 "Password: the one you already have. If you forgot it, ask us for a new one.":"كلمة المرور: التي لديك مسبقاً. إذا نسيتها، اطلب منا كلمة جديدة.",
 "Sign in to see your prices and stock, order, and manage your shop stock for free.":"سجّل الدخول لترى أسعارك والمخزون، وتطلب، وتدير مخزون محلك مجاناً.",
@@ -798,6 +805,13 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Columns in your file":"ستوونەکانی فایلەکەت",
+"none":"هیچ",
+"Column {n}":"ستوونی {n}",
+"No heading row found. Add a first row with column names, e.g. PartNo, Name, Qty, Wholesale.":"هیچ ڕیزی سەردێڕ نەدۆزرایەوە. ڕیزێکی یەکەم بە ناوی ستوونەکان زیاد بکە، بۆ نموونە PartNo, Name, Qty, Wholesale.",
+"No prices found in this list: partner shops will see \"Price on request\". Choose the price column above.":"هیچ نرخێک لەم لیستەدا نەدۆزرایەوە: دوکانە هاوبەشەکان \"نرخ بە داواکردن\" دەبینن. ستوونی نرخ لە سەرەوە هەڵبژێرە.",
+"{n} names will be updated":"{n} ناو نوێ دەکرێتەوە",
+"No names found: partner shops will only see the part number. Choose the name column above.":"هیچ ناوێک نەدۆزرایەوە: دوکانە هاوبەشەکان تەنها ژمارەی پارچە دەبینن. ستوونی ناو لە سەرەوە هەڵبژێرە.",
 "Share account":"هاوبەشکردنی هەژمار",
 "Password: the one you already have. If you forgot it, ask us for a new one.":"وشەی نهێنی: ئەوەی پێشتر هەتە. ئەگەر لەبیرت کردووە، داوای نوێمان لێ بکە.",
 "Sign in to see your prices and stock, order, and manage your shop stock for free.":"بچۆ ژوورەوە بۆ بینینی نرخ و کۆگا، داواکردن، و بەڕێوەبردنی کۆگای دوکانەکەت بە خۆڕایی.",

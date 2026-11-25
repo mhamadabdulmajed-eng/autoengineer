@@ -6,31 +6,43 @@
 /* pnKey (part number → letters/digits, lower case) comes from app.js */
 const ZERO_OPTS = [['On order', 'On order (2–5 days)'], ['Out of stock', 'Out of stock'], ['Ask', 'Ask']];
 
-/* rows: array of arrays (from Excel or pasted text) → [{pn, key, qty}] (same part on several lines is added up) */
-function parseStockRows(rows){
-  const H_PN = ['partno','partnumber','pn','part','partnum','number','item','itemno','itemnumber','material','code','partcode'];
-  const H_Q = ['qty','quantity','stock','onhand','soh','available','availableqty','balance','qoh','stockqty','freestock','free','qtyonhand','instock'];
-  const H_W = ['wholesale','wholesaleprice','trade','tradeprice','dealer','dealerprice','wsprice','ws','partnerprice','wholesaleiqd'];
-  const H_N = ['name','description','desc','partname','itemname','itemdescription','partdescription'];
-  let pi = -1, qi = -1, wi = -1, ni = -1, start = 0;
+/* ---- columns: found automatically from the heading row, and the user can change them ---- */
+const hNorm = x => String(x == null ? '' : x).toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+const COLDEF = {
+  pn: {lbl: 'Part number', exact: ['partno','partnumber','pn','part','partnum','number','item','itemno','itemnumber','material','code','partcode','رقمالقطعة','رقم','ژمارە','ژمارەیپارچە'], has: ['partno','partnum','رقمالقطع','ژمارەیپارچ']},
+  q: {lbl: 'Quantity', exact: ['qty','quantity','stock','onhand','soh','available','availableqty','balance','qoh','stockqty','freestock','free','qtyonhand','instock','الكمية','كمية','عدد','بڕ'], has: ['qty','quantity','onhand','كمي','بڕ']},
+  w: {lbl: 'Wholesale price', exact: ['wholesale','wholesaleprice','trade','tradeprice','dealer','dealerprice','wsprice','ws','wsp','partnerprice','wholesaleiqd','price','unitprice','sellingprice','saleprice','netprice','السعر','سعر','سعرالجملة','نرخ','نرخیکۆ'], has: ['wholesale','trade','dealer','price','سعر','نرخ'], not: ['retail','cost','total','amount','مفرد','تاک']},
+  n: {lbl: 'Name', exact: ['name','description','desc','partname','itemname','itemdescription','partdescription','nomenclature','الاسم','اسم','الوصف','وصف','ناو','ناوی'], has: ['name','desc','اسم','وصف','ناو']}
+};
+function findCol(h, def, used){
+  let i = h.findIndex((x, k) => !used.includes(k) && def.exact.includes(x)); if(i >= 0) return i;
+  return h.findIndex((x, k) => !used.includes(k) && x && def.has.some(z => x.includes(z)) && !(def.not || []).some(z => x.includes(z)));
+}
+function detectCols(rows){
   for(let r = 0; r < Math.min(rows.length, 15); r++){
-    const h = (rows[r] || []).map(x => String(x).toLowerCase().replace(/[^a-z]/g, ''));
-    const a = h.findIndex(x => H_PN.includes(x)), b = h.findIndex(x => H_Q.includes(x));
-    if(a >= 0 && b >= 0 && a !== b){ pi = a; qi = b; wi = h.findIndex(x => H_W.includes(x)); ni = h.findIndex(x => H_N.includes(x)); start = r + 1; break; }
+    const h = (rows[r] || []).map(hNorm); const pn = findCol(h, COLDEF.pn, []); if(pn < 0) continue;
+    const q = findCol(h, COLDEF.q, [pn]); if(q < 0) continue;
+    const w = findCol(h, COLDEF.w, [pn, q]), n = findCol(h, COLDEF.n, [pn, q, w]);
+    return {start: r + 1, hdr: (rows[r] || []).map(x => String(x == null ? '' : x).trim()), pn, q, w, n};
   }
+  return null;
+}
+/* rows: array of arrays → [{pn, key, qty, w, n}] (same part on several lines is added up) */
+function parseStockRows(rows, cols){
+  cols = cols === undefined ? detectCols(rows) : cols;
   const out = new Map(); let bad = 0;
-  for(let r = start; r < rows.length; r++){
+  for(let r = cols ? cols.start : 0; r < rows.length; r++){
     const row = (rows[r] || []).map(x => String(x == null ? '' : x).trim()); let pn, q;
-    if(pi >= 0){ pn = row[pi]; q = row[qi]; }
+    if(cols){ pn = row[cols.pn]; q = row[cols.q]; }
     else{ const cells = row.filter(Boolean); pn = cells.find(z => /\d/.test(z) && pnKey(z).length >= 5);
       const nums = cells.filter(z => z !== pn && /^-?\d+(\.\d+)?$/.test(z.replace(/,/g, ''))); q = nums.length ? nums[nums.length - 1] : ''; }
     const k = pnKey(pn); if(k.length < 4){ if(row.some(Boolean)) bad++; continue; }
-    const n = Number(String(q).replace(/,/g, '')); if(q === '' || !isFinite(n)){ bad++; continue; }
-    const wv = wi >= 0 ? Number(String(row[wi] || '').replace(/[^0-9.]/g, '')) : 0, w = wv > 0 ? wv : null;
-    const nm = ni >= 0 ? String(row[ni] || '').trim() : '';
+    const n = Number(String(q == null ? '' : q).replace(/,/g, '')); if(q === '' || q == null || !isFinite(n)){ bad++; continue; }
+    const wv = cols && cols.w >= 0 ? Number(String(row[cols.w] || '').replace(/[^0-9.]/g, '')) : 0, w = wv > 0 ? wv : null;
+    const nm = cols && cols.n >= 0 ? String(row[cols.n] || '').trim() : '';
     const e = out.get(k); out.set(k, {pn: e ? e.pn : String(pn).trim(), key: k, qty: (e ? e.qty : 0) + Math.max(0, Math.floor(n)), w: w || (e ? e.w : null), n: nm || (e ? e.n : '')});
   }
-  return {items: [...out.values()], bad};
+  return {items: [...out.values()], bad, cols};
 }
 const textRows = txt => String(txt || '').split(/\r?\n/).map(l => l.replace(/\s+$/, '')).filter(l => l.trim()).map(l =>
   (l.includes('\t') ? l.split('\t') : l.split(/;|\||,(?!\d{3}(?!\d))|\s+/)).map(x => x.trim()).filter(x => x && x.toLowerCase() !== 'x'));
@@ -74,18 +86,25 @@ function openStockUpdate(col){ col = col === 'wparts' ? 'wparts' : 'parts'; cons
     <textarea id="skT" class="sel" rows="7" dir="ltr" style="width:100%;font-family:monospace" placeholder="${W ? 'PartNo\tName\tQty\tWholesale\n04465-0K290\tBrake pads\t12\t55000' : '04465-0K290   12\n90915-YZZE1   140\n48510-0K330   0'}"></textarea>
     <div class="row2" style="margin-top:12px"><div class="f"><label>${t('When the quantity is 0, show customers')}</label><select id="skZ" class="sel">${ZERO_OPTS.map(([v, l]) => `<option value="${v}">${t(l)}</option>`).join('')}</select></div>
       <div class="f"><label>&nbsp;</label><label class="mini" style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="skM" checked style="width:auto;margin-top:3px"> <span>${t('This is my full stock list: parts that are not in the list now have 0.')}</span></label></div></div>
-    <div id="skR"></div>
+    <div id="skCols"></div><div id="skR"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn ghost" data-mclose>${t('Cancel')}</button><button class="btn" id="skChk">${t('Check list')}</button><button class="btn red hidden" id="skGo">${t('Update stock')}</button></div></div>`, true);
   const reset = () => { st.pv = null; $('#skGo').classList.add('hidden'); $('#skR').innerHTML = ''; };
   $('#skT').oninput = () => { reset(); st.fromFile = false; }; $('#skM').onchange = () => { if(st.pv) showPv(); };
   $('#skF').onchange = async e => { const f = e.target.files[0]; if(!f) return; reset();
     try{ let rows; if(/\.(csv|txt)$/i.test(f.name) && !window.XLSX) rows = textRows(await f.text());
       else{ if(!window.XLSX){ toast(t('Excel reader still loading. Try again in a moment.')); return; } const wb = XLSX.read(await f.arrayBuffer()); rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header: 1, defval: '', raw: false}); }
-      const r = parseStockRows(rows); st.items = r.items; st.bad = r.bad; $('#skT').value = r.items.slice(0, 2000).map(x => x.pn + '\t' + x.qty).join('\n') + (r.items.length > 2000 ? '\n…' : '');
-      st.fromFile = true; $('#skFile').textContent = f.name + ' · ' + t('{n} part numbers', {n: r.items.length.toLocaleString('en-US')}); await check(); }
+      st.raw = rows; st.cols = detectCols(rows); st.fromFile = true; st.fname = f.name; parseNow(); await check(); }
     catch(x){ toast(t('Could not read this file.')); } };
+  // re-read the rows with the chosen columns and show the column pickers
+  const parseNow = () => { const r = parseStockRows(st.raw || [], st.cols || null); st.items = r.items; st.bad = r.bad;
+    if(st.fromFile){ $('#skT').value = r.items.slice(0, 1500).map(x => [x.pn, x.qty, W ? (x.w || '') : null, W ? x.n : null].filter(v => v !== null).join('\t')).join('\n') + (r.items.length > 1500 ? '\n…' : '');
+      $('#skFile').textContent = st.fname + ' · ' + t('{n} part numbers', {n: r.items.length.toLocaleString('en-US')}); }
+    const c = st.cols; if(!c){ $('#skCols').innerHTML = W && st.raw && st.raw.length ? `<p class="err">${t('No heading row found. Add a first row with column names, e.g. PartNo, Name, Qty, Wholesale.')}</p>` : ''; return; }
+    const opt = (k, opt) => `<label class="mini" style="display:grid;gap:4px">${t(COLDEF[k].lbl)}<select class="sel" data-col="${k}">${opt ? `<option value="-1" ${c[k] < 0 ? 'selected' : ''}>— ${t('none')} —</option>` : ''}${c.hdr.map((h, i) => `<option value="${i}" ${c[k] === i ? 'selected' : ''}>${esc(h || t('Column {n}', {n: i + 1}))}</option>`).join('')}</select></label>`;
+    $('#skCols').innerHTML = `<div class="box" style="margin-top:12px"><h4 style="margin:0 0 8px">${t('Columns in your file')}</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">${opt('pn')}${opt('q')}${W ? opt('w', 1) + opt('n', 1) : ''}</div></div>`; };
+  $('#skCols') && ($('#skCols').onchange = async e => { const sel = e.target.closest('[data-col]'); if(!sel || !st.cols) return; st.cols[sel.dataset.col] = +sel.value; st.pv = null; $('#skGo').classList.add('hidden'); parseNow(); await check(); });
   const check = async () => {
-    if(!st.fromFile){ const r = parseStockRows(textRows($('#skT').value)); st.items = r.items; st.bad = r.bad; }
+    if(!st.fromFile){ st.raw = textRows($('#skT').value); st.cols = detectCols(st.raw); parseNow(); }
     if(!st.items.length){ $('#skR').innerHTML = `<p class="err">${t('No part numbers with quantities found.')}</p>`; return; }
     const b = $('#skChk'); b.disabled = true; b.textContent = t('Checking…');
     try{ st.pv = await StockAPI.preview(st.items.map(x => x.key), col); showPv(); }catch(x){ $('#skR').innerHTML = `<p class="err">${t('Could not check the list')}: ${esc(x.message || x)}</p>`; }
@@ -94,7 +113,8 @@ function openStockUpdate(col){ col = col === 'wparts' ? 'wparts' : 'parts'; cons
     const inStock = st.items.filter(x => x.qty > 0).length, withW = st.items.filter(x => x.w).length;
     $('#skR').innerHTML = `<div class="box" style="margin-top:12px"><h4>${t('Ready to update')}</h4>
       <p>✅ ${t('{n} parts found in your catalog', {n: (+pv.matched).toLocaleString('en-US')})} · ${t('{n} with quantity above 0', {n: inStock.toLocaleString('en-US')})}</p>
-      ${withW ? `<p>🏪 ${t('{n} wholesale prices will be updated too', {n: withW.toLocaleString('en-US')})}</p>` : ''}
+      ${withW ? `<p>🏪 ${t('{n} wholesale prices will be updated too', {n: withW.toLocaleString('en-US')})}</p>` : W ? `<p class="err">⚠️ ${t('No prices found in this list: partner shops will see "Price on request". Choose the price column above.')}</p>` : ''}
+      ${W ? (n => n ? `<p>🏷️ ${t('{n} names will be updated', {n: n.toLocaleString('en-US')})}</p>` : `<p class="err">⚠️ ${t('No names found: partner shops will only see the part number. Choose the name column above.')}</p>`)(st.items.filter(x => x.n).length) : ''}
       ${zero ? `<p>⬇️ ${t('{n} parts not in the list will go to 0', {n: (+pv.missing).toLocaleString('en-US')})}</p>` : `<p class="mini">${t('Parts not in the list keep their current stock.')}</p>`}
       ${pv.unknownCount && W ? `<p>➕ ${t('{n} new part numbers will be added to the wholesale catalog', {n: (+pv.unknownCount).toLocaleString('en-US')})}</p>` : ''}
       ${pv.unknownCount && !W ? `<p class="err">⚠️ ${t('{n} part numbers are not in your catalog and will be skipped', {n: (+pv.unknownCount).toLocaleString('en-US')})}:<br><span class="mini ltr">${(pv.unknown || []).slice(0, 60).map(k => esc(byKey.get(k) || k)).join(', ')}${pv.unknownCount > 60 ? ' …' : ''}</span></p>` : ''}
