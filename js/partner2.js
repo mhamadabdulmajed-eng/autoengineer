@@ -325,10 +325,11 @@ function ptPasteList(){
 function ptOrders(){
   const ords = myOrders(), s = settings();
   $('#ptBody').innerHTML = ords.length ? ords.map(o => `<div class="panel pt-order"><div class="pt-row"><div><b>${esc(o.id)}</b> · ${dateStr(o.createdAt)} · ${poBadge(o.status)}</div><b>${usd(o.total) || ''}</b></div>
-      ${['rejected','cancelled'].includes(o.status) ? '' : `<div class="pt-steps">${PO_FLOW.map((x, i) => `<span class="${PO_FLOW.indexOf(o.status) >= i ? 'on' : ''}">${t(PO_LABEL[x])}</span>`).join('')}</div>`}
+      ${o.mergedInto ? `<p class="mini">🧾 ${t('This order was combined into {no}.', {no: esc(o.mergedInto)})}</p>` : ''}${o.mergedFrom ? `<p class="mini">🧾 ${t('One invoice for {n} orders', {n: o.mergedFrom.length})}: ${o.mergedFrom.map(m => esc(m.id)).join(', ')}</p>` : ''}
+      ${['rejected','cancelled','merged'].includes(o.status) ? '' : `<div class="pt-steps">${PO_FLOW.map((x, i) => `<span class="${PO_FLOW.indexOf(o.status) >= i ? 'on' : ''}">${t(PO_LABEL[x])}</span>`).join('')}</div>`}
       <div class="tblwrap"><table class="tbl"><tbody>${(o.lines || []).map(l => `<tr><td class="ltr">${esc(l.partNo)}</td><td>${esc(sName(l))}</td><td class="num">× ${l.qty}</td><td class="num">${usd((l.price || 0) * l.qty)}</td></tr>`).join('')}</tbody></table></div>
       <p class="mini">${t('Payment')}: ${o.pay === 'online' ? t('Online payment') : o.pay === 'credit' ? t('On credit') : t('Cash on delivery')}${o.courier ? ' · ' + t('Delivery') + ': ' + esc(o.courier) + (o.tracking ? ' (' + esc(o.tracking) + ')' : '') : ''}${o.reply ? '<br>' + t('Auto Engineer') + ': ' + esc(o.reply) : ''}</p>
-      <div class="actions"><button class="btn sm ghost" data-again="${esc(o.id)}">↻ ${t('Order again')}</button>
+      <div class="actions">${o.status === 'merged' ? '' : `<button class="btn sm ghost" data-again="${esc(o.id)}">↻ ${t('Order again')}</button>`}
         ${['approved','paid','shipped','delivered','received'].includes(o.status) ? `<button class="btn sm ghost" data-inv="${esc(o.id)}">🧾 ${t('Invoice')}</button>` : ''}
         ${o.status === 'new' ? `<button class="btn sm ghost" data-cancel="${esc(o.id)}">${t('Cancel order')}</button>` : ''}
         ${['shipped','delivered'].includes(o.status) ? `<button class="btn sm red" data-recv="${esc(o.id)}">${t('I received it → add to my stock')}</button>` : ''}</div></div>`).join('')
@@ -339,7 +340,7 @@ function ptOrders(){
       (o.lines || []).forEach(l => { const ex = PS.cart.find(c => c.partId === l.partId); if(ex) ex.qty += l.qty; else PS.cart.push({partId: l.partId, partNo: l.partNo, name: sName(l), qty: l.qty}); });
       toast(t('{n} added to your order', {n: (o.lines || []).length})); PS.tab = 'buy'; renderPartner(); return; }
     const iv = e.target.closest('[data-inv]'); if(iv){ const o = Store.get('porders', iv.dataset.inv);
-      ptPrint({cur: 'USD', title: t('Invoice'), no: o.invoiceNo || o.id, at: o.invoicedAt || o.createdAt, fromName: s.company, fromCity: s.address, fromPhone: s.phone || s.whatsapp, to: o.shop, lines: (o.lines || []).map(l => ({...l, name: sName(l)})), total: o.total,
+      ptPrint({cur: 'USD', title: t('Invoice'), no: o.invoiceNo || o.id, at: o.invoicedAt || o.createdAt, fromName: s.company, fromCity: s.address, fromPhone: s.phone || s.whatsapp, to: o.shop, lines: (o.lines || []).map(l => ({...l, name: sName(l) + (l.src ? ' · ' + l.src : '')})), total: o.total,
         extra: t('Payment') + ': ' + (o.pay === 'credit' ? t('On credit') : o.pay === 'online' ? t('Online payment') : t('Cash on delivery')), footer: s.invoiceNote || ''}); return; }
     const c = e.target.closest('[data-cancel]'); if(c && ro()) return; if(c && confirm(t('Cancel this order?'))){ await PartnerAPI.cancel(c.dataset.cancel).catch(() => toast(t('Could not save'))); renderPartner(); }
     const r = e.target.closest('[data-recv]'); if(r && ro()) return; if(r && confirm(t('Confirm you received everything? The parts will be added to your stock.'))){ r.disabled = true;

@@ -6,7 +6,7 @@
 
 const PARTNER_DOMAIN = 'partner.autoengineeriq.com';
 const PO_FLOW = ['new','approved','shipped','delivered','received'];
-const PO_LABEL = {new:'Waiting for approval',approved:'Approved',rejected:'Rejected',paid:'Paid',shipped:'On the way',delivered:'Delivered',received:'Received',cancelled:'Cancelled'};
+const PO_LABEL = {new:'Waiting for approval',approved:'Approved',rejected:'Rejected',paid:'Paid',shipped:'On the way',delivered:'Delivered',received:'Received',cancelled:'Cancelled',merged:'Combined'};
 const pModal = (html, wide) => openModal('<div class="pt-modal">' + html + '</div>', wide);
 const PS = {cache:{}, tab:'overview', q:'', filter:'all', cart:[], buyQ:'', buyRows:[], buyPrices:{}, buyTimer:null};
 
@@ -433,19 +433,69 @@ function partnerModal(p, pre){
 /* ---------------- staff: partner orders ---------------- */
 function adminPOrders(){
   const list = Store.all('porders').sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); const f = S.poF || 'open';
-  const shown = list.filter(o => f === 'all' || (f === 'open' ? !['received','cancelled','rejected'].includes(o.status) : o.status === f));
+  const shown = list.filter(o => f === 'all' || (f === 'open' ? !['received','cancelled','rejected','merged'].includes(o.status) : o.status === f));
+  S.poSel = S.poSel || new Set(); [...S.poSel].forEach(id => { const o = Store.get('porders', id); if(!o || !PO_COMBINABLE.includes(o.status)) S.poSel.delete(id); });
+  const payL = o => t(o.pay === 'credit' ? 'On credit' : o.pay === 'online' ? 'Online payment' : 'Cash on delivery');
   $('#adminBody').innerHTML = `<div class="admin-bar"><select id="poF" class="sel">${[['open','Open orders'],['new','Waiting for approval'],['all','All orders']].map(([v, l]) => `<option value="${v}" ${f === v ? 'selected' : ''}>${t(l)}</option>`).join('')}</select></div>
-    <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Order')}</th><th>${t('Shop')}</th><th>${t('Date')}</th><th class="num">${t('Items')}</th><th class="num">${t('Total')}</th><th>${t('Payment')}</th><th>${t('Status')}</th></tr></thead><tbody>
-    ${shown.length ? shown.map(o => `<tr data-id="${esc(o.id)}" style="cursor:pointer"><td><b>${esc(o.id)}</b></td><td>${esc(o.shop || '')}</td><td>${dtStr(o.createdAt)}</td><td class="num">${(o.lines || []).reduce((s, l) => s + l.qty, 0)}</td><td class="num">${usd(o.total)}</td><td>${t(o.pay === 'online' ? 'Online payment' : 'Cash on delivery')}</td><td>${poBadge(o.status)}</td></tr>`).join('')
-      : `<tr><td colspan="7" class="empty">${t('No partner orders.')}</td></tr>`}</tbody></table></div>`;
+    <div class="bulkbar hidden" id="poBulk"><b id="poSelN"></b><button class="btn sm red" id="poComb">🧾 ${t('Combine into one invoice')}</button><button class="btn sm ghost" id="poSelX">${t('Clear')}</button><span class="mini">${t('Tick the orders of one shop, then combine them into a single invoice.')}</span></div>
+    <div class="tblwrap"><table class="tbl"><thead><tr><th style="width:30px"></th><th>${t('Order')}</th><th>${t('Shop')}</th><th>${t('Date')}</th><th class="num">${t('Items')}</th><th class="num">${t('Total')}</th><th>${t('Payment')}</th><th>${t('Status')}</th></tr></thead><tbody id="poRows">
+    ${shown.length ? shown.map(o => `<tr data-id="${esc(o.id)}" style="cursor:pointer"><td>${PO_COMBINABLE.includes(o.status) ? `<input type="checkbox" data-psel="${esc(o.id)}" ${S.poSel.has(o.id) ? 'checked' : ''} style="width:18px;height:18px">` : ''}</td>
+      <td><b>${esc(o.id)}</b>${o.mergedFrom ? ` <span class="fp-badge sm">🧾 ${t('{n} orders', {n: o.mergedFrom.length})}</span>` : ''}${o.mergedInto ? `<br><span class="mini">→ ${esc(o.mergedInto)}</span>` : ''}${o.invoiceNo ? `<br><span class="mini ltr">${esc(o.invoiceNo)}</span>` : ''}</td><td>${esc(o.shop || '')}</td><td>${dtStr(o.createdAt)}</td><td class="num">${(o.lines || []).reduce((s, l) => s + l.qty, 0)}</td><td class="num">${usd(o.total)}</td><td>${payL(o)}</td><td>${poBadge(o.status)}</td></tr>`).join('')
+      : `<tr><td colspan="8" class="empty">${t('No partner orders.')}</td></tr>`}</tbody></table></div>`;
+  const bar = () => { const n = S.poSel.size; $('#poBulk').classList.toggle('hidden', !n); $('#poSelN').textContent = t('{n} selected', {n}); }; bar();
   $('#poF').onchange = e => { S.poF = e.target.value; adminPOrders(); };
-  $('#adminBody').querySelector('tbody').onclick = e => { const tr = e.target.closest('tr[data-id]'); if(tr) poModal(Store.get('porders', tr.dataset.id)); };
+  $('#poSelX').onclick = () => { S.poSel.clear(); adminPOrders(); };
+  $('#poComb').onclick = () => combinePOrders([...S.poSel]);
+  $('#poRows').onclick = e => { const c = e.target.closest('[data-psel]'); if(c){ e.stopPropagation(); c.checked ? S.poSel.add(c.dataset.psel) : S.poSel.delete(c.dataset.psel); bar(); return; }
+    const tr = e.target.closest('tr[data-id]'); if(tr) poModal(Store.get('porders', tr.dataset.id)); };
+}
+/* ---- combine several orders of one partner shop into one invoice ---- */
+const PO_COMBINABLE = ['new','approved','paid','shipped','delivered','received'];
+function combinePOrders(ids){
+  const os = ids.map(id => Store.get('porders', id)).filter(o => o && PO_COMBINABLE.includes(o.status)).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  if(os.length < 2){ toast(t('Tick at least two orders.')); return; }
+  if(new Set(os.map(o => o.pid)).size > 1){ toast(t('These orders are from different shops. Choose orders of one shop.')); return; }
+  if(new Set(os.map(o => o.status)).size > 1){ toast(t('Choose orders with the same status (for example all Approved), so stock and delivery stay correct.')); return; }
+  if(new Set(os.map(o => o.pay || 'cod')).size > 1){ toast(t('These orders have different payment methods. Choose orders paid the same way.')); return; }
+  if(new Set(os.map(o => !!o.ledgered)).size > 1){ toast(t('Some of these orders are already on the credit account and some are not. Choose orders that are all the same.')); return; }
+  const lines = os.flatMap(o => (o.lines || []).map(l => ({...l, src: o.id}))), total = Math.round(lines.reduce((s, l) => s + (+l.price || 0) * (+l.qty || 0), 0) * 100) / 100, st = os[0].status, last = os[os.length - 1];
+  pModal(`<h3>🧾 ${t('Combine into one invoice')} · ${esc(last.shop || '')}</h3>
+    <div class="tblwrap"><table class="tbl"><tbody>${os.map(o => `<tr><td><b>${esc(o.id)}</b>${o.invoiceNo ? ` <span class="mini ltr">${esc(o.invoiceNo)}</span>` : ''}</td><td>${dateStr(o.createdAt)}</td><td>${(o.lines || []).length} ${t('lines')}</td><td>${poBadge(o.status)}</td><td class="num">${usd(o.total)}</td></tr>`).join('')}
+      <tr class="grp"><td colspan="4"><b>${t('One invoice')}</b></td><td class="num"><b>${usd(total)}</b></td></tr></tbody></table></div>
+    <p class="mini">${t('A new order with all these lines is created with one invoice number. The old orders are marked "Combined" and no longer count on their own. The shop sees the new order in its portal. You can undo this from the new order while its status has not changed.')}</p>
+    <div class="actions"><span style="flex:1"></span><button class="btn ghost" data-mclose>${t('Cancel')}</button><button class="btn red" id="pcGo">🧾 ${t('Create one invoice')}</button></div>`, true);
+  $('#pcGo').onclick = async () => { const b = $('#pcGo'); b.disabled = true;
+    try{ const d = new Date(), now = Date.now(), id = 'PO-' + d.getFullYear() + '-C' + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + rid(3).toUpperCase();
+      const n = {pid: last.pid, shop: last.shop, phone: last.phone, city: last.city, pay: last.pay || 'cod', lines, total, status: st, note: os.map(o => o.note).filter(Boolean).join(' · '),
+        courier: last.courier || '', tracking: last.tracking || '', reply: '', createdAt: now, updatedAt: now, ledgered: !!os[0].ledgered,
+        mergedFrom: os.map(o => ({id: o.id, status: o.status, invoiceNo: o.invoiceNo || ''})), log: [{at: now, s: st, by: S.me || '', combined: os.map(o => o.id)}]};
+      if(['approved','paid','shipped','delivered','received'].includes(st)){ n.invoiceNo = await API.nextNo('invoice'); n.invoicedAt = now; n.shareKey = shareKey(); }
+      if(n.ledgered){ // move the credit-account entries onto the combined order (same total, one reference)
+        for(const o of os){ const lg = Store.get('pledger', 'lg_po_' + o.id); if(lg){ await Store.del('pledger', 'lg_po_' + o.id).catch(() => {}); } }
+        await Store.set('pledger', 'lg_po_' + id, {pid: n.pid, kind: 'invoice', amount: total, cur: 'USD', ref: id, note: os.map(o => o.id).join(', '), at: now, by: S.me || ''}); }
+      await Store.set('porders', id, n);
+      for(const o of os){ const c = clone(o); delete c.id; c.prevStatus = c.status; c.status = 'merged'; c.mergedInto = id; c.updatedAt = now; c.log = [...(c.log || []), {at: now, s: 'merged', into: id, by: S.me || ''}]; await Store.set('porders', o.id, c); }
+      S.poSel.clear(); closeModal(); toast(t('Invoice {no} created for {n} orders', {no: n.invoiceNo || id, n: os.length})); poModal({...Store.get('porders', id), id}); }
+    catch(e){ b.disabled = false; toast(t('Could not save')); } };
+}
+function uncombinePOrder(o){
+  if(o.status !== (o.mergedFrom[0] || {}).status){ toast(t('This order has moved on since it was combined, so it cannot be undone.')); return; }
+  confirmBox(t('Undo combine? The {n} orders go back to how they were and {no} is removed.', {n: o.mergedFrom.length, no: o.id}), async () => {
+    const now = Date.now();
+    for(const m of o.mergedFrom){ const c = clone(Store.get('porders', m.id)); if(!c) continue; delete c.id; c.status = c.prevStatus || m.status; delete c.mergedInto; delete c.prevStatus; c.updatedAt = now; c.log = [...(c.log || []), {at: now, s: 'uncombined', by: S.me || ''}];
+      await Store.set('porders', m.id, c);
+      if(o.ledgered) await Store.set('pledger', 'lg_po_' + m.id, {pid: c.pid, kind: 'invoice', amount: +c.total || 0, cur: 'USD', ref: m.id, at: now, by: S.me || ''}); }
+    if(o.ledgered) await Store.del('pledger', 'lg_po_' + o.id).catch(() => {});
+    await Store.del('porders', o.id); closeAll(); toast(t('Combine undone')); renderAdmin(); });
 }
 function poModal(o){
   const next = {new: [['approved','Approve'],['rejected','Reject']], approved: [['shipped','Mark as on the way']], paid: [['shipped','Mark as on the way']], shipped: [['delivered','Mark as delivered']]}[o.status] || [];
-  const canEdit = ['new','approved'].includes(o.status) && !o.ledgered, live = !['rejected','cancelled'].includes(o.status);
+  const canEdit = ['new','approved'].includes(o.status) && !o.ledgered, live = !['rejected','cancelled','merged'].includes(o.status);
   const sendLbl = o.status === 'new' ? 'Approve & send invoice' : 'Send invoice';
-  pModal(`<h3>${esc(o.id)} · ${esc(o.shop || '')}</h3><p class="sub">${dtStr(o.createdAt)} · ${poBadge(o.status)} · ${t(o.pay === 'credit' ? 'On credit' : o.pay === 'online' ? 'Online payment' : 'Cash on delivery')} · <span class="ltr">${esc(o.phone || '')}</span> · ${esc(o.city || '')}${o.invoiceNo ? ' · 🧾 <span class="ltr">' + esc(o.invoiceNo) + '</span>' : ''}</p>
+  pModal(`<h3>${esc(o.id)} · ${esc(o.shop || '')}</h3>
+    ${o.mergedFrom ? `<div class="box" style="margin:6px 0 10px;background:#FFF8E6">🧾 ${t('One invoice for {n} orders', {n: o.mergedFrom.length})}: <span class="ltr">${o.mergedFrom.map(m => esc(m.id)).join(', ')}</span> <button class="linkbtn" id="po_uncomb">${t('Undo combine')}</button></div>` : ''}
+    ${o.mergedInto ? `<div class="box" style="margin:6px 0 10px;background:#FFF8E6">🧾 ${t('This order was combined into {no}.', {no: '<span class="ltr">' + esc(o.mergedInto) + '</span>'})} <button class="linkbtn" id="po_goto">${t('Open')}</button></div>` : ''}
+    <p class="sub">${dtStr(o.createdAt)} · ${poBadge(o.status)} · ${t(o.pay === 'credit' ? 'On credit' : o.pay === 'online' ? 'Online payment' : 'Cash on delivery')} · <span class="ltr">${esc(o.phone || '')}</span> · ${esc(o.city || '')}${o.invoiceNo ? ' · 🧾 <span class="ltr">' + esc(o.invoiceNo) + '</span>' : ''}</p>
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Description')}</th><th class="num" style="width:90px">${t('Qty')}</th><th class="num" style="width:130px">${t('Price')}</th><th class="num">${t('Total')}</th></tr></thead><tbody id="poLines">
     ${(o.lines || []).map((l, i) => `<tr><td class="ltr"><b>${esc(l.partNo)}</b></td><td>${esc(l.name || '')}</td>
       <td class="num">${canEdit ? `<input type="number" min="0" data-pl="${i}" data-k="qty" value="${l.qty}">` : l.qty}</td>
@@ -460,6 +510,8 @@ function poModal(o){
       <div class="span2 actions"><button type="button" class="btn ghost" data-mclose>${t('Close')}</button><button type="button" class="btn ghost" data-st="">${t('Save')}</button>${next.map(([s, l]) => `<button type="button" class="btn ${s === 'rejected' ? 'ghost' : 'red'}" data-st="${s}">${t(l)}</button>`).join('')}
         ${live ? `<button type="button" class="btn wa" data-send="1">📤 ${t(sendLbl)}</button>` : ''}</div>
       ${o.invoiceNo ? `<p class="mini span2">${o.invoiceSentAt ? t('Last sent {d}.', {d: dtStr(o.invoiceSentAt)}) : t('Not sent yet.')}</p>` : ''}</form>`, true);
+  if($('#po_uncomb')) $('#po_uncomb').onclick = () => uncombinePOrder({...Store.get('porders', o.id), id: o.id});
+  if($('#po_goto')) $('#po_goto').onclick = () => poModal({...Store.get('porders', o.mergedInto), id: o.mergedInto});
   const lines = clone(o.lines || []);
   const recalc = () => { let tot = 0; lines.forEach((l, i) => { const v = (+l.price || 0) * (+l.qty || 0); tot += v; const c = document.querySelector(`[data-lt="${i}"]`); if(c) c.textContent = usd(v) || '0'; }); $('#poTot').textContent = usd(tot) || '0'; return tot; };
   if(canEdit) $('#poLines').oninput = e => { const el = e.target; if(el.dataset.pl === undefined) return; lines[+el.dataset.pl][el.dataset.k] = el.value === '' ? null : Number(el.value); recalc(); };
@@ -468,7 +520,7 @@ function poModal(o){
     d.courier = f.courier.value.trim(); d.tracking = f.tracking.value.trim(); d.reply = f.reply.value.trim(); d.updatedAt = now;
     if(canEdit){ const keep = lines.filter(l => (+l.qty || 0) > 0); if(!keep.length){ toast(t('The order needs at least one line.')); return; }
       if(keep.some(l => !(+l.price > 0))){ toast(t('Set a price for every available line first')); return; }
-      d.lines = keep.map(l => ({...l, qty: Math.round(+l.qty), price: +l.price})); d.total = d.lines.reduce((s, l) => s + l.price * l.qty, 0); }
+      d.lines = keep.map(l => ({...l, qty: Math.round(+l.qty), price: +l.price})); d.total = Math.round(d.lines.reduce((s, l) => s + l.price * l.qty, 0) * 100) / 100; }
     const st = send && d.status === 'new' ? 'approved' : b.dataset.st;
     if(st){ d.status = st; d.log = [...(d.log || []), {at: now, s: d.status, by: S.me || ''}]; }
     const w = send ? window.open('about:blank', '_blank') : null;

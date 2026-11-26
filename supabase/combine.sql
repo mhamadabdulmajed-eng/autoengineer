@@ -1,13 +1,13 @@
 -- =====================================================================
 --  Auto Engineer — combined invoices
---  Several orders of one customer can be combined into one invoice. An old invoice link of a
+--  Several orders of one customer (or one partner shop) can be combined into one invoice. An old invoice link of a
 --  combined order opens the combined invoice. Invoice lines show which order they came from.
 --  Run once in Supabase > SQL Editor. Safe to run again.
 -- =====================================================================
 create or replace function public.public_invoice(p_key text) returns jsonb
 language sql stable security definer set search_path = public as $$
-  with k as (select coalesce((select n.data->>'shareKey' from docs o join docs n on n.col = 'orders' and n.id = o.data->>'mergedInto'
-                              where o.col = 'orders' and o.data->>'shareKey' = p_key and length(coalesce(p_key,'')) >= 20 limit 1), p_key) as key)
+  with k as (select coalesce((select n.data->>'shareKey' from docs o join docs n on n.col = o.col and n.id = o.data->>'mergedInto'
+                              where o.col in ('orders','porders') and o.data->>'shareKey' = p_key and length(coalesce(p_key,'')) >= 20 limit 1), p_key) as key)
   select x from k, (
     -- website orders (retail and wholesale customers)
     select jsonb_build_object(
@@ -29,7 +29,7 @@ language sql stable security definer set search_path = public as $$
       'status', d.data->>'status', 'lang', coalesce(pt.data->>'lang','en'),
       'customer', jsonb_build_object('name', d.data->>'shop', 'phone', d.data->>'phone', 'location', d.data->>'city'),
       'fulfil', 'delivery',
-      'lines', coalesce((select jsonb_agg(jsonb_build_object('partNo', l->>'partNo', 'name', l->>'name', 'qty', l->'qty', 'price', l->'price', 'avail', ''))
+      'lines', coalesce((select jsonb_agg(jsonb_build_object('partNo', l->>'partNo', 'name', l->>'name', 'src', l->>'src', 'qty', l->'qty', 'price', l->'price', 'avail', ''))
                          from jsonb_array_elements(coalesce(d.data->'lines','[]'::jsonb)) l), '[]'::jsonb),
       'discount', 0, 'delivery', coalesce(d.data->'deliveryFee','0'::jsonb),
       'notes', concat_ws(E'\n', case d.data->>'pay' when 'credit' then 'Payment: on credit' when 'online' then 'Payment: online' else 'Payment: cash on delivery' end, nullif(d.data->>'reply','')),

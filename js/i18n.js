@@ -2,6 +2,13 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Tick the orders of one shop, then combine them into a single invoice.":"حدد طلبات محل واحد، ثم ادمجها في فاتورة واحدة.",
+"These orders are from different shops. Choose orders of one shop.":"هذه الطلبات من محلات مختلفة. اختر طلبات محل واحد.",
+"Choose orders with the same status (for example all Approved), so stock and delivery stay correct.":"اختر طلبات بنفس الحالة (مثلاً كلها موافق عليها) ليبقى المخزون والتوصيل صحيحين.",
+"These orders have different payment methods. Choose orders paid the same way.":"لهذه الطلبات طرق دفع مختلفة. اختر طلبات بنفس طريقة الدفع.",
+"Some of these orders are already on the credit account and some are not. Choose orders that are all the same.":"بعض هذه الطلبات مسجلة في حساب الائتمان وبعضها لا. اختر طلبات متشابهة.",
+"A new order with all these lines is created with one invoice number. The old orders are marked \"Combined\" and no longer count on their own. The shop sees the new order in its portal. You can undo this from the new order while its status has not changed.":"يتم إنشاء طلب جديد بكل هذه الأسطر برقم فاتورة واحد. تُعلَّم الطلبات القديمة \"مدمج\" ولا تُحسب منفردة. يرى المحل الطلب الجديد في بوابته. يمكنك التراجع من الطلب الجديد ما دامت حالته لم تتغير.",
+"This order has moved on since it was combined, so it cannot be undone.":"تغيرت حالة هذا الطلب بعد الدمج، لذا لا يمكن التراجع.",
 "Combined":"مدمج",
 "Combine into one invoice":"دمج في فاتورة واحدة",
 "Tick the orders of one customer, then combine them into a single invoice.":"حدد طلبات زبون واحد، ثم ادمجها في فاتورة واحدة.",
@@ -827,6 +834,13 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Tick the orders of one shop, then combine them into a single invoice.":"داواکارییەکانی یەک دوکان دیاری بکە، پاشان لە یەک پسوڵەدا کۆیان بکەرەوە.",
+"These orders are from different shops. Choose orders of one shop.":"ئەم داواکارییانە هی دوکانی جیاوازن. داواکارییەکانی یەک دوکان هەڵبژێرە.",
+"Choose orders with the same status (for example all Approved), so stock and delivery stay correct.":"داواکاری بە هەمان دۆخ هەڵبژێرە (بۆ نموونە هەموو پەسەندکراو)، بۆ ئەوەی کۆگا و گەیاندن دروست بمێنن.",
+"These orders have different payment methods. Choose orders paid the same way.":"ئەم داواکارییانە ڕێگای پارەدانی جیاوازیان هەیە. داواکاری بە هەمان ڕێگا هەڵبژێرە.",
+"Some of these orders are already on the credit account and some are not. Choose orders that are all the same.":"هەندێک لەم داواکارییانە لەسەر هەژماری قەرزن و هەندێکیان نا. داواکاری وەک یەک هەڵبژێرە.",
+"A new order with all these lines is created with one invoice number. The old orders are marked \"Combined\" and no longer count on their own. The shop sees the new order in its portal. You can undo this from the new order while its status has not changed.":"داواکارییەکی نوێ بە هەموو ئەم هێڵانە بە یەک ژمارەی پسوڵە دروست دەکرێت. داواکارییە کۆنەکان \"کۆکراوە\" دەبن و بە تەنها حساب ناکرێن. دوکانەکە داواکارییە نوێیەکە لە پۆرتاڵەکەیدا دەبینێت. دەتوانیت پاشگەز ببیتەوە تا دۆخەکەی نەگۆڕابێت.",
+"This order has moved on since it was combined, so it cannot be undone.":"دۆخی ئەم داواکارییە دوای کۆکردنەوە گۆڕاوە، بۆیە ناتوانرێت هەڵبوەشێنرێتەوە.",
 "Combined":"کۆکراوە",
 "Combine into one invoice":"کۆکردنەوە لە یەک پسوڵەدا",
 "Tick the orders of one customer, then combine them into a single invoice.":"داواکارییەکانی یەک کڕیار دیاری بکە، پاشان لە یەک پسوڵەدا کۆیان بکەرەوە.",

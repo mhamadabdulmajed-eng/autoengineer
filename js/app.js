@@ -919,7 +919,7 @@ function invWaText(o,L){const s=settings(),x=totals(o),upd=o.invoiceSentAt&&o.re
 function invWaUrl(o){return `https://wa.me/${o.customer.phoneKey}?text=${encodeURIComponent(invWaText(o,o.pdfLang||o.lang||'en'))}`}
 /* the page a customer opens from the link */
 function poAsInvoice(o,id){return {src:'porder',cur:'USD',no:id||o.id,invoiceNo:o.invoiceNo,invoicedAt:o.invoicedAt,status:o.status,lang:(Store.get('partners',o.pid)||{}).lang||'en',customer:{name:o.shop,phone:o.phone,location:o.city},fulfil:'delivery',
-  lines:(o.lines||[]).map(l=>({partNo:l.partNo,name:l.name,qty:l.qty,price:l.price,avail:''})),discount:0,delivery:+o.deliveryFee||0,notes:[o.pay==='credit'?'Payment: on credit':o.pay==='online'?'Payment: online':'Payment: cash on delivery',o.reply].filter(Boolean).join('\n'),payments:[],credits:[]}}
+  lines:(o.lines||[]).map(l=>({partNo:l.partNo,name:l.name,qty:l.qty,price:l.price,avail:'',src:l.src})),discount:0,delivery:+o.deliveryFee||0,notes:[o.pay==='credit'?'Payment: on credit':o.pay==='online'?'Payment: online':'Payment: cash on delivery',o.reply].filter(Boolean).join('\n'),payments:[],credits:[]}}
 async function renderInv(){const el=$('#invPage');if(!el)return;const key=S.invKey||'';el.innerHTML=`<div class="inv-wait">${t('Loading…')}</div>`;await storeReady;let d=null;
   try{if(S.mode==='supabase'){const r=await S.sb.rpc('public_invoice',{p_key:key});d=r.data||null}
     else{const o=Store.all('orders').find(x=>x.shareKey===key&&x.invoiceNo);if(o)d=clone(o);else{const p=Store.all('porders').find(x=>x.shareKey===key&&x.invoiceNo);if(p)d=poAsInvoice(p)}}}catch(_){}
