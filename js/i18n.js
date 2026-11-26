@@ -2,6 +2,14 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Delete account":"حذف الحساب",
+"Delete {s} for good? Their sign-in, stock, website items and shop page are removed. This cannot be undone.":"حذف {s} نهائياً؟ سيتم حذف الدخول والمخزون وأصناف الموقع وصفحة المحل. لا يمكن التراجع.",
+"This shop has business records":"لهذا المحل سجلات عمل",
+"{s} has {o} purchase orders, {l} credit-account entries and {w} website sales. Deleting would lose this history, so the account was not deleted.":"لدى {s} عدد {o} طلبات شراء و{l} قيود ائتمان و{w} مبيعات على الموقع. الحذف سيفقد هذا السجل، لذلك لم يُحذف الحساب.",
+"Use Pause instead: the shop can no longer sign in, and all records stay.":"استخدم الإيقاف بدلاً من ذلك: لن يتمكن المحل من الدخول، وتبقى كل السجلات.",
+"Pause the shop":"إيقاف المحل",
+"{s} deleted":"تم حذف {s}",
+"Could not delete":"تعذر الحذف",
 "You are in staff preview, so nothing is saved here. To test, sign in as the shop on your phone or in a private window (autoengineeriq.com/#partner).":"أنت في معاينة الموظفين، لذلك لا يُحفظ شيء هنا. للتجربة، سجّل الدخول كمحل على هاتفك أو في نافذة خاصة (autoengineeriq.com/#partner).",
 "My shop page":"صفحة محلي",
 "Build your own shop page on autoengineeriq.com: your logo, name and story. Customers find your shop and order your parts through Auto Engineer. Every change is checked by Auto Engineer before it is published.":"ابنِ صفحة محلك على autoengineeriq.com: شعارك واسمك وقصتك. يجد الزبائن محلك ويطلبون قطعك عبر أوتو إنجنير. كل تغيير يراجعه أوتو إنجنير قبل النشر.",
@@ -914,6 +922,14 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Delete account":"سڕینەوەی هەژمار",
+"Delete {s} for good? Their sign-in, stock, website items and shop page are removed. This cannot be undone.":"{s} بە یەکجاری بسڕدرێتەوە؟ چوونەژوورەوە، کۆگا، کاڵاکانی ماڵپەڕ و پەڕەی دوکان دەسڕدرێنەوە. ناتوانرێت بگەڕێندرێتەوە.",
+"This shop has business records":"ئەم دوکانە تۆماری بازرگانی هەیە",
+"{s} has {o} purchase orders, {l} credit-account entries and {w} website sales. Deleting would lose this history, so the account was not deleted.":"{s} {o} داواکاری کڕین، {l} تۆماری قەرز و {w} فرۆشتنی ماڵپەڕی هەیە. سڕینەوە ئەم مێژووە لەناو دەبات، بۆیە هەژمارەکە نەسڕدرایەوە.",
+"Use Pause instead: the shop can no longer sign in, and all records stay.":"لە جیاتی ئەوە ڕاگرتن بەکاربهێنە: دوکانەکە ناتوانێت بچێتە ژوورەوە و هەموو تۆمارەکان دەمێنن.",
+"Pause the shop":"ڕاگرتنی دوکان",
+"{s} deleted":"{s} سڕایەوە",
+"Could not delete":"نەتوانرا بسڕدرێتەوە",
 "You are in staff preview, so nothing is saved here. To test, sign in as the shop on your phone or in a private window (autoengineeriq.com/#partner).":"تۆ لە پێشبینینی کارمەنددایت، بۆیە هیچ شتێک لێرە پاشەکەوت ناکرێت. بۆ تاقیکردنەوە، وەک دوکان لە مۆبایلەکەت یان لە پەنجەرەیەکی تایبەت بچۆ ژوورەوە (autoengineeriq.com/#partner).",
 "My shop page":"پەڕەی دوکانەکەم",
 "Build your own shop page on autoengineeriq.com: your logo, name and story. Customers find your shop and order your parts through Auto Engineer. Every change is checked by Auto Engineer before it is published.":"پەڕەی دوکانەکەت لە autoengineeriq.com دروست بکە: لۆگۆ، ناو و چیرۆکەکەت. کڕیاران دوکانەکەت دەدۆزنەوە و پارچەکانت لە ڕێگەی ئۆتۆ ئەندازیارەوە داوا دەکەن. هەموو گۆڕانکارییەک پێش بڵاوکردنەوە لەلایەن ئۆتۆ ئەندازیارەوە دەپشکنرێت.",

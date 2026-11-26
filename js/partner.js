@@ -73,6 +73,17 @@ const PartnerAPI = {
     if(Store.get('partners', 'pt_' + pk) || (ex && ex.pid !== S.partner.id)) throw new Error('phone in use');
     await Store.set('pusers', id, {...(ex || {createdAt: Date.now()}), pid: S.partner.id, phone, name, role, active, loginEmail: pk + '@' + PARTNER_DOMAIN, ...(pw ? {demoPassword: pw} : {})});
   },
+  async remove(pid){ // staff: delete a partner account (refused when it has orders, credit entries or website sales)
+    if(this.remote()){ const {data, error} = await S.sb.rpc('staff_delete_partner', {p_pid: pid}); if(error) throw error;
+      if(data && data.ok){ ['pstock','pmoves','plistings','psales','pnotify','pusers'].forEach(c => { S.data[c] = Object.fromEntries(Object.entries(S.data[c] || {}).filter(([, v]) => v.pid !== pid)); });
+        ['pbrand','pshop'].forEach(c => { S.data[c] = {...(S.data[c] || {})}; delete S.data[c][(c === 'pbrand' ? 'pb_' : 'sh_') + pid]; }); S.data.partners = {...S.data.partners}; delete S.data.partners[pid]; Store.emit('partners'); }
+      return data; }
+    const n = {orders: Store.all('porders').filter(o => o.pid === pid && !['cancelled','rejected','merged'].includes(o.status)).length, ledger: Store.all('pledger').filter(x => x.pid === pid).length,
+      sales: Store.all('orders').filter(o => !['cancelled','merged'].includes(o.status) && (o.lines || []).some(l => l.pid === pid)).length};
+    if(n.orders + n.ledger + n.sales) return {ok: false, ...n};
+    for(const c of ['pstock','pmoves','plistings','psales','pnotify','pusers']) for(const x of Store.all(c).filter(v => v.pid === pid)) await Store.del(c, x.id);
+    await Store.del('pbrand', 'pb_' + pid).catch(() => {}); await Store.del('pshop', 'sh_' + pid).catch(() => {}); await Store.del('partners', pid); return {ok: true};
+  },
   async setLogin(pid, pw){ // staff: create or reset the partner's password
     if(this.remote()){ const {data, error} = await S.sb.rpc('staff_set_partner_login', {p_pid: pid, p_password: pw}); if(error) throw error; return data; }
     const p = clone(Store.get('partners', pid)); p.demoPassword = pw; await Store.set('partners', pid, p); return p.loginEmail;
@@ -410,7 +421,7 @@ function partnerModal(p, pre){
     <label class="span2">${t('Private notes (partner cannot see)')}<input name="notes" value="${esc(p.notes || '')}"></label>
     ${isNew ? `<label class="span2">${t('Starting password')}<input name="pw" dir="ltr" required minlength="8" value="${genPw()}"><small>${t('Give this to the partner. They can change it in Account.')}</small></label>` : ''}
     <p class="err hidden span2" id="apErr"></p>
-    <div class="span2 actions">${isNew ? '' : `<button type="button" class="btn sm ghost" id="apPause">${t(p.status === 'paused' ? 'Activate' : 'Pause')}</button><button type="button" class="btn sm ghost" id="apReset">${t('Reset password')}</button>`}
+    <div class="span2 actions">${isNew ? '' : `<button type="button" class="btn sm ghost" id="apPause">${t(p.status === 'paused' ? 'Activate' : 'Pause')}</button><button type="button" class="btn sm ghost" id="apReset">${t('Reset password')}</button>${['owner','admin'].includes(S.role || 'admin') ? `<button type="button" class="btn sm ghost danger" id="apDel">🗑 ${t('Delete account')}</button>` : ''}`}
       <span style="flex:1"></span><button type="button" class="btn ghost" data-mclose>${t('Cancel')}</button><button class="btn red">${t('Save')}</button></div></form>`, true);
   const f = $('#apF'), er = $('#apErr'), fail = m => { er.textContent = m; er.classList.remove('hidden'); };
   const share = (pt, pw) => { const msg = `${t('Your Auto Engineer partner account')}\n${location.origin}/#partner\n${t('Phone')}: ${pt.phone}\n${t('Password')}: ${pw}`;
@@ -427,6 +438,11 @@ function partnerModal(p, pre){
       if(p.appId){ const w = clone(Store.get('wholesalers', p.appId) || {}); if(w.phone){ w.status = 'approved'; w.partnerId = id; w.reviewedAt = Date.now(); delete w.id; await Store.set('wholesalers', p.appId, w); } }
       share(d, f.pw.value); } else { closeModal(); toast(t('Saved')); } }
     catch(x){ btn.disabled = false; fail(t('Could not save') + (x && x.message ? ' — ' + x.message : '')); } };
+  if($('#apDel')) $('#apDel').onclick = () => confirmBox(t('Delete {s} for good? Their sign-in, stock, website items and shop page are removed. This cannot be undone.', {s: p.shop}), async () => {
+    try{ const r = await PartnerAPI.remove(p.id);
+      if(!r.ok){ pModal(`<h3>${t('This shop has business records')}</h3><p>${t('{s} has {o} purchase orders, {l} credit-account entries and {w} website sales. Deleting would lose this history, so the account was not deleted.', {s: esc(p.shop), o: r.orders, l: r.ledger, w: r.sales})}</p><p>${t('Use Pause instead: the shop can no longer sign in, and all records stay.')}</p><div class="actions"><span style="flex:1"></span><button class="btn ghost" data-mclose>${t('Close')}</button><button class="btn red" id="apDelPause">${t('Pause the shop')}</button></div>`);
+        $('#apDelPause').onclick = async () => { const d = clone(Store.get('partners', p.id)); d.status = 'paused'; delete d.id; await Store.set('partners', p.id, d); closeModal(); toast(t('Paused')); renderAdmin(); }; return; }
+      toast(t('{s} deleted', {s: p.shop})); renderAdmin(); }catch(x){ toast(t('Could not delete') + ': ' + (x.message || x)); } });
   if($('#apPause')) $('#apPause').onclick = async () => { const d = clone(Store.get('partners', p.id)); d.status = d.status === 'paused' ? 'active' : 'paused'; delete d.id; await Store.set('partners', p.id, d); closeModal(); };
   if($('#apReset')) $('#apReset').onclick = async () => { const pw = genPw(); try{ await PartnerAPI.setLogin(p.id, pw); share(p, pw); }catch(x){ fail(t('Could not save')); } };
 }
