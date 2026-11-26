@@ -54,8 +54,9 @@ function ptBrand(){
       <label>${t('Instagram')}<input name="ig" dir="ltr" value="${v('ig')}" placeholder="@yourshop"></label><label>${t('Facebook / TikTok')}<input name="fb" dir="ltr" value="${v('fb')}"></label>
       <label class="span2">${t('Main suppliers and part brands you carry')}<input name="suppliers" value="${v('suppliers')}" placeholder="${esc(t('e.g. Toyota Genuine, Denso, Aisin, KYB'))}"></label></div>
     <p class="err hidden" id="brErr"></p>
-    <div class="actions" style="margin-top:14px"><span class="mini" style="flex:1">${b.updatedAt ? t('Last saved {d}', {d: dtStr(b.updatedAt)}) : ''}</span><button type="button" class="btn ghost" id="brPrev">👁 ${t('Preview')}</button><button class="btn red">${t('Save and send for approval')}</button></div></form>
-  <div class="panel"><div class="pt-row"><div><h3>📄 ${t('Your price list')}</h3><p class="sub" style="margin:4px 0 0">${t('Upload the parts you sell with your retail price (IQD). They appear on your shop page and in Retail search after approval.')}</p></div><button class="btn red sm" id="brPL">📄 ${t('Upload price list')}</button></div>
+    <div class="actions" style="margin-top:14px"><span class="mini" style="flex:1">${b.updatedAt ? t('Last saved {d}', {d: dtStr(b.updatedAt)}) : ''}</span><button type="button" class="btn ghost" id="brPrev">👁 ${t('Preview')}</button>${ptPreview() ? '' : `<button class="btn red">${t('Save and send for approval')}</button>`}</div>
+    ${ptPreview() ? `<p class="err" style="margin-top:10px">👁 ${t('You are in staff preview, so nothing is saved here. To test, sign in as the shop on your phone or in a private window (autoengineeriq.com/#partner).')}</p>` : ''}</form>
+  <div class="panel"><div class="pt-row"><div><h3>📄 ${t('Your price list')}</h3><p class="sub" style="margin:4px 0 0">${t('Upload the parts you sell with your retail price (IQD). They appear on your shop page and in Retail search after approval.')}</p></div>${ptPreview() ? '' : `<button class="btn red sm" id="brPL">📄 ${t('Upload price list')}</button>`}</div>
     <p class="mini">${t('{n} items on the website · {p} waiting for approval', {n: myListings().filter(l => l.status === 'approved').length, p: myListings().filter(l => l.status === 'pending').length})} · <button class="linkbtn" id="brGoWeb">${t('See all items')}</button></p></div>`;
   const draft = {logo: b.logo || '', cover: b.cover || ''};
   $('#brLogo').onchange = async e => { try{ draft.logo = await imgToData(e.target.files[0], 300, 1); const box = $('.br-logo'); let im = box.querySelector('img'); if(!im){ const sp = box.querySelector('span'); if(sp) sp.remove(); im = document.createElement('img'); box.prepend(im); } im.src = draft.logo; }catch(x){ toast(t('Could not read this image.')); } };
@@ -68,7 +69,7 @@ function ptBrand(){
     if(d.about.length < 20){ er.textContent = t('Please write a few sentences about your shop.'); er.classList.remove('hidden'); return; }
     const doc = {...(b || {}), ...d, pid: p.id, status: 'pending', reply: '', updatedAt: Date.now(), createdAt: b.createdAt || Date.now()}; delete doc.id;
     try{ await Store.set('pbrand', 'pb_' + p.id, doc); toast(t('Sent for approval')); ptBrand(); }catch(x){ er.textContent = t('Could not save') + (x && x.message && /too large|payload/i.test(x.message) ? ' — ' + t('the images are too large') : ''); er.classList.remove('hidden'); } };
-  $('#brPL').onclick = () => ptPriceList();
+  if($('#brPL')) $('#brPL').onclick = () => ptPriceList();
   $('#brGoWeb').onclick = () => { PS.tab = 'web'; renderPartner(); };
   if($('#brShare')) $('#brShare').onclick = () => { const u = shopUrl(sh.slug), msg = `${d0(b.name || p.shop)}\n${u}`; if(navigator.share) navigator.share({title: b.name || p.shop, url: u}).catch(() => {}); else { navigator.clipboard && navigator.clipboard.writeText(msg); toast(t('Copied')); } };
 }

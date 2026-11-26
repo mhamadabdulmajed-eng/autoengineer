@@ -2,6 +2,7 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"You are in staff preview, so nothing is saved here. To test, sign in as the shop on your phone or in a private window (autoengineeriq.com/#partner).":"أنت في معاينة الموظفين، لذلك لا يُحفظ شيء هنا. للتجربة، سجّل الدخول كمحل على هاتفك أو في نافذة خاصة (autoengineeriq.com/#partner).",
 "My shop page":"صفحة محلي",
 "Build your own shop page on autoengineeriq.com: your logo, name and story. Customers find your shop and order your parts through Auto Engineer. Every change is checked by Auto Engineer before it is published.":"ابنِ صفحة محلك على autoengineeriq.com: شعارك واسمك وقصتك. يجد الزبائن محلك ويطلبون قطعك عبر أوتو إنجنير. كل تغيير يراجعه أوتو إنجنير قبل النشر.",
 "Your page is live":"صفحتك منشورة",
@@ -913,6 +914,7 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"You are in staff preview, so nothing is saved here. To test, sign in as the shop on your phone or in a private window (autoengineeriq.com/#partner).":"تۆ لە پێشبینینی کارمەنددایت، بۆیە هیچ شتێک لێرە پاشەکەوت ناکرێت. بۆ تاقیکردنەوە، وەک دوکان لە مۆبایلەکەت یان لە پەنجەرەیەکی تایبەت بچۆ ژوورەوە (autoengineeriq.com/#partner).",
 "My shop page":"پەڕەی دوکانەکەم",
 "Build your own shop page on autoengineeriq.com: your logo, name and story. Customers find your shop and order your parts through Auto Engineer. Every change is checked by Auto Engineer before it is published.":"پەڕەی دوکانەکەت لە autoengineeriq.com دروست بکە: لۆگۆ، ناو و چیرۆکەکەت. کڕیاران دوکانەکەت دەدۆزنەوە و پارچەکانت لە ڕێگەی ئۆتۆ ئەندازیارەوە داوا دەکەن. هەموو گۆڕانکارییەک پێش بڵاوکردنەوە لەلایەن ئۆتۆ ئەندازیارەوە دەپشکنرێت.",
 "Your page is live":"پەڕەکەت بڵاوکراوەتەوە",
