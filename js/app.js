@@ -29,7 +29,7 @@ const CAT_ICON={'Engine':'<path d="M4 10h3l2-3h6l2 3h3v7h-3l-2 2H9l-2-2H4z"/><pa
 const icon=(c,sw=1.6)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${CAT_ICON[c]||CAT_ICON['Engine']}</svg>`;
 const CITIES=['Erbil','Sulaymaniyah','Duhok','Kirkuk','Halabja','Zakho','Soran','Ranya','Koya','Baghdad','Mosul','Basra','Najaf','Karbala','Hillah','Ramadi','Tikrit','Baqubah','Nasiriyah','Diwaniyah'];
 const STATUS_FLOW=['new','quoted','accepted','confirmed','delivered'];
-const STATUS_LABEL={new:'New',quoted:'Quoted',accepted:'Accepted',confirmed:'Invoiced',delivered:'Delivered',cancelled:'Cancelled'};
+const STATUS_LABEL={new:'New',quoted:'Quoted',accepted:'Accepted',confirmed:'Invoiced',delivered:'Delivered',cancelled:'Cancelled',merged:'Combined'};
 const stl=s=>t(STATUS_LABEL[s]||s);
 const CONDS=['Genuine','Aftermarket','Used'];
 const STOCKS=['In stock','On order','Ask','Out of stock'];
@@ -795,12 +795,53 @@ function adminOrders(){
     <select class="sel" id="oP"><option value="">${t('Any payment')}</option>${['unpaid','partial','paid'].map(k=>`<option value="${k}" ${S.oPay===k?'selected':''}>${t({unpaid:'Unpaid',partial:'Partly paid',paid:'Paid'}[k])}</option>`).join('')}</select>
     <select class="sel" id="oR"><option value="">${t('All rooms')}</option><option value="retail" ${S.oRoom==='retail'?'selected':''}>${t('Retail')}</option><option value="wholesale" ${S.oRoom==='wholesale'?'selected':''}>${t('Wholesale')}</option></select>
     ${branches().length&&S.role!=='sales'?`<select class="sel" id="oB"><option value="">${t('All branches')}</option>${branches().map(b=>`<option value="${esc(b.id)}" ${S.oBr===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`:''}</div>
-    <div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Order')}</th><th>${t('Date')}</th><th>${t('Customer')}</th><th>${t('Room')}</th><th>${t('Branch')}</th><th class="num">${t('Total')}</th><th>${t('Status')}</th></tr></thead><tbody id="oRows"></tbody></table></div></div>`;
+    <div class="bulkbar hidden" id="oBulk"><b id="oSelN"></b><button class="btn sm red" id="oComb">🧾 ${t('Combine into one invoice')}</button><button class="btn sm ghost" id="oSelX">${t('Clear')}</button><span class="mini">${t('Tick the orders of one customer, then combine them into a single invoice.')}</span></div>
+    <div class="panel" style="padding:8px"><div class="tblwrap"><table class="tbl"><thead><tr><th style="width:30px"></th><th>${t('Order')}</th><th>${t('Date')}</th><th>${t('Customer')}</th><th>${t('Room')}</th><th>${t('Branch')}</th><th class="num">${t('Total')}</th><th>${t('Status')}</th></tr></thead><tbody id="oRows"></tbody></table></div></div>`;
   const draw=()=>{const q=(S.adminQ||'').toLowerCase();const rows=all.filter(o=>(!S.oFilter||o.status===S.oFilter)&&(!S.oRoom||o.room===S.oRoom)&&(!S.oBr||o.branch===S.oBr)&&(!S.oPay||payState(o)===S.oPay)&&(!q||[o.no,o.customer?.name,o.customer?.phone,o.customer?.location,o.quoteNo,o.invoiceNo,...(o.lines||[]).map(l=>l.name+' '+l.partNo)].join(' ').toLowerCase().includes(q)));
-    $('#oRows').innerHTML=rows.length?rows.map(o=>{const ps=payState(o);const tt=totals(o);return `<tr class="click" data-o="${esc(o.id)}"><td><b class="ltr">${esc(o.no)}</b>${o.kind==='find'?` <span class="fp-badge sm">${t('FIND MY PART')}</span>`:''}${o.invoiceNo?`<br><span class="mini ltr">${esc(o.invoiceNo)}</span>`:o.quoteNo?`<br><span class="mini ltr">${esc(o.quoteNo)}</span>`:''}</td><td>${dateStr(o.createdAt)}</td><td>${esc(o.customer?.name)}<br><span class="mini"><span class="ltr">${esc(o.customer?.phone)}</span> · ${esc(o.customer?.location)}</span></td><td><span class="room-tag ${o.room==='wholesale'?'ws':''}">${t(o.room==='wholesale'?'Wholesale':'Retail')}</span></td><td class="mini">${o.fulfil==='pickup'?'🏬 ':'🚚 '}${esc(brName(o.branch))}</td><td class="num">${tt.total?money(tt.net):'—'}${ps?`<br><span class="pay ${ps}">${t({unpaid:'Unpaid',partial:'Partly paid',paid:'Paid'}[ps])}</span>`:''}</td><td><span class="st ${o.status}">${stl(o.status)}</span></td></tr>`}).join(''):`<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted)">${t('No orders yet. New orders from the website appear here.')}</td></tr>`};
+    $('#oRows').innerHTML=rows.length?rows.map(o=>{const ps=payState(o);const tt=totals(o);return `<tr class="click" data-o="${esc(o.id)}"><td>${COMBINABLE.includes(o.status)&&can('orders')?`<input type="checkbox" class="osel" data-sel="${esc(o.id)}" ${S.oSel.has(o.id)?'checked':''} style="width:18px;height:18px">`:''}</td><td><b class="ltr">${esc(o.no)}</b>${o.mergedFrom?` <span class="fp-badge sm">🧾 ${t('{n} orders',{n:o.mergedFrom.length})}</span>`:''}${o.mergedInto?`<br><span class="mini ltr">→ ${esc(o.mergedInto)}</span>`:''}${o.kind==='find'?` <span class="fp-badge sm">${t('FIND MY PART')}</span>`:''}${o.invoiceNo?`<br><span class="mini ltr">${esc(o.invoiceNo)}</span>`:o.quoteNo?`<br><span class="mini ltr">${esc(o.quoteNo)}</span>`:''}</td><td>${dateStr(o.createdAt)}</td><td>${esc(o.customer?.name)}<br><span class="mini"><span class="ltr">${esc(o.customer?.phone)}</span> · ${esc(o.customer?.location)}</span></td><td><span class="room-tag ${o.room==='wholesale'?'ws':''}">${t(o.room==='wholesale'?'Wholesale':'Retail')}</span></td><td class="mini">${o.fulfil==='pickup'?'🏬 ':'🚚 '}${esc(brName(o.branch))}</td><td class="num">${tt.total?money(tt.net):'—'}${ps?`<br><span class="pay ${ps}">${t({unpaid:'Unpaid',partial:'Partly paid',paid:'Paid'}[ps])}</span>`:''}</td><td><span class="st ${o.status}">${stl(o.status)}</span></td></tr>`}).join(''):`<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">${t('No orders yet. New orders from the website appear here.')}</td></tr>`;
+    const n=S.oSel.size;$('#oBulk').classList.toggle('hidden',!n);$('#oSelN').textContent=t('{n} selected',{n})};
+  S.oSel=S.oSel||new Set();[...S.oSel].forEach(id=>{const o=Store.get('orders',id);if(!o||!COMBINABLE.includes(o.status))S.oSel.delete(id)});
   draw();bindSearch(draw);
+  $('#oSelX').onclick=()=>{S.oSel.clear();draw()};
+  $('#oComb').onclick=()=>combineOrders([...S.oSel]);
   [['oF','oFilter'],['oR','oRoom'],['oB','oBr'],['oP','oPay']].forEach(([id,k])=>{if($('#'+id))$('#'+id).onchange=e=>{S[k]=e.target.value;draw()}});
-  $('#oRows').onclick=e=>{const r=e.target.closest('[data-o]');if(r)openOrder(r.dataset.o)};
+  $('#oRows').onclick=e=>{const c=e.target.closest('[data-sel]');if(c){e.stopPropagation();c.checked?S.oSel.add(c.dataset.sel):S.oSel.delete(c.dataset.sel);draw();return}
+    const r=e.target.closest('[data-o]');if(r)openOrder(r.dataset.o)};
+}
+
+/* ---- combine several orders of one customer into one invoice ---- */
+const COMBINABLE=['new','quoted','accepted','confirmed','delivered'];
+function combineOrders(ids){
+  const os=ids.map(id=>({...Store.get('orders',id),id})).filter(o=>o.no&&COMBINABLE.includes(o.status)).sort((a,b)=>a.createdAt-b.createdAt);
+  if(os.length<2){toast(t('Tick at least two orders.'));return}
+  if(new Set(os.map(o=>o.customer?.phoneKey)).size>1){toast(t('These orders are from different customers. Choose orders of one customer.'));return}
+  const bad=os.find(o=>!invPriced(o));if(bad){toast(t('Set a price for every available line first')+' · '+bad.no);return}
+  const last=os[os.length-1],lines=[],sum={disc:0,del:0};
+  os.forEach(o=>{const x=totals(o);sum.disc+=x.disc;sum.del+=x.del;(o.lines||[]).forEach(l=>lines.push({...l,src:o.no,...(o.partnerSettled&&l.pid?{settled:true}:{})}))});
+  const pre={lines,discountType:'amt',discount:Math.round(sum.disc*100)/100,delivery:sum.del,payments:os.flatMap(o=>o.payments||[]),credits:os.flatMap(o=>o.credits||[])},x=totals(pre);
+  openModal(mHead('🧾 '+t('Combine into one invoice'),esc(last.customer.name)+' · <span class="ltr">'+esc(last.customer.phone||'')+'</span>')+`<div class="modal-body">
+    <div class="tblwrap"><table class="tbl"><tbody>${os.map(o=>`<tr><td><b class="ltr">${esc(o.no)}</b>${o.invoiceNo?` <span class="mini ltr">${esc(o.invoiceNo)}</span>`:''}</td><td>${dateStr(o.createdAt)}</td><td>${(o.lines||[]).length} ${t('lines')}</td><td><span class="st ${o.status}">${stl(o.status)}</span></td><td class="num">${money(totals(o).net)}</td></tr>`).join('')}
+      <tr class="grp"><td colspan="4"><b>${t('One invoice')}</b>${x.paid?` · ${t('Paid')}: ${money(x.paid)}`:''}</td><td class="num"><b>${money(x.net)}</b></td></tr></tbody></table></div>
+    <p class="mini">${t('A new order with all these lines is created and invoiced. The old orders are marked "Combined" and no longer count on their own; their payments move to the new invoice. You can undo this from the new order as long as nothing more was paid.')}</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn ghost" data-mclose>${t('Cancel')}</button><button class="btn red" id="cmbGo">🧾 ${t('Create one invoice')}</button></div></div>`,true);
+  $('#cmbGo').onclick=async()=>{const b=$('#cmbGo');b.disabled=true;
+    try{const d=new Date(),no='AE-'+String(d.getFullYear()).slice(2)+pad(d.getMonth()+1,2)+pad(d.getDate(),2)+'-'+rid(4),now=Date.now(),allDel=os.every(o=>o.status==='delivered');
+      const n={no,room:last.room||'retail',status:allDel?'delivered':'confirmed',lang:last.lang||'en',pdfLang:last.pdfLang||last.lang||'en',fulfil:last.fulfil||'delivery',branch:last.branch||'',customer:{...last.customer},comment:'',
+        ...pre,notes:os.map(o=>o.notes).filter(Boolean).join('\n'),createdAt:now,updatedAt:now,mergedFrom:os.map(o=>({id:o.id,no:o.no,status:o.status,invoiceNo:o.invoiceNo||''})),
+        partnerSettled:allDel&&os.every(o=>o.partnerSettled||!(o.lines||[]).some(l=>l.pid)),log:[{at:now,s:'combined',by:S.me||'',from:os.map(o=>o.no)}]};
+      await ensureInvoice(n);if(allDel)n.status='delivered';await Store.set('orders',no,n);
+      for(const o of os){const c=clone(Store.get('orders',o.id));c.prevStatus=c.status;c.status='merged';c.mergedInto=no;c.updatedAt=now;c.payments=[];c.credits=[];c.movedPayments=o.payments||[];c.movedCredits=o.credits||[];
+        c.log=[...(c.log||[]),{at:now,s:'merged',into:no,by:S.me||''}];await Store.set('orders',o.id,c)}
+      S.oSel.clear();toast(t('Invoice {no} created for {n} orders',{no:n.invoiceNo,n:os.length}));openOrder(no)}
+    catch(e){b.disabled=false;toast(t('Could not save'))}};
+}
+async function uncombineOrder(o){
+  const moved=(o.mergedFrom||[]).reduce((s,m)=>s+((Store.get('orders',m.id)||{}).movedPayments||[]).length,0);
+  if((o.payments||[]).length>moved){toast(t('A payment was added to the combined invoice. Remove it first.'));return}
+  confirmBox(t('Undo combine? The {n} orders go back to how they were and {no} is removed.',{n:o.mergedFrom.length,no:o.no}),async()=>{
+    for(const m of o.mergedFrom){const c=clone(Store.get('orders',m.id));if(!c)continue;c.status=c.prevStatus||m.status||'confirmed';c.payments=c.movedPayments||[];c.credits=c.movedCredits||[];
+      delete c.mergedInto;delete c.prevStatus;delete c.movedPayments;delete c.movedCredits;c.updatedAt=Date.now();c.log=[...(c.log||[]),{at:Date.now(),s:'uncombined',by:S.me||''}];await Store.set('orders',m.id,c)}
+    await Store.del('orders',o.id);closeAll();toast(t('Combine undone'))});
 }
 
 let editing=null;
@@ -809,6 +850,8 @@ function drawOrderModal(){
   const o=editing;const cust=Store.get('customers','c_'+o.customer.phoneKey);const invd=['confirmed','delivered'].includes(o.status)&&o.invoiceNo;const tt=totals(o);
   openModal(`<div class="modal-head"><div><h3><span class="ltr">${esc(o.no)}</span> <span class="st ${o.status}" style="vertical-align:middle">${stl(o.status)}</span></h3><p class="mini">${dtStr(o.createdAt)} · <span class="room-tag ${o.room==='wholesale'?'ws':''}">${t(o.room==='wholesale'?'Wholesale':'Retail')}</span> · ${t('Customer language')}: ${LANGS[o.lang||'en'].native}${o.quoteNo?' · <span class="ltr">'+esc(o.quoteNo)+'</span>':''}${o.invoiceNo?' · <span class="ltr">'+esc(o.invoiceNo)+'</span>':''}</p></div><button class="x" data-mclose>×</button></div>
   <div class="modal-body">
+    ${o.mergedFrom?`<div class="box" style="margin-bottom:10px;background:#FFF8E6">🧾 ${t('One invoice for {n} orders',{n:o.mergedFrom.length})}: <span class="ltr">${o.mergedFrom.map(m=>esc(m.no)).join(', ')}</span> ${can('orders')?`<button class="linkbtn" id="o_uncomb">${t('Undo combine')}</button>`:''}</div>`:''}
+    ${o.mergedInto?`<div class="box" style="margin-bottom:10px;background:#FFF8E6">🧾 ${t('This order was combined into {no}.',{no:'<span class="ltr">'+esc(o.mergedInto)+'</span>'})} <button class="linkbtn" id="o_goto">${t('Open')}</button></div>`:''}
     <div class="row3" style="margin-bottom:6px"><div class="f"><label>${t('Customer')}</label><input id="oc_name" value="${esc(o.customer.name)}"></div><div class="f"><label>${t('Phone')}</label><input id="oc_phone" value="${esc(o.customer.phone)}" dir="ltr"></div><div class="f"><label>${t('Location')}</label><input id="oc_loc" value="${esc(o.customer.location)}"></div></div>
     <div class="row3"><div class="f"><label>${t('Fulfilment')}</label><select id="o_ful"><option value="delivery" ${o.fulfil!=='pickup'?'selected':''}>${t('Delivery')}</option><option value="pickup" ${o.fulfil==='pickup'?'selected':''}>${t('Pick up from branch')}</option></select></div>
       <div class="f"><label>${t('Branch')}</label><select id="o_br" ${S.role==='sales'?'disabled':''}><option value="">—</option>${branches().map(b=>`<option value="${esc(b.id)}" ${o.branch===b.id?'selected':''}>${esc(b.name)}</option>`).join('')}</select></div>
@@ -849,6 +892,8 @@ function drawOrderModal(){
     const pd=e.target.closest('[data-pdel]');if(pd){editing.payments.splice(+pd.dataset.pdel,1);await saveOrder();drawOrderModal();return}
     const cp=e.target.closest('[data-cnpdf]');if(cp){makePdf(editing,'credit',editing.credits[+cp.dataset.cnpdf]);return}
     if(e.target.id==='addLine'){editing.lines.push({partId:null,partNo:'',name:t('New item'),fit:'',qty:1,price:null,listPrice:null,avail:''});drawOrderModal()}};
+  if($('#o_uncomb'))$('#o_uncomb').onclick=()=>uncombineOrder({...(Store.get('orders',editing.id)||editing),id:editing.id});
+  if($('#o_goto'))$('#o_goto').onclick=()=>openOrder(editing.mergedInto);
   $('#o_save').onclick=async()=>{const had=editing.invoiceNo;await saveOrder();if(!had&&editing.invoiceNo)toast(t('Invoice {no} created. Tap "Send invoice" to send it.',{no:editing.invoiceNo}));else toast(t('Order saved'));if(editing.invoiceNo)drawOrderModal()};
   $('#o_quote').onclick=async()=>{try{if(!editing.quoteNo)editing.quoteNo=await API.nextNo('quote');if(editing.status==='new')setStatus('quoted');editing.quotedAt=editing.quotedAt||Date.now();await saveOrder();makePdf(editing,'quote')}catch(_){}};
   $('#o_inv').onclick=async()=>{if(!invPriced(editing)){toast(t('Set a price for every available line first'));return}
@@ -1221,7 +1266,7 @@ function docHtml(o,kind,cn){
      <div>${lbl(kind==='quote'?T('Prepared for'):T('Bill to'))}<div style="font-size:15px;font-weight:700">${esc(o.customer.name)}</div>${o.customer.company?`<div>${esc(o.customer.company)}</div>`:''}<div dir="ltr" style="text-align:${st}">${esc(o.customer.phone)}</div><div>${esc(o.customer.location)}</div></div>
      <div style="text-align:${al}">${lbl(o.fulfil==='pickup'?T('Pick up from branch'):T('Delivery'))}<div style="font-weight:600">${br?esc(br.name):(o.fulfil==='pickup'?'—':esc(o.customer.location))}</div>${kind==='credit'&&cn.reason?`<div style="margin-top:8px">${lbl(T('Reason'))}${esc(cn.reason)}</div>`:''}</div></div>
    <table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#101318;color:#fff"><th style="padding:9px;text-align:${st};width:28px">#</th><th style="padding:9px;text-align:${st}">${T('Part number')}</th><th style="padding:9px;text-align:${st}">${T('Description')}</th>${kind==='quote'?`<th style="padding:9px;text-align:${st}">${T('Availability')}</th>`:''}<th style="padding:9px;text-align:${al}">${T('Qty')}</th><th style="padding:9px;text-align:${al}">${T('Unit price')}</th><th style="padding:9px;text-align:${al}">${T('Amount')}</th></tr></thead>
-     <tbody>${lines.map((l,i)=>`<tr style="border-bottom:1px solid #e5e3dd;${i%2?'background:#faf9f6':''}"><td style="padding:9px">${i+1}</td><td style="padding:9px;font-family:monospace" dir="ltr">${esc(l.partNo||'—')}</td><td style="padding:9px"><b>${esc(l.name)}</b>${l.fit?`<br><span style="color:#69717C">${esc(l.fit)}</span>`:''}</td>${kind==='quote'?`<td style="padding:9px">${availLabel(l.avail,L)}</td>`:''}<td style="padding:9px;text-align:${al}">${l.qty}</td><td style="padding:9px;text-align:${al}">${l.avail==='unavailable'?'—':money(l.price,L)}</td><td style="padding:9px;text-align:${al};font-weight:600">${l.avail==='unavailable'?'—':money((+l.price||0)*l.qty,L)}</td></tr>`).join('')}</tbody></table>
+     <tbody>${lines.map((l,i)=>`<tr style="border-bottom:1px solid #e5e3dd;${i%2?'background:#faf9f6':''}"><td style="padding:9px">${i+1}</td><td style="padding:9px;font-family:monospace" dir="ltr">${esc(l.partNo||'—')}</td><td style="padding:9px"><b>${esc(l.name)}</b>${l.fit?`<br><span style="color:#69717C">${esc(l.fit)}</span>`:''}${l.src?`<br><span style="color:#69717C;font-size:11px" dir="ltr">${esc(t('Order',null,L))} ${esc(l.src)}</span>`:''}</td>${kind==='quote'?`<td style="padding:9px">${availLabel(l.avail,L)}</td>`:''}<td style="padding:9px;text-align:${al}">${l.qty}</td><td style="padding:9px;text-align:${al}">${l.avail==='unavailable'?'—':money(l.price,L)}</td><td style="padding:9px;text-align:${al};font-weight:600">${l.avail==='unavailable'?'—':money((+l.price||0)*l.qty,L)}</td></tr>`).join('')}</tbody></table>
    <div style="display:flex;justify-content:flex-end;margin-top:16px"><table style="width:320px;font-size:13px">${tot}</table></div>
    ${o.notes&&kind!=='credit'?`<div style="margin-top:24px;padding:12px 14px;background:#f5f4f0;border-radius:8px">${lbl(T('Notes'))}${esc(o.notes).replace(/\n/g,'<br>')}</div>`:''}
    <div style="margin-top:20px;color:#69717C;line-height:1.6">${esc(kind==='quote'?T(s.quoteNote):kind==='invoice'?T(s.invoiceNote):(cn.settle==='refund'?T('Settled by cash refund.'):T('Credit can be used on your next order.')))}</div>

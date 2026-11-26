@@ -444,7 +444,7 @@ async function poLedger(no){
 /* when a customer order with partner items is delivered: take the items off the shop's stock and credit the shop (price − commission) */
 async function settlePartnerLines(order){
   if(!order || order.partnerSettled || !(order.lines || []).some(l => l.pid)) return false;
-  for(const l of order.lines.filter(x => x.pid)){
+  for(const l of order.lines.filter(x => x.pid && !x.settled)){
     const pt = Store.get('partners', l.pid) || {}, com = pt.commission ?? 1.5, gross = (+l.price || 0) * (+l.qty || 0), net = Math.round(gross * (1 - com / 100));
     await Store.set('pledger', 'lg_' + order.no + '_' + (l.listingId || rid(6)), {pid: l.pid, kind: 'sale', amount: -net, cur: 'IQD', ref: order.no, note: `${l.partNo} × ${l.qty} (−${com}%)`, at: Date.now(), by: S.me || ''});
     const li = l.listingId && Store.get('plistings', l.listingId);

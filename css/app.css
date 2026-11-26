@@ -1004,3 +1004,6 @@ b.neg{color:#c4200b}b.pos{color:#11753d}
 
 .pt-share{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;border:1px solid #cfe9d8;background:#effaf3;color:#18A35A;cursor:pointer;vertical-align:middle}
 .pt-share:hover{background:#18A35A;color:#fff}
+
+.st.merged{background:#EEE;color:#69717C}
+#oBulk .mini{color:rgba(255,255,255,.7)}
