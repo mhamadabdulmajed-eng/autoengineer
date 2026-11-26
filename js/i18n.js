@@ -2,6 +2,13 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"{no} is part of the combined order {c}. Open {c} to undo the combine or delete it.":"{no} جزء من الطلب المدمج {c}. افتح {c} للتراجع عن الدمج أو حذفه.",
+"Delete order {no}?":"حذف الطلب {no}؟",
+"Delete {n} orders?":"حذف {n} طلبات؟",
+"The {n} orders combined into it are deleted too.":"ستُحذف أيضاً الطلبات {n} المدمجة فيه.",
+"Payments recorded on them are deleted too.":"ستُحذف أيضاً الدفعات المسجلة عليها.",
+"This cannot be undone.":"لا يمكن التراجع عن هذا.",
+"{n} orders deleted":"تم حذف {n} طلبات",
 "Genuine car parts":"قطع سيارات أصلية",
 "Aftermarket parts":"قطع تجارية",
 "Oils & lubricants":"زيوت ومواد تشحيم",
@@ -944,6 +951,13 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"{no} is part of the combined order {c}. Open {c} to undo the combine or delete it.":"{no} بەشێکە لە داواکاری کۆکراوەی {c}. {c} بکەرەوە بۆ هەڵوەشاندنەوەی کۆکردنەوە یان سڕینەوەی.",
+"Delete order {no}?":"داواکاری {no} بسڕدرێتەوە؟",
+"Delete {n} orders?":"{n} داواکاری بسڕدرێنەوە؟",
+"The {n} orders combined into it are deleted too.":"ئەو {n} داواکارییەی تێیدا کۆکراونەتەوە دەسڕدرێنەوە.",
+"Payments recorded on them are deleted too.":"ئەو پارەدانانەی لەسەریان تۆمار کراون دەسڕدرێنەوە.",
+"This cannot be undone.":"ناتوانرێت بگەڕێندرێتەوە.",
+"{n} orders deleted":"{n} داواکاری سڕانەوە",
 "Genuine car parts":"پارچەی ئەسڵی ئۆتۆمبێل",
 "Aftermarket parts":"پارچەی بازرگانی",
 "Oils & lubricants":"ڕۆن و ڕۆنکاری",
