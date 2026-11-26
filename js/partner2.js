@@ -411,12 +411,18 @@ ptStock = function(){
 /* ================= STAFF SIDE ================= */
 function adminPListings(){
   const list = Store.all('plistings').sort((a, b) => (a.status === 'pending' ? -1 : 1) - (b.status === 'pending' ? -1 : 1) || (b.updatedAt || 0) - (a.updatedAt || 0));
+  const pend = {}; list.filter(l => l.status === 'pending').forEach(l => { (pend[l.pid] = pend[l.pid] || {shop: l.shop, n: 0}).n++; });
   $('#adminBody').innerHTML = `<p class="sub">${t('Items your partner shops want to sell on the website. Nothing appears for customers until you approve it.')}</p>
+    ${Object.keys(pend).length ? `<div class="admin-bar" style="flex-wrap:wrap;gap:8px">${Object.entries(pend).map(([pid, x]) => `<button class="btn sm red" data-lall="${esc(pid)}">✓ ${t('Approve all {n} from {s}', {n: x.n, s: esc(x.shop || '')})}</button>`).join('')}</div>` : ''}
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Shop')}</th><th>${t('Part number')}</th><th>${t('Description')}</th><th>${t('Condition')}</th><th class="num">${t('Qty')}</th><th class="num">${t('Price')}</th><th>${t('Status')}</th><th></th></tr></thead><tbody>
     ${list.length ? list.map(l => `<tr data-id="${esc(l.id)}"><td><b>${esc(l.shop || '')}</b><br><span class="mini">${esc(l.city || '')}</span></td><td class="ltr"><b>${esc(l.partNo)}</b></td><td>${esc(l.name || '')}${l.note ? `<br><span class="mini">${esc(l.note)}</span>` : ''}</td><td>${t(PCOND[l.cond] || l.cond || '')}</td><td class="num">${+l.qty || 0}</td><td class="num">${money(l.price)}</td>
       <td><span class="pst ${l.status === 'approved' ? 'received' : l.status === 'pending' ? 'new' : l.status === 'rejected' ? 'rejected' : ''}">${t(LST_LABEL[l.status] || l.status)}</span></td>
       <td style="white-space:nowrap">${l.status !== 'approved' ? `<button class="btn sm red" data-la="approved">${t('Approve')}</button> ` : ''}${l.status !== 'rejected' ? `<button class="btn sm ghost" data-la="rejected">${t('Reject')}</button> ` : ''}${l.status === 'approved' ? `<button class="btn sm ghost" data-la="paused">${t('Pause')}</button>` : ''}</td></tr>`).join('')
       : `<tr><td colspan="8" class="empty">${t('No listings yet.')}</td></tr>`}</tbody></table></div>`;
+  $('#adminBody').querySelectorAll('[data-lall]').forEach(btn => btn.onclick = () => { const pid = btn.dataset.lall, ls = list.filter(l => l.pid === pid && l.status === 'pending');
+    confirmBox(t('Approve all {n} items from {s}? They appear on the website straight away.', {n: ls.length, s: (pend[pid] || {}).shop || ''}), async () => { const now = Date.now();
+      try{ await bulkSet(ls.map(l => { const d = clone(l); delete d.id; d.status = 'approved'; d.reply = ''; d.reviewedAt = now; return ['plistings', l.id, d]; })); toast(t('{n} items approved', {n: ls.length})); adminPListings();
+        const pt = Store.get('partners', pid); if(pt) ptWaPrompt(pt.phone, `${t('Auto Engineer')}: ${t('{n} of your items are now on the website.', {n: ls.length})}`); }catch(x){ toast(t('Could not save')); } }); });
   $('#adminBody').querySelector('tbody').onclick = async e => { const b = e.target.closest('[data-la]'); if(!b) return; const tr = e.target.closest('tr[data-id]'); const l = clone(Store.get('plistings', tr.dataset.id));
     const st = b.dataset.la; let reply = ''; if(st === 'rejected'){ reply = prompt(t('Reason for the shop (optional)')) || ''; }
     l.status = st; l.reply = reply; l.reviewedAt = Date.now(); delete l.id; await Store.set('plistings', tr.dataset.id, l);

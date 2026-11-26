@@ -45,7 +45,8 @@ function parseStockRows(rows, cols){
   return {items: [...out.values()], bad, cols};
 }
 const textRows = txt => String(txt || '').split(/\r?\n/).map(l => l.replace(/\s+$/, '')).filter(l => l.trim()).map(l =>
-  (l.includes('\t') ? l.split('\t') : l.split(/;|\||,(?!\d{3}(?!\d))|\s+/)).map(x => x.trim()).filter(x => x && x.toLowerCase() !== 'x'));
+  l.includes('\t') ? l.split('\t').map(x => x.trim()) // keep empty cells so columns stay in place
+    : l.split(/;|\||,(?!\d{3}(?!\d))|\s+/).map(x => x.trim()).filter(x => x && x.toLowerCase() !== 'x'));
 
 const StockAPI = {
   live: () => S.mode === 'supabase',

@@ -28,8 +28,9 @@ const PartnerAPI = {
   async logout(){ if(this.remote()) await S.sb.auth.signOut(); S.partner = null; S.partnerLocal = false; PS.cart = []; renderCurrent(); },
   async load(){ // live site: load my own stock, movements and orders
     if(!this.remote() || !S.partner) return;
-    try{ const rows = await sbFetchAll('docs', q => q.in('col', ['pstock','pmoves','porders','plistings','psales','pledger','pnotify','pusers']));
-      ['pstock','pmoves','porders','plistings','psales','pledger','pnotify','pusers'].forEach(c => S.data[c] = {}); rows.forEach(r => { (S.data[r.col] = S.data[r.col] || {})[r.id] = r.data; });
+    try{ const rows = await sbFetchAll('docs', q => q.in('col', ['pstock','pmoves','porders','plistings','psales','pledger','pnotify','pusers','pbrand']));
+      ['pstock','pmoves','porders','plistings','psales','pledger','pnotify','pusers','pbrand','pshop'].forEach(c => S.data[c] = {}); rows.forEach(r => { (S.data[r.col] = S.data[r.col] || {})[r.id] = r.data; });
+      const sh = await S.sb.from('docs').select('id,data').eq('col', 'pshop').eq('id', 'sh_' + S.partner.id).maybeSingle(); if(sh.data) S.data.pshop['sh_' + S.partner.id] = sh.data.data;
     }catch(e){ toast(t('Could not load data.')); }
     Store.emit('pstock');
   },
@@ -81,7 +82,7 @@ window.PartnerAPI = PartnerAPI;
 
 /* staff can open the portal as any partner to see what the shop sees (read-only) */
 const PT_TABS = {overview: ['owner','buyer','seller'], counter: ['owner','buyer','seller'], stock: ['owner','buyer','seller'], buy: ['owner','buyer'], orders: ['owner','buyer'],
-  web: ['owner'], trends: ['owner','buyer','seller'], vin: ['owner','buyer','seller'], account: ['owner','buyer','seller']};
+  web: ['owner'], brand: ['owner'], trends: ['owner','buyer','seller'], vin: ['owner','buyer','seller'], account: ['owner','buyer','seller']};
 const ROLE_LABEL = {owner: 'Owner', buyer: 'Buyer', seller: 'Seller'};
 const ptRole = () => (S.partner && S.partner.role) || 'owner';
 const ptOwner = () => ptRole() === 'owner';
@@ -113,7 +114,7 @@ function renderPartner(fromData){
   const st = myStock(), low = st.filter(s => lowOf(s)), ords = myOrders(), open = ords.filter(o => !['received','cancelled','rejected'].includes(o.status));
   const role = ptRole(), can = k => PT_TABS[k].includes(role);
   const pendingL = Store.all('plistings').filter(l => l.pid === S.partner.id && l.status === 'pending').length;
-  const tabs = [['overview','Overview',0],['counter','Counter sale',0],['stock','My stock',low.length],['buy','Buy from Auto Engineer',PS.cart.length],['orders','My orders',open.length],['web','Sell on website',pendingL],['trends','Customer searches',0],['vin','VIN lookup',0],['account','Account',0]].filter(([k]) => can(k));
+  const tabs = [['overview','Overview',0],['counter','Counter sale',0],['stock','My stock',low.length],['buy','Buy from Auto Engineer',PS.cart.length],['orders','My orders',open.length],['web','Sell on website',pendingL],['brand','My shop page',0],['trends','Customer searches',0],['vin','VIN lookup',0],['account','Account',0]].filter(([k]) => can(k));
   if(!can(PS.tab)) PS.tab = 'overview';
   page.innerHTML = `${ptPreview() ? `<div class="pt-preview">👁 ${t('Staff preview of {s}: you see exactly what this shop sees. Read-only.', {s: esc(S.partner.shop)})} <button class="linkbtn" id="ptExitPv">${t('Exit preview')}</button></div>` : ''}<div class="page-head pt-head"><div><span class="eyebrow">${t('Partner portal')}</span><h1>${esc(S.partner.shop || t('My shop'))}</h1>
       <p class="sub">${esc([S.partner.city, S.partner.phone].filter(Boolean).join(' · '))} · <span class="pt-verified">✓ ${t('Verified partner')}</span>${S.partner.userName ? ` · ${esc(S.partner.userName)} (${t(ROLE_LABEL[role] || role)})` : ''}</p></div>
@@ -122,7 +123,7 @@ function renderPartner(fromData){
   $('#ptOut').onclick = () => { if(ptPreview()){ S.partnerPreview = null; S.partner = null; renderPartner(); return; } PartnerAPI.logout(); };
   if($('#ptExitPv')) $('#ptExitPv').onclick = () => { S.partnerPreview = null; S.partner = null; S.adminTab = 'partners'; location.hash = 'admin'; };
   page.querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-pt]'); if(b){ PS.tab = b.dataset.pt; renderPartner(); } };
-  ({overview: ptOverview, counter: ptCounter, stock: ptStock, buy: ptBuy, orders: ptOrders, web: ptWeb, trends: ptTrends, vin: ptVin, account: ptAccount})[PS.tab]();
+  ({overview: ptOverview, counter: ptCounter, stock: ptStock, buy: ptBuy, orders: ptOrders, web: ptWeb, brand: ptBrand, trends: ptTrends, vin: ptVin, account: ptAccount})[PS.tab]();
   if(focus && $('#' + focus) && /^pt(Q|BuyQ)$/.test(focus)){ const i = $('#' + focus); i.focus(); try{ i.setSelectionRange(i.value.length, i.value.length); }catch(e){} }
 }
 window.renderPartner = renderPartner;

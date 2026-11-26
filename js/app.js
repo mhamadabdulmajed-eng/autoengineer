@@ -48,7 +48,7 @@ const SAMPLE_PARTS=[
  {partNo:'52119-06989',name:'Front Bumper Cover',brand:'Used OEM',make:'Toyota',model:'Camry',yearFrom:2018,yearTo:2020,category:'Body',condition:'Used',retailPrice:150000,wholesalePrice:130000,stock:'In stock'}];
 
 /* ================= STATE ================= */
-const COLS=['parts','wparts','orders','customers','wholesalers','sellRequests','config','staff','partners','porders','pstock','pmoves','plistings','psales','pledger','pnotify','pusers'];
+const COLS=['parts','wparts','orders','customers','wholesalers','sellRequests','config','staff','partners','porders','pstock','pmoves','plistings','psales','pledger','pnotify','pusers','pbrand','pshop'];
 const S={mode:'local',db:null,sb:null,user:null,admin:false,role:null,staff:null,me:null,canWrite:true,ready:false,
   data:Object.fromEntries(COLS.map(c=>[c,{}])),loaded:{},
   basket:ls('ae:basket')||[],q:'',f:{cat:'',make:'',model:'',year:'',cond:''},ws:null,wsPrices:{},adminTab:'orders',downloads:null,seenOrders:null,alerts:0};
@@ -173,15 +173,15 @@ function priceFor(p,room){if(room==='wholesale'){const w=S.wsPrices[p.id]??p.who
 const availLabel=(a,l)=>t(({available:'In stock',order:'On order (2–5 days)',unavailable:'Not available','':'To confirm'})[a||'']||a,null,l);
 
 /* ================= ROUTER ================= */
-const VIEWS=['home','shop','wholesale','sell','track','admin','terms','partner','inv'];
+const VIEWS=['home','shop','wholesale','sell','track','admin','terms','partner','inv','store'];
 let current='home';
-function route(){let v=(location.hash||'#home').slice(1);setTimeout(updWaFab,0);if($('#qDock')&&v!=='shop'&&v!=='wholesale')$('#qDock').classList.remove('show');if(v==='wholesale'){history.replaceState(null,'','#partner');v='partner'}if(v.startsWith('inv/')){S.invKey=v.slice(4);v='inv'}if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
+function route(){let v=(location.hash||'#home').slice(1);setTimeout(updWaFab,0);if($('#qDock')&&v!=='shop'&&v!=='wholesale')$('#qDock').classList.remove('show');if(v==='wholesale'){history.replaceState(null,'','#partner');v='partner'}if(v.startsWith('inv/')){S.invKey=v.slice(4);v='inv'}if(v.startsWith('store/')){S.storeSlug=decodeURIComponent(v.slice(6));v='store'}if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
   $$('.view').forEach(e=>e.classList.toggle('hidden',e.id!=='view-'+sec));$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===v));$('#navLinks').classList.remove('open');
   window.scrollTo(0,0);renderCurrent();updateNav();if(v==='home'&&window.ScrollTrigger)setTimeout(()=>ScrollTrigger.refresh(),60)
   // short room intro the first time a visitor opens Retail or Wholesale (skipped for Find My Part and Google links)
   if((v==='shop'||v==='partner')&&window.playRoomIntro){if(S.skipIntro)S.skipIntro=false;else if(v==='partner')playRoomIntro('wholesale',()=>{const q=$('#q');if(q&&current===v&&innerWidth>700)q.focus({preventScroll:true})})}}
 function renderCurrent(fromData){
-  if(current==='shop'||current==='wholesale')renderShop(fromData);else if(current==='sell')renderSell(fromData);else if(current==='track')renderTrack(fromData);else if(current==='inv'&&!fromData)renderInv();
+  if(current==='shop'||current==='wholesale')renderShop(fromData);else if(current==='sell')renderSell(fromData);else if(current==='track')renderTrack(fromData);else if(current==='inv'&&!fromData)renderInv();else if(current==='store'&&!fromData&&window.renderStore)renderStore();
   else if(current==='admin')renderAdmin(fromData);else if(current==='partner'&&window.renderPartner)renderPartner(fromData);else if(current==='terms')renderTerms();else renderFoot();
   renderBasketCount();}
 window.addEventListener('hashchange',route);
@@ -550,13 +550,13 @@ async function loadListings(){if(listCache&&Date.now()-listAt<3e5)return listCac
   try{if(S.mode==='supabase'){const {data}=await S.sb.from('docs').select('id,data').eq('col','plistings').eq('data->>status','approved').limit(3000);listCache=(data||[]).map(r=>({...r.data,id:r.id}))}
     else listCache=Store.all('plistings').filter(l=>l.status==='approved')}catch(e){listCache=[]}
   listAt=Date.now();return listCache}
-async function drawListings(){const box=$('#pListRes');if(!box)return;const q=S.q.trim().toLowerCase().replace(/-/g,'');
+async function drawListings(){const box=$('#pListRes');if(!box)return;if(window.loadShops)await loadShops();const q=S.q.trim().toLowerCase().replace(/-/g,'');
   if(room()!=='retail'||q.length<2){box.innerHTML='';return}
   const L=(await loadListings()).filter(l=>(+l.qty||0)>0&&((l.partNo||'').toLowerCase().replace(/-/g,'').includes(q)||[l.name,l.nameAr,l.nameKu].some(x=>String(x||'').toLowerCase().includes(S.q.trim().toLowerCase())))).slice(0,24);
   if(S.q.trim().toLowerCase().replace(/-/g,'')!==q)return;
   const inB=new Set(S.basket.map(b=>b.listingId));const CL={genuine:'New genuine',aftermarket:'New aftermarket',used:'Used'};
   box.innerHTML=L.length?`<h3 class="plist-h">${t('From verified partner shops')}</h3><div class="grid">${L.map(l=>`<article class="pcard plist"><div class="pbody"><span class="pno">${esc(l.partNo)}</span><span class="pname">${esc((LANG==='ar'&&l.nameAr)||(LANG==='ku'&&l.nameKu)||l.name)}</span>
-    <span class="pfit">${t(CL[l.cond]||'')}${l.note?' · '+esc(l.note):''}</span><span class="pshop">🏪 ${t('Sold by {s}',{s:esc(l.shop||'')})}${l.city?' · '+esc(l.city):''} · <b>✓ ${t('Verified partner')}</b></span>
+    <span class="pfit">${t(CL[l.cond]||'')}${l.note?' · '+esc(l.note):''}</span><span class="pshop">🏪 ${(sh=>sh?`<a href="#store/${encodeURIComponent(sh.slug)}">${t('Sold by {s}',{s:esc(sh.name||l.shop||'')})}</a>`:t('Sold by {s}',{s:esc(l.shop||'')}))(window.shopOf&&shopOf(l.pid))}${l.city?' · '+esc(l.city):''} · <b>✓ ${t('Verified partner')}</b></span>
     <div class="prow"><span class="price">${money(l.price)}</span><button class="add ${inB.has(l.id)?'done':''}" data-ladd="${esc(l.id)}">${inB.has(l.id)?'✓ '+t('Added'):t('Add')}</button></div></div></article>`).join('')}</div>`:'';
   box.onclick=e=>{const b=e.target.closest('[data-ladd]');if(!b)return;const l=L.find(x=>x.id===b.dataset.ladd);const ex=S.basket.find(x=>x.listingId===l.id);
     if(ex)ex.qty=Math.min(+l.qty||1,ex.qty+1);else S.basket.push({key:rid(6),partId:null,listingId:l.id,pid:l.pid,shop:l.shop,partNo:l.partNo,name:l.name,fit:'',qty:1,price:+l.price,room:'retail'});
@@ -743,7 +743,7 @@ function renderAdmin(fromData){
   if(!S.admin){if(S.mode==='supabase'){if(!fromData||!$('#loginF'))renderLogin(page)}else page.innerHTML=`<div class="lock panel"><h3>${t('Staff only')}</h3><p class="sub">${t('This area is for the Auto Engineer team. Ask the owner to give you access.')}</p><a class="btn" href="#home">${t('Back to home')}</a></div>`;return}
   if(S.seenOrders===null)S.seenOrders=new Set(Object.keys(S.data.orders||{}));
   const orders=visibleOrders(),sells=Store.all('sellRequests'),wss=Store.all('wholesalers');
-  const tabs=[['orders','Orders',orders.filter(o=>o.status==='new'||o.status==='accepted').length,'orders'],['customers','Customers',0,'customers'],['visitors','Visitors',Store.all('visitors').filter(v=>Date.now()-(v.firstAt||0)<864e5).length,'customers'],['parts','Retail catalog',0,'parts'],['wparts','Wholesale catalog',0,'parts'],['sell','Sell requests',sells.filter(s=>s.status==='new').length,'sell'],['partners','Partners',wss.filter(w=>w.status==='pending').length,'partners'],['porders','Partner orders',Store.all('porders').filter(o=>o.status==='new').length,'partners'],['plistings','Partner listings',Store.all('plistings').filter(l=>l.status==='pending').length,'partners'],['staff','Staff',0,'staff'],['settings','Settings',0,'settings']].filter(x=>can(x[3]));
+  const tabs=[['orders','Orders',orders.filter(o=>o.status==='new'||o.status==='accepted').length,'orders'],['customers','Customers',0,'customers'],['visitors','Visitors',Store.all('visitors').filter(v=>Date.now()-(v.firstAt||0)<864e5).length,'customers'],['parts','Retail catalog',0,'parts'],['wparts','Wholesale catalog',0,'parts'],['sell','Sell requests',sells.filter(s=>s.status==='new').length,'sell'],['partners','Partners',wss.filter(w=>w.status==='pending').length,'partners'],['porders','Partner orders',Store.all('porders').filter(o=>o.status==='new').length,'partners'],['plistings','Partner listings',Store.all('plistings').filter(l=>l.status==='pending').length,'partners'],['pshops','Shop pages',Store.all('pbrand').filter(b=>b.status==='pending').length,'partners'],['staff','Staff',0,'staff'],['settings','Settings',0,'settings']].filter(x=>can(x[3]));
   if(!tabs.find(x=>x[0]===S.adminTab))S.adminTab=tabs[0][0];
   const focused=document.activeElement&&document.activeElement.id==='adminSearch';
   const who=S.staff?`${esc(S.staff.name||S.me)} · ${t(ROLES[S.role])}${S.staff.branch?' · '+esc((branches().find(b=>b.id===S.staff.branch)||{}).name||''):''}`:t(ROLES[S.role]||'Admin');
@@ -751,7 +751,7 @@ function renderAdmin(fromData){
     <div class="tabs">${tabs.map(([k,l,n])=>`<button data-tab="${k}" class="${S.adminTab===k?'on':''}">${t(l)}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</div><div id="adminBody"></div>`;
   $('.tabs').onclick=e=>{const b=e.target.closest('[data-tab]');if(b){S.adminTab=b.dataset.tab;S.adminQ='';renderAdmin()}};
   if($('#logout'))$('#logout').onclick=async()=>{await S.sb.auth.signOut();location.hash='home'};
-  ({orders:adminOrders,customers:adminCustomers,visitors:adminVisitors,parts:adminParts,wparts:()=>adminWParts(),sell:adminSell,wholesalers:adminWs,partners:adminPartners,porders:adminPOrders,plistings:adminPListings,staff:adminStaff,settings:adminSettings})[S.adminTab]();
+  ({orders:adminOrders,customers:adminCustomers,visitors:adminVisitors,parts:adminParts,wparts:()=>adminWParts(),sell:adminSell,wholesalers:adminWs,partners:adminPartners,porders:adminPOrders,plistings:adminPListings,pshops:()=>adminPShops(),staff:adminStaff,settings:adminSettings})[S.adminTab]();
   if(focused&&$('#adminSearch')){const i=$('#adminSearch');i.focus();i.setSelectionRange(i.value.length,i.value.length)}
 }
 /* after opening the reset link from the email: choose a new password */
