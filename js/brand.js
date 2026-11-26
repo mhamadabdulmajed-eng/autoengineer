@@ -182,3 +182,52 @@ function brandReview(id){
   if($('#brHide')) $('#brHide').onclick = async () => { const s = clone(sh); delete s.id; s.hidden = true; await Store.set('pshop', 'sh_' + b.pid, s); shopCache = null; closeModal(); toast(t('Page unpublished')); };
 }
 window.ptBrand = ptBrand; window.renderStore = renderStore; window.adminPShops = adminPShops; window.loadShops = loadShops; window.shopOf = shopOf; window.bulkSet = bulkSet;
+
+/* ================= PUBLIC DIRECTORY OF PARTNER SHOPS  #shops ================= */
+let dirCache = null, dirAt = 0;
+async function loadShopDir(){ if(dirCache && Date.now() - dirAt < 3e5) return dirCache;
+  try{ if(S.mode === 'supabase'){ const {data} = await S.sb.from('docs').select('id,pid:data->>pid,slug:data->>slug,name:data->>name,city:data->>city,tagline:data->>tagline,logo:data->>logo,sections:data->sections,ownBrands:data->>ownBrands,makes:data->makes,hidden:data->>hidden').eq('col', 'pshop').limit(2000);
+      dirCache = (data || []).filter(x => x.hidden !== 'true'); }
+    else dirCache = Store.all('pshop').filter(x => !x.hidden).map(x => ({...x})); }catch(e){ dirCache = dirCache || []; }
+  const L = await loadListings().catch(() => []); const by = {};
+  L.filter(l => (+l.qty || 0) > 0).forEach(l => { const o = by[l.pid] = by[l.pid] || {n: 0, brands: new Set()}; o.n++; if(l.brand) o.brands.add(l.brand); });
+  dirCache.forEach(s => { const o = by[s.pid] || {n: 0, brands: new Set()}; s.parts = o.n;
+    s.allBrands = [...new Set([...String(s.ownBrands || '').split(/[,،]+/).map(x => x.trim()).filter(Boolean), ...o.brands])]; s.sections = Array.isArray(s.sections) ? s.sections : []; s.makes = Array.isArray(s.makes) ? s.makes : []; });
+  dirCache.sort((a, b) => b.parts - a.parts || String(a.name).localeCompare(String(b.name))); dirAt = Date.now(); return dirCache; }
+
+const DIR = {q: '', sec: '', brand: '', city: ''};
+async function renderShops(){
+  const el = $('#shopsPage'); if(!el) return; el.innerHTML = `<div class="inv-wait">${t('Loading…')}</div>`;
+  await storeReady; const all = await loadShopDir(); if(current !== 'shops') return;
+  const cities = [...new Set(all.map(s => s.city).filter(Boolean))].sort(), brands = [...new Set(all.flatMap(s => s.allBrands))].sort((a, b) => a.localeCompare(b)), makes = [...new Set(all.flatMap(s => s.makes))];
+  const secs = wsSections().filter(x => all.some(s => s.sections.includes(x)));
+  el.innerHTML = `<div class="page-head"><div><span class="eyebrow">${t('Verified partner shops')}</span><h1>${t('Shops & brands')}</h1><p>${t('Trusted shops and companies selling on Auto Engineer. Choose a shop or a brand, add parts to your basket and order. Every order is confirmed by Auto Engineer.')}</p></div></div>
+    <div class="dir-bar"><input type="search" id="dirQ" placeholder="${esc(t('Search a shop, brand or city'))}" value="${esc(DIR.q)}">
+      ${brands.length || makes.length ? `<select class="sel" id="dirB"><option value="">${t('All brands')}</option>${makes.length ? `<optgroup label="${esc(t('Car brands'))}">${makes.map(b => `<option value="${esc(b)}" ${DIR.brand === b ? 'selected' : ''}>🚗 ${esc(b)}</option>`).join('')}</optgroup>` : ''}${brands.length ? `<optgroup label="${esc(t('Part and product brands'))}">${brands.map(b => `<option value="${esc(b)}" ${DIR.brand === b ? 'selected' : ''}>🏷️ ${esc(b)}</option>`).join('')}</optgroup>` : ''}</select>` : ''}
+      ${cities.length > 1 ? `<select class="sel" id="dirC"><option value="">${t('All cities')}</option>${cities.map(c => `<option value="${esc(c)}" ${DIR.city === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}</div>
+    ${secs.length ? `<div class="pt-chips" id="dirS" style="margin:0 0 14px"><button class="chip ${!DIR.sec ? 'on' : ''}" data-sec="">${t('All')}</button>${secs.map(x => `<button class="chip ${DIR.sec === x ? 'on' : ''}" data-sec="${esc(x)}">${esc(secName(x))}</button>`).join('')}</div>` : ''}
+    <div id="dirGrid"></div>`;
+  const draw = () => { const q = DIR.q.trim().toLowerCase();
+    const rows = all.filter(s => (!DIR.sec || s.sections.includes(DIR.sec)) && (!DIR.brand || s.allBrands.includes(DIR.brand) || s.makes.includes(DIR.brand)) && (!DIR.city || s.city === DIR.city)
+      && (!q || [s.name, s.city, s.tagline, ...s.allBrands, ...s.makes, ...s.sections.map(x => t(x))].some(x => String(x || '').toLowerCase().includes(q))));
+    $('#dirGrid').innerHTML = rows.length ? `<div class="dir-grid">${rows.map(s => `<a class="dir-card" href="#store/${encodeURIComponent(s.slug)}">
+        ${s.logo ? `<img class="dir-logo" src="${s.logo}" alt="" loading="lazy">` : `<div class="dir-logo ph">${esc(String(s.name || '?').slice(0, 1))}</div>`}
+        <div class="dir-body"><b>${esc(s.name || '')}</b>${s.tagline ? `<span class="dir-tag">${esc(s.tagline)}</span>` : ''}
+          <span class="dir-meta">✓ ${t('Verified')}${s.city ? ' · 📍 ' + esc(s.city) : ''} · ${t('{n} parts', {n: s.parts})}</span>
+          ${s.sections.length ? `<span class="dir-secs">${s.sections.slice(0, 4).map(x => `<i>${esc(secName(x))}</i>`).join('')}</span>` : ''}
+          ${s.makes.length ? `<span class="dir-brands">🚗 ${s.makes.slice(0, 6).map(esc).join(' · ')}</span>` : ''}
+          ${s.allBrands.length ? `<span class="dir-brands">🏷️ ${s.allBrands.slice(0, 6).map(esc).join(' · ')}</span>` : ''}</div></a>`).join('')}</div>`
+      : `<div class="empty panel">${all.length ? t('No shops match your choice.') : t('Partner shops are coming soon.')}</div>`; };
+  draw();
+  $('#dirQ').oninput = e => { DIR.q = e.target.value; draw(); };
+  if($('#dirB')) $('#dirB').onchange = e => { DIR.brand = e.target.value; draw(); };
+  if($('#dirC')) $('#dirC').onchange = e => { DIR.city = e.target.value; draw(); };
+  if($('#dirS')) $('#dirS').onclick = e => { const c = e.target.closest('[data-sec]'); if(!c) return; DIR.sec = c.dataset.sec; $$('#dirS .chip').forEach(b => b.classList.toggle('on', b === c)); draw(); };
+  document.title = t('Shops & brands') + ' — Auto Engineer';
+}
+/* small strip of shops on the home page and in the Retail room */
+async function drawShopStrip(boxId){ const box = $('#' + boxId); if(!box) return; const all = await loadShopDir().catch(() => []); if(!$('#' + boxId)) return;
+  if(!all.length){ box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="strip-head"><h3>🏪 ${t('Verified partner shops')}</h3><a href="#shops">${t('See all shops & brands')} →</a></div>
+    <div class="shop-strip">${all.slice(0, 12).map(s => `<a href="#store/${encodeURIComponent(s.slug)}" class="ss-item">${s.logo ? `<img src="${s.logo}" alt="" loading="lazy">` : `<span class="dir-logo ph">${esc(String(s.name || '?').slice(0, 1))}</span>`}<b>${esc(s.name || '')}</b><small>${esc(s.city || '')}</small></a>`).join('')}</div>`; }
+window.renderShops = renderShops; window.drawShopStrip = drawShopStrip;

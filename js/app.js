@@ -179,7 +179,7 @@ function priceFor(p,room){if(room==='wholesale'){const w=S.wsPrices[p.id]??p.who
 const availLabel=(a,l)=>t(({available:'In stock',order:'On order (2–5 days)',unavailable:'Not available','':'To confirm'})[a||'']||a,null,l);
 
 /* ================= ROUTER ================= */
-const VIEWS=['home','shop','wholesale','sell','track','admin','terms','partner','inv','store'];
+const VIEWS=['home','shop','wholesale','sell','track','admin','terms','partner','inv','store','shops'];
 let current='home';
 function route(){let v=(location.hash||'#home').slice(1);setTimeout(updWaFab,0);if($('#qDock')&&v!=='shop'&&v!=='wholesale')$('#qDock').classList.remove('show');if(v==='wholesale'){history.replaceState(null,'','#partner');v='partner'}if(v.startsWith('inv/')){S.invKey=v.slice(4);v='inv'}if(v.startsWith('store/')){S.storeSlug=decodeURIComponent(v.slice(6));v='store'}if(v==='find'){history.replaceState(null,'','#shop');v='shop';S.skipIntro=true;setTimeout(()=>openFindPart(),350)}if(!VIEWS.includes(v))v='home';if(current!=='shop'&&current!=='wholesale')stageCur=null;current=v;const sec=v==='wholesale'?'shop':v;
   $$('.view').forEach(e=>e.classList.toggle('hidden',e.id!=='view-'+sec));$$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===v));$('#navLinks').classList.remove('open');
@@ -187,8 +187,9 @@ function route(){let v=(location.hash||'#home').slice(1);setTimeout(updWaFab,0);
   // short room intro the first time a visitor opens Retail or Wholesale (skipped for Find My Part and Google links)
   if((v==='shop'||v==='partner')&&window.playRoomIntro){if(S.skipIntro)S.skipIntro=false;else if(v==='partner')playRoomIntro('wholesale',()=>{const q=$('#q');if(q&&current===v&&innerWidth>700)q.focus({preventScroll:true})})}}
 function renderCurrent(fromData){
-  if(current==='shop'||current==='wholesale')renderShop(fromData);else if(current==='sell')renderSell(fromData);else if(current==='track')renderTrack(fromData);else if(current==='inv'&&!fromData)renderInv();else if(current==='store'&&!fromData&&window.renderStore)renderStore();
+  if(current==='shop'||current==='wholesale')renderShop(fromData);else if(current==='sell')renderSell(fromData);else if(current==='track')renderTrack(fromData);else if(current==='inv'&&!fromData)renderInv();else if(current==='store'&&!fromData&&window.renderStore)renderStore();else if(current==='shops'&&!fromData&&window.renderShops)renderShops();
   else if(current==='admin')renderAdmin(fromData);else if(current==='partner'&&window.renderPartner)renderPartner(fromData);else if(current==='terms')renderTerms();else renderFoot();
+  if(!fromData&&window.drawShopStrip){if(current==='home')drawShopStrip('homeShops');if(current==='shop')setTimeout(()=>drawShopStrip('retailShops'),50)}
   renderBasketCount();}
 window.addEventListener('hashchange',route);
 function updateNav(){const nav=$('#nav'),y=window.scrollY;const h=document.documentElement.scrollHeight-innerHeight;$('#progress').style.width=(h>0?y/h*100:0)+'%';
@@ -197,7 +198,7 @@ window.addEventListener('scroll',updateNav,{passive:true});
 
 /* ================= CHROME (nav, language) ================= */
 function buildChrome(){
-  $('#navLinks').innerHTML=`<a href="#find" class="nav-find">${t('Find my part')}</a><a href="#shop" data-v="shop">${t('Retail')}</a><a href="#partner" data-v="partner">${t('Wholesale')}</a><a href="#sell" data-v="sell">${t('Sell your parts')}</a><a href="#track" data-v="track">${t('Track order')}</a><a href="#admin" data-v="admin" class="admin-link">${t('Staff')}</a>`;
+  $('#navLinks').innerHTML=`<a href="#find" class="nav-find">${t('Find my part')}</a><a href="#shop" data-v="shop">${t('Retail')}</a><a href="#shops" data-v="shops">${t('Shops')}</a><a href="#partner" data-v="partner">${t('Wholesale')}</a><a href="#sell" data-v="sell">${t('Sell your parts')}</a><a href="#track" data-v="track">${t('Track order')}</a><a href="#admin" data-v="admin" class="admin-link">${t('Staff')}</a>`;
   $$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===current));
   $('#basketLbl').textContent=t('Basket');$('#langBtn').textContent=LANGS[LANG||'en'].short;$('#brandName').textContent=t('AUTO ENGINEER');
   document.title=t('Auto Engineer — Toyota Spare Parts');
@@ -234,6 +235,7 @@ function buildHome(){
     <a class="room-card r2" href="#wholesale"><span class="num">02 / ${t('WHOLESALE')}</span><svg class="art" viewBox="0 0 520 560" preserveAspectRatio="xMidYMid slice"><g stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none"><rect x="300" y="40" width="160" height="110"/><rect x="330" y="70" width="160" height="110"/><rect x="360" y="100" width="160" height="110" stroke="rgba(255,59,31,.5)"/></g></svg><h3>${t('Wholesale room')}</h3><p>${t('For trusted partner shops: trade prices, bulk orders, a free stock system and selling on our website.')}</p><span class="go">${t('Enter wholesale')} →</span></a>
     <a class="room-card r3" href="#sell"><span class="num">03 / ${t('SELL')}</span><svg class="art" viewBox="0 0 520 560" preserveAspectRatio="xMidYMid slice"><path d="M280 180 L460 60" stroke="rgba(255,255,255,.08)" stroke-width="40"/><path d="M420 40 L470 60 L450 110" stroke="rgba(24,163,90,.6)" stroke-width="3" fill="none"/></svg><h3>${t('Sell your parts')}</h3><p>${t('Got new or used parts to sell? Send photos and details, and we’ll make you an offer.')}</p><span class="go">${t('Sell a part')} →</span></a>
   </div></div></section>
+  <section class="home-shops" id="homeShops"></section>
   <section class="engine-sec" id="engineSec"><div class="sec-head"><span class="eyebrow">${t('Inside your engine')}</span><h2>${t('Every part. One search.')}</h2><p>${t('Scroll to take the engine apart. Tap a part to shop it.')}</p></div>
     <div class="engine-wrap" id="engine">${engineSVG()}</div>
     <div class="engine-caption" id="engineCap">${t('Every part inside your engine. Tap a part to shop it.')}</div></section>
@@ -246,7 +248,7 @@ function buildHome(){
     <div class="stats">${[[M.length,'','Toyota models covered'],[4,'','Fields to place an order'],[10,'','Part categories'],[24,'h','Target reply time (hours)']].map(([n,s,l])=>`<div class="stat"><b data-count="${n}" data-suffix="${s}">0</b><span>${t(l)}</span></div>`).join('')}</div></div>
   <section class="cta"><h2>${t('Find your part today')}</h2><div class="btns"><a class="btn-w" href="#shop">${t('Browse parts')}</a><a class="btn-o" href="#wholesale">${t('Wholesale account')}</a></div></section>
   <footer><div class="foot"><div><div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>${t('AUTO ENGINEER')}</div><div style="opacity:.7;margin:-4px 0 10px">${t('Toyota spare parts specialist')}</div><div id="footContact" style="line-height:1.8"></div></div>
-    <div><a href="#shop">${t('Retail room')}</a><a href="#wholesale">${t('Wholesale room')}</a><a href="#sell">${t('Sell your parts')}</a><a href="#track">${t('Track order')}</a><a href="#terms">${t('Terms & privacy')}</a></div>
+    <div><a href="#shop">${t('Retail room')}</a><a href="#shops">${t('Shops & brands')}</a><a href="#wholesale">${t('Wholesale room')}</a><a href="#sell">${t('Sell your parts')}</a><a href="#track">${t('Track order')}</a><a href="#terms">${t('Terms & privacy')}</a></div>
     <div id="footBranches" style="line-height:1.8"></div></div>
     <div class="foot" style="margin-top:36px;font-size:12px;opacity:.6"><span>© ${new Date().getFullYear()} ${t('Auto Engineer')}. ${t('All rights reserved.')} ${t('Toyota and model names are trademarks of Toyota Motor Corporation.')}</span></div></footer>`;
   $$('#engine .ep-txt').forEach(x=>x.textContent=t(x.dataset.label));
@@ -322,7 +324,7 @@ function renderShop(fromData){
     <div class="filters" id="catChips"></div>
     <div class="filters"><select class="sel" id="fCond"></select><button class="linkbtn" id="fClear">${t('Clear filters')}</button></div>
     <div class="result-meta"><span id="resCount"></span><span>${t('Can’t find it?')} <button class="linkbtn" id="reqBtn">${t('Request a part')}</button></span></div>
-    <div class="grid" id="results"></div><div id="pListRes"></div>`;
+    <div class="grid" id="results"></div><div id="pListRes"></div>${r==='retail'?'<div id="retailShops" class="home-shops" style="margin-top:28px"></div>':''}`;
     $('#q').oninput=e=>{S.q=e.target.value;if(!S.f.model){const mid=modelIdOf(S.q);setStage(mid&&mid!=='*'?mid:'')}syncDock();renderResults();jumpSoon()};
     $('#q').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(jumpTimer);if(S.q.trim())toResults(true)}};
     mountDock();

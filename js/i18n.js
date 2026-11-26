@@ -2,6 +2,18 @@
    To correct a translation, edit the text on the right side only. */
 window.I18N = {
 ar: {
+"Shops":"المحلات",
+"Shops & brands":"المحلات والماركات",
+"Verified partner shops":"محلات شريكة موثّقة",
+"Trusted shops and companies selling on Auto Engineer. Choose a shop or a brand, add parts to your basket and order. Every order is confirmed by Auto Engineer.":"محلات وشركات موثوقة تبيع على أوتو إنجنير. اختر محلاً أو ماركة، أضف القطع إلى سلتك واطلب. كل طلب يؤكده أوتو إنجنير.",
+"Search a shop, brand or city":"ابحث عن محل أو ماركة أو مدينة",
+"All cities":"كل المدن",
+"Car brands":"ماركات السيارات",
+"Part and product brands":"ماركات القطع والمنتجات",
+"Verified":"موثّق",
+"No shops match your choice.":"لا توجد محلات تطابق اختيارك.",
+"Partner shops are coming soon.":"المحلات الشريكة قادمة قريباً.",
+"See all shops & brands":"عرض كل المحلات والماركات",
 "{no} is part of the combined order {c}. Open {c} to undo the combine or delete it.":"{no} جزء من الطلب المدمج {c}. افتح {c} للتراجع عن الدمج أو حذفه.",
 "Delete order {no}?":"حذف الطلب {no}؟",
 "Delete {n} orders?":"حذف {n} طلبات؟",
@@ -951,6 +963,18 @@ ar: {
 'Erbil':'أربيل','Sulaymaniyah':'السليمانية','Duhok':'دهوك','Kirkuk':'كركوك','Halabja':'حلبجة','Zakho':'زاخو','Soran':'سوران','Ranya':'رانية','Koya':'كويه','Baghdad':'بغداد','Mosul':'الموصل','Basra':'البصرة','Najaf':'النجف','Karbala':'كربلاء','Hillah':'الحلة','Ramadi':'الرمادي','Tikrit':'تكريت','Baqubah':'بعقوبة','Nasiriyah':'الناصرية','Diwaniyah':'الديوانية'
 },
 ku: {
+"Shops":"دوکانەکان",
+"Shops & brands":"دوکان و مارکەکان",
+"Verified partner shops":"دوکانە هاوبەشە پشتڕاستکراوەکان",
+"Trusted shops and companies selling on Auto Engineer. Choose a shop or a brand, add parts to your basket and order. Every order is confirmed by Auto Engineer.":"دوکان و کۆمپانیای متمانەپێکراو کە لە ئۆتۆ ئەندازیار دەفرۆشن. دوکانێک یان مارکەیەک هەڵبژێرە، پارچەکان بخەرە سەبەتەکەت و داوا بکە. هەموو داواکارییەک لەلایەن ئۆتۆ ئەندازیارەوە دووپات دەکرێتەوە.",
+"Search a shop, brand or city":"بەدوای دوکان، مارکە یان شاردا بگەڕێ",
+"All cities":"هەموو شارەکان",
+"Car brands":"مارکەی ئۆتۆمبێل",
+"Part and product brands":"مارکەی پارچە و بەرهەم",
+"Verified":"پشتڕاستکراو",
+"No shops match your choice.":"هیچ دوکانێک لەگەڵ هەڵبژاردنەکەت ناگونجێت.",
+"Partner shops are coming soon.":"دوکانە هاوبەشەکان بەم زووانە دێن.",
+"See all shops & brands":"هەموو دوکان و مارکەکان ببینە",
 "{no} is part of the combined order {c}. Open {c} to undo the combine or delete it.":"{no} بەشێکە لە داواکاری کۆکراوەی {c}. {c} بکەرەوە بۆ هەڵوەشاندنەوەی کۆکردنەوە یان سڕینەوەی.",
 "Delete order {no}?":"داواکاری {no} بسڕدرێتەوە؟",
 "Delete {n} orders?":"{n} داواکاری بسڕدرێنەوە؟",
