@@ -33,7 +33,7 @@ const shopOf = pid => (shopCache || []).find(s => s.pid === pid);
 function myBrand(){ return Store.get('pbrand', 'pb_' + S.partner.id); }
 function ptBrand(){
   const p = S.partner, b = myBrand() || {}, sh = (Store.get('pshop', 'sh_' + p.id)) || shopOf(p.id), st = b.status || 'draft';
-  const v = k => esc(b[k] ?? ''), mk = new Set(b.makes || []), sv = new Set(b.services || []);
+  const v = k => esc(b[k] ?? ''), mk = new Set(b.makes || []), sv = new Set(b.services || []), sc = new Set(b.sections || []);
   $('#ptBody').innerHTML = `<div class="panel"><div class="pt-row"><div><h3>🏪 ${t('My shop page')}</h3><p class="sub" style="margin:4px 0 0">${t('Build your own shop page on autoengineeriq.com: your logo, name and story. Customers find your shop and order your parts through Auto Engineer. Every change is checked by Auto Engineer before it is published.')}</p></div>
       <span class="pst ${st === 'approved' ? 'received' : st === 'pending' ? 'new' : st === 'rejected' ? 'rejected' : ''}">${t(BRAND_ST[st] || st)}</span></div>
     ${b.reply && st === 'rejected' ? `<p class="err">${t('Auto Engineer')}: ${esc(b.reply)}</p>` : ''}
@@ -46,6 +46,8 @@ function ptBrand(){
       <label class="span2">${t('About your shop')}<textarea name="about" rows="4" maxlength="1200" placeholder="${esc(t('What you sell, your experience, why customers trust you…'))}">${v('about')}</textarea></label>
       <label>${t('City')}<input name="city" value="${v('city') || esc(p.city || '')}"></label><label>${t('Area / street')}<input name="area" value="${v('area')}"></label>
       <label>${t('Opening hours')}<input name="hours" value="${v('hours')}" placeholder="${esc(t('e.g. Sat–Thu 9:00–19:00'))}"></label><label>${t('Year founded')}<input name="since" type="number" min="1950" max="2030" dir="ltr" value="${v('since')}"></label></div>
+    <h4 style="margin:16px 0 6px">${t('What you sell')}</h4><div class="br-chips">${wsSections().map(s => `<label class="chip"><input type="checkbox" name="sc" value="${esc(s)}" ${sc.has(s) ? 'checked' : ''}> ${esc(secName(s))}</label>`).join('')}</div>
+    <label style="display:block;margin-top:10px">${t('Your own brands or the brands you distribute')}<input name="ownBrands" value="${v('ownBrands')}" placeholder="${esc(t('e.g. our own oil brand, Mobil, Bosch'))}"></label>
     <h4 style="margin:16px 0 6px">${t('Car brands you specialise in')}</h4><div class="br-chips">${MAKES.map(m => `<label class="chip"><input type="checkbox" name="mk" value="${m}" ${mk.has(m) ? 'checked' : ''}> ${m}</label>`).join('')}</div>
     <h4 style="margin:16px 0 6px">${t('Services')}</h4><div class="br-chips">${Object.entries(PSERV).map(([k, l]) => `<label class="chip"><input type="checkbox" name="sv" value="${k}" ${sv.has(k) ? 'checked' : ''}> ${t(l)}</label>`).join('')}</div>
     <h4 style="margin:18px 0 4px">🔒 ${t('Private details')}</h4><p class="mini" style="margin:0 0 8px">${t('Only Auto Engineer sees these. Customers always order through Auto Engineer.')}</p>
@@ -61,8 +63,8 @@ function ptBrand(){
   const draft = {logo: b.logo || '', cover: b.cover || ''};
   $('#brLogo').onchange = async e => { try{ draft.logo = await imgToData(e.target.files[0], 300, 1); const box = $('.br-logo'); let im = box.querySelector('img'); if(!im){ const sp = box.querySelector('span'); if(sp) sp.remove(); im = document.createElement('img'); box.prepend(im); } im.src = draft.logo; }catch(x){ toast(t('Could not read this image.')); } };
   $('#brCov').onchange = async e => { try{ draft.cover = await imgToData(e.target.files[0], 1400, 3); const c = $('.br-cover'); c.style.backgroundImage = `url(${draft.cover})`; c.querySelector('span') && c.querySelector('span').remove(); }catch(x){ toast(t('Could not read this image.')); } };
-  const collect = () => { const f = $('#brF'), fd = new FormData(f), o = {}; ['name','tagline','about','city','area','hours','since','owner','phone','maps','team','ig','fb','suppliers'].forEach(k => o[k] = String(fd.get(k) || '').trim());
-    o.makes = fd.getAll('mk'); o.services = fd.getAll('sv'); return {...o, logo: draft.logo, cover: draft.cover}; };
+  const collect = () => { const f = $('#brF'), fd = new FormData(f), o = {}; ['name','tagline','about','city','area','hours','since','owner','phone','maps','team','ig','fb','suppliers','ownBrands'].forEach(k => o[k] = String(fd.get(k) || '').trim());
+    o.makes = fd.getAll('mk'); o.services = fd.getAll('sv'); o.sections = fd.getAll('sc'); return {...o, logo: draft.logo, cover: draft.cover}; };
   $('#brPrev').onclick = () => { const d = collect(); openModal(`<div class="modal-head"><h3>👁 ${t('Preview')}</h3><button class="x" data-mclose>×</button></div><div class="modal-body">${storeHeader({...d, shop: d.name})}</div>`, true); };
   $('#brF').onsubmit = async e => { e.preventDefault(); if(ro()) return; const d = collect(), er = $('#brErr'); er.classList.add('hidden');
     if(!d.logo){ er.textContent = t('Please add your logo.'); er.classList.remove('hidden'); return; }
@@ -87,7 +89,7 @@ function ptPriceList(){
   const parse = () => { const r = parseStockRows(st.raw || [], st.cols || null); st.items = r.items.filter(x => x.w > 0); st.noPrice = r.items.length - st.items.length; st.bad = r.bad; };
   const cols = () => { const c = st.cols; if(!c){ $('#plCols').innerHTML = st.raw && st.raw.length ? `<p class="err">${t('No heading row found. Add a first row with column names, e.g. PartNo, Name, Price, Qty.')}</p>` : ''; return; }
     const o = (k, lbl, none) => `<label class="mini" style="display:grid;gap:4px">${t(lbl)}<select class="sel" data-col="${k}">${none ? `<option value="-1" ${c[k] < 0 ? 'selected' : ''}>— ${t('none')} —</option>` : ''}${c.hdr.map((h, i) => `<option value="${i}" ${c[k] === i ? 'selected' : ''}>${esc(h || t('Column {n}', {n: i + 1}))}</option>`).join('')}</select></label>`;
-    $('#plCols').innerHTML = `<div class="box" style="margin-top:10px"><h4 style="margin:0 0 8px">${t('Columns in your file')}</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">${o('pn', 'Part number')}${o('n', 'Name', 1)}${o('w', 'Price (IQD)')}${o('q', 'Quantity')}</div></div>`; };
+    $('#plCols').innerHTML = `<div class="box" style="margin-top:10px"><h4 style="margin:0 0 8px">${t('Columns in your file')}</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">${o('pn', 'Part number')}${o('n', 'Name', 1)}${o('b', 'Brand', 1)}${o('w', 'Price (IQD)')}${o('q', 'Quantity')}</div></div>`; };
   const show = () => { $('#plR').innerHTML = st.items.length ? `<div class="box" style="margin-top:10px"><p>✅ ${t('{n} parts with a price', {n: st.items.length})}${st.items.some(x => !x.n) ? ` · <span class="err">${t('{n} without a name', {n: st.items.filter(x => !x.n).length})}</span>` : ''}</p>${st.noPrice ? `<p class="mini">${t('{n} lines without a price are skipped.', {n: st.noPrice})}</p>` : ''}
       <div class="tblwrap" style="max-height:220px;overflow:auto"><table class="tbl"><tbody>${st.items.slice(0, 50).map(x => `<tr><td class="ltr"><b>${esc(x.pn)}</b></td><td>${esc(x.n || '—')}</td><td class="num">${money(x.w)}</td><td class="num">${x.qty}</td></tr>`).join('')}</tbody></table></div></div>`
       : `<p class="err">${t('No parts with a price found. Check the Price column.')}</p>`; $('#plGo').classList.toggle('hidden', !st.items.length); };
@@ -101,10 +103,10 @@ function ptPriceList(){
       st.raw = rows; st.cols = detectCols(rows); st.fromFile = true; $('#plFile').textContent = f.name; parse(); cols(); show(); }catch(x){ toast(t('Could not read this file.')); } };
   $('#plGo').onclick = async () => { const b = $('#plGo'); b.disabled = true; const cond = $('#plC').value, now = Date.now(), pid = S.partner.id, docs = [];
     for(const x of st.items.slice(0, 3000)){ const sid = stockId(x.pn), cur = Store.get('pstock', sid) || {};
-      const s = {...cur, pid, partNo: cur.partNo || x.pn, name: x.n || cur.name || x.pn, qty: x.qty, price: Math.round(x.w), min: cur.min || 0, reorder: cur.reorder || 0, createdAt: cur.createdAt || now, updatedAt: now, lastMove: cur.lastMove || now}; delete s.id;
+      const s = {...cur, pid, partNo: cur.partNo || x.pn, name: x.n || cur.name || x.pn, brand: x.b || cur.brand || '', qty: x.qty, price: Math.round(x.w), min: cur.min || 0, reorder: cur.reorder || 0, createdAt: cur.createdAt || now, updatedAt: now, lastMove: cur.lastMove || now}; delete s.id;
       const lid = 'pl_' + pid + '_' + pk2(x.pn), ol = Store.get('plistings', lid) || {};
       docs.push(['pstock', sid, s]);
-      if(x.qty > 0) docs.push(['plistings', lid, {pid, shop: S.partner.shop, city: S.partner.city || '', stockId: sid, partNo: s.partNo, name: s.name, nameAr: cur.nameAr || '', nameKu: cur.nameKu || '', price: Math.round(x.w), qty: x.qty, cond: ol.cond || cond, note: ol.note || '', status: 'pending', createdAt: ol.createdAt || now, updatedAt: now}]); }
+      if(x.qty > 0) docs.push(['plistings', lid, {pid, shop: S.partner.shop, city: S.partner.city || '', stockId: sid, partNo: s.partNo, name: s.name, brand: s.brand || '', nameAr: cur.nameAr || '', nameKu: cur.nameKu || '', price: Math.round(x.w), qty: x.qty, cond: ol.cond || cond, note: ol.note || '', status: 'pending', createdAt: ol.createdAt || now, updatedAt: now}]); }
     try{ await bulkSet(docs, (a, n) => { b.textContent = t('Saving…') + ` ${a}/${n}`; }); closeModal(); toast(t('{n} items sent for approval', {n: docs.filter(d => d[0] === 'plistings').length})); PS.tab = 'web'; renderPartner(); }
     catch(x){ b.disabled = false; b.textContent = t('Send for approval'); toast(t('Could not save') + ': ' + (x.message || x)); } };
 }
@@ -116,12 +118,14 @@ async function bulkSet(docs, onP){
   let k = 0; for(const [col, id, data] of docs){ await Store.set(col, id, data); onP && onP(++k, docs.length); } }
 
 /* ================= PUBLIC SHOP PAGE  #store/<slug> ================= */
-function storeHeader(s){ const mk = s.makes || [], sv = s.services || [];
+function storeHeader(s){ const mk = s.makes || [], sv = s.services || [], sc = s.sections || [], ob = String(s.ownBrands || '').split(/[,،]+/).map(x => x.trim()).filter(Boolean);
   return `<div class="store-head"><div class="store-cover" style="${s.cover ? `background-image:url(${s.cover})` : ''}"></div>
     <div class="store-id">${s.logo ? `<img class="store-logo" src="${s.logo}" alt="">` : `<div class="store-logo ph">${esc((s.name || s.shop || '?').slice(0, 1))}</div>`}
       <div><h1>${esc(s.name || s.shop || '')}</h1>${s.tagline ? `<p class="store-tag">${esc(s.tagline)}</p>` : ''}
         <p class="store-meta"><b class="store-ver">✓ ${t('Verified partner of Auto Engineer')}</b>${s.city ? ' · 📍 ' + esc(s.city) + (s.area ? ', ' + esc(s.area) : '') : ''}${s.hours ? ' · 🕘 ' + esc(s.hours) : ''}${s.since ? ' · ' + t('Since {y}', {y: esc(s.since)}) : ''}</p></div></div>
     ${s.about ? `<p class="store-about">${esc(s.about)}</p>` : ''}
+    ${sc.length ? `<div class="br-chips static" style="margin-bottom:8px">${sc.map(x => `<span class="chip">${esc(secName(x))}</span>`).join('')}</div>` : ''}
+    ${ob.length ? `<p class="mini" style="margin:0 0 8px">🏷️ ${t('Brands')}: ${ob.map(x => `<b>${esc(x)}</b>`).join(' · ')}</p>` : ''}
     ${mk.length || sv.length ? `<div class="br-chips static">${mk.map(m => `<span class="chip">🚗 ${esc(m)}</span>`).join('')}${sv.map(k => `<span class="chip">✔ ${t(PSERV[k] || k)}</span>`).join('')}</div>` : ''}</div>`; }
 
 async function renderStore(){
@@ -137,8 +141,8 @@ async function renderStore(){
     <div id="stGrid"></div><p class="mini" style="text-align:center;margin:18px 0">${t('You order through Auto Engineer: we confirm the part, the price and the delivery with you.')}</p>`;
   const CL = {genuine: 'New genuine', aftermarket: 'New aftermarket', used: 'Used'};
   const draw = () => { const q = ($('#stQ').value || '').trim().toLowerCase(), qk = q.replace(/[^a-z0-9]/g, ''); const inB = new Set(S.basket.map(b => b.listingId));
-    const rows = L.filter(l => !q || (qk && pk2(l.partNo).toLowerCase().includes(qk)) || [l.name, l.nameAr, l.nameKu, l.note].some(x => String(x || '').toLowerCase().includes(q))).slice(0, 300);
-    $('#stGrid').innerHTML = rows.length ? `<div class="grid">${rows.map(l => `<article class="pcard plist"><div class="pbody"><span class="pno">${esc(l.partNo)}</span><span class="pname">${esc((LANG === 'ar' && l.nameAr) || (LANG === 'ku' && l.nameKu) || l.name)}</span>
+    const rows = L.filter(l => !q || (qk && pk2(l.partNo).toLowerCase().includes(qk)) || [l.name, l.nameAr, l.nameKu, l.note, l.brand].some(x => String(x || '').toLowerCase().includes(q))).slice(0, 300);
+    $('#stGrid').innerHTML = rows.length ? `<div class="grid">${rows.map(l => `<article class="pcard plist"><div class="pbody"><span class="pno">${esc(l.partNo)}</span><span class="pname">${l.brand ? `<em class="pt-brand">${esc(l.brand)}</em> ` : ''}${esc((LANG === 'ar' && l.nameAr) || (LANG === 'ku' && l.nameKu) || l.name)}</span>
       <span class="pfit">${t(CL[l.cond] || '')}${l.note ? ' · ' + esc(l.note) : ''}</span><div class="prow"><span class="price">${money(l.price)}</span><button class="add ${inB.has(l.id) ? 'done' : ''}" data-ladd="${esc(l.id)}">${inB.has(l.id) ? '✓ ' + t('Added') : t('Add')}</button></div></div></article>`).join('')}</div>`
       : `<div class="empty">${t('No parts found')}</div>`; };
   draw(); $('#stQ').oninput = draw;
@@ -170,7 +174,7 @@ function brandReview(id){
       <button class="btn ghost" id="brRej">${t('Ask for changes')}</button><button class="btn red" id="brOk">✓ ${t(sh ? 'Approve and update page' : 'Approve and publish')}</button></div></div>`, true);
   const notify = msg => { if(pt.phone) ptWaPrompt(pt.phone, msg); };
   $('#brOk').onclick = async () => { const slug = slugify($('#brSlug').value); if((await loadShops(true)).some(x => x.slug === slug && x.pid !== b.pid)){ toast(t('This page address is already used. Choose another.')); return; }
-    const pub = {pid: b.pid, slug, name: b.name, tagline: b.tagline || '', about: b.about || '', city: b.city || '', area: b.area || '', hours: b.hours || '', since: b.since || '', makes: b.makes || [], services: b.services || [], logo: b.logo || '', cover: b.cover || '', hidden: false, publishedAt: Date.now()};
+    const pub = {pid: b.pid, slug, name: b.name, tagline: b.tagline || '', about: b.about || '', city: b.city || '', area: b.area || '', hours: b.hours || '', since: b.since || '', makes: b.makes || [], services: b.services || [], sections: b.sections || [], ownBrands: b.ownBrands || '', logo: b.logo || '', cover: b.cover || '', hidden: false, publishedAt: Date.now()};
     try{ await Store.set('pshop', 'sh_' + b.pid, pub); const d = clone(b); delete d.id; d.status = 'approved'; d.reply = ''; d.reviewedAt = Date.now(); await Store.set('pbrand', id, d); shopCache = null;
       closeModal(); toast(t('Published')); notify(`${t('Auto Engineer')}: ${t('Your shop page is live')} — ${shopUrl(slug)}`); }catch(x){ toast(t('Could not save')); } };
   $('#brRej').onclick = async () => { const d = clone(b); delete d.id; d.status = 'rejected'; d.reply = $('#brReply').value.trim(); d.reviewedAt = Date.now();

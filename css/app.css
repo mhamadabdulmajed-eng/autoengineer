@@ -1037,3 +1037,10 @@ b.neg{color:#c4200b}b.pos{color:#11753d}
 .store-id>div{margin-top:60px}
 .store-bar input{padding:12px 14px;border:1px solid #e3e1da;border-radius:12px;font:inherit;background:#fff}
 @media (max-width:640px){.store-id>div{margin-top:0}}
+
+.pt-secs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+.pt-chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;flex:1 1 100%}
+.pt-chips .chip{flex:none;border:1px solid #e3e1da;background:#fff;border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.pt-chips .chip.on{background:#101318;color:#fff;border-color:#101318}
+.pt-chips .chip small{opacity:.6;margin-inline-start:4px}
+.pt-brand{font-style:normal;font-weight:700;font-size:11.5px;background:#FFF1EE;color:#C42A12;border-radius:6px;padding:1px 6px;margin-inline-end:4px}

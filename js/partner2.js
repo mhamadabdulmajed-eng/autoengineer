@@ -244,6 +244,7 @@ function ptBuy(){
   const cartTot = PS.cart.reduce((s, c) => s + (+PS.buyPrices[c.partId] || 0) * c.qty, 0);
   const canOrder = pay.cod || pay.online || lim > 0;
   $('#ptBody').innerHTML = `<div class="pt-buy"><div>
+      <div class="pt-secs" id="ptSecs"></div>
       <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="ptBuyQ" type="search" placeholder="${esc(t('Search: 04465-0K290, brake pads, oil filter…'))}" value="${esc(PS.buyQ)}"></div>
       <div class="pt-row" style="margin:-2px 0 6px"><p class="mini" style="margin:0">${t('Your partner prices. Every order is confirmed by Auto Engineer before delivery.')}${settings().wStockUpdatedAt ? `<br>📦 ${t('Stock updated {d}', {d: dtStr(settings().wStockUpdatedAt)})}` : ''}</p><button class="btn sm ghost" id="ptPaste">📋 ${t('Paste a list / Excel')}</button></div>
       <div id="ptBuyRes" class="pt-res"></div></div>
@@ -269,24 +270,35 @@ function ptBuy(){
         PS.cart = []; PS.tab = 'orders'; toast(t('Order {no} sent. Auto Engineer will confirm it.', {no})); renderPartner();
       }catch(er){ toast(/credit/.test(String(er && er.message)) ? t('This order is more than your available credit ({a}).', {a: usd(avail) || '0'}) : t('Could not send the order. Try again.')); b.disabled = false; } } };
   ptBuySearch(true); ptCartPrices();
+  ptSecChips();
+}
+/* section chips + brand filter above the search */
+async function ptSecChips(){ const box = $('#ptSecs'); if(!box) return;
+  PS.facets = PS.facets || await WPartsAPI.facets().catch(() => ({sections: {}, brands: []})); if(!$('#ptSecs')) return;
+  const f = PS.facets, secs = [...wsSections().filter(s => f.sections[s]), ...Object.keys(f.sections).filter(s => s !== '-' && !wsSections().includes(s))];
+  if(!secs.length && !(f.brands || []).length){ box.innerHTML = ''; return; }
+  box.innerHTML = `<div class="pt-chips"><button class="chip ${!PS.sec ? 'on' : ''}" data-sec="">${t('All')}</button>${secs.map(s => `<button class="chip ${PS.sec === s ? 'on' : ''}" data-sec="${esc(s)}">${esc(secName(s))} <small>${f.sections[s]}</small></button>`).join('')}</div>
+    ${(f.brands || []).length ? `<select class="sel sm" id="ptBrand"><option value="">${t('All brands')}</option>${f.brands.map(x => `<option value="${esc(x.b)}" ${PS.brand === x.b ? 'selected' : ''}>${esc(x.b)} (${x.n})</option>`).join('')}</select>` : ''}`;
+  box.onclick = e => { const c = e.target.closest('[data-sec]'); if(!c) return; PS.sec = c.dataset.sec; ptSecChips(); ptBuySearch(); };
+  if($('#ptBrand')) $('#ptBrand').onchange = e => { PS.brand = e.target.value; ptBuySearch(); };
 }
 async function ptBuySearch(keep){
-  const el = $('#ptBuyRes'); if(!el) return; const q = PS.buyQ.trim();
-  if(!q){ // no search: show partner offers
+  const el = $('#ptBuyRes'); if(!el) return; const q = PS.buyQ.trim(), fk = q + '|' + (PS.sec || '') + '|' + (PS.brand || '');
+  if(!q && !PS.sec && !PS.brand){ // no search: show partner offers
     el.innerHTML = `<div class="empty">${t('Type a part number or part name.')}</div>`;
     const of = await PartnerAPI.rpc('partner_offers').catch(() => []); if(PS.buyQ.trim() || !$('#ptBuyRes')) return;
     if((of || []).length){ of.forEach(p => { PS.cache[p.id] = PS.cache[p.id] || p; if(p.price) PS.buyPrices[p.id] = p.price; });
       el.innerHTML = `<h3 style="margin:4px 0 8px">🔥 ${t('Special offers for partners')}</h3>` + of.slice(0, 60).map(p => ptItemRow(p, p.price, true)).join(''); }
     return; }
-  if(!(keep && PS.buyRows.length && PS.buyRows.q === q)){ el.innerHTML = `<div class="empty">${t('Searching…')}</div>`;
-    const r = await WPartsAPI.search({q, lim: 30, off: 0}).catch(() => ({rows: []})); const rows = r.rows || []; rows.q = q; PS.buyRows = rows;
+  if(!(keep && PS.buyRows.length && PS.buyRows.q === fk)){ el.innerHTML = `<div class="empty">${t('Searching…')}</div>`;
+    const r = await WPartsAPI.search({q, lim: q ? 30 : 60, off: 0, sec: PS.sec || '', brand: PS.brand || ''}).catch(() => ({rows: []})); const rows = r.rows || []; rows.q = fk; PS.buyRows = rows;
     rows.forEach(p => { PS.cache[p.id] = p; PS.buyPrices[p.id] = p.price ?? null; }); }
-  if(PS.buyQ.trim() !== q) return;
+  if(PS.buyQ.trim() + '|' + (PS.sec || '') + '|' + (PS.brand || '') !== fk) return;
   el.innerHTML = PS.buyRows.length ? PS.buyRows.map(p => ptItemRow(p, PS.buyPrices[p.id], nz(p.offerPrice))).join('') : `<div class="empty">${t('No parts found')}</div>`;
 }
 function ptItemRow(p, pr, offer){
   const inC = PS.cart.some(c => c.partId === p.id), stockOk = p.qty != null && p.qty !== '' ? +p.qty > 0 : (!p.stock || p.stock === 'In stock'), alert = Store.get('pnotify', 'pn_' + S.partner.id + '_' + p.id);
-  return `<div class="pt-item"><div><b class="ltr">${esc(p.partNo)}</b><span>${esc(pName(p))}${offer ? ` <span class="pst new">🔥 ${t('Offer')}</span>` : ''}</span>${p.stock || p.qty != null ? `<small class="${(+p.qty || 0) > 0 || p.stock === 'In stock' ? 'pt-in' : ''}">${stockText(p, true)}${p.offerNote ? ' · ' + esc(p.offerNote) : ''}</small>` : ''}</div>
+  return `<div class="pt-item"><div><b class="ltr">${esc(p.partNo)}</b><span>${p.brand ? `<em class="pt-brand">${esc(p.brand)}</em> ` : ''}${esc(pName(p))}${offer ? ` <span class="pst new">🔥 ${t('Offer')}</span>` : ''}</span>${p.stock || p.qty != null ? `<small class="${(+p.qty || 0) > 0 || p.stock === 'In stock' ? 'pt-in' : ''}">${stockText(p, true)}${p.offerNote ? ' · ' + esc(p.offerNote) : ''}</small>` : ''}</div>
     <div class="num">${pr ? `<b>${usd(pr)}</b>${nz(p.retailPrice) && +p.retailPrice > pr ? `<small class="pt-rrp">${t('Retail')} <s>${usd(p.retailPrice)}</s></small>` : ''}` : `<small>${t('Price on request')}</small>`}</div>
     <div class="pt-acts">${!stockOk ? (alert ? `<span class="mini">🔔 ${t('Alert on')}</span>` : `<button class="btn sm ghost" data-ntf="${esc(p.id)}">🔔 ${t('Notify me')}</button>`) : ''}
     <button class="btn sm ${inC ? 'ghost' : 'red'}" data-add="${esc(p.id)}" ${pr ? '' : 'disabled'}>${inC ? '✓ ' + t('Added') : t('Add')}</button></div></div>`;

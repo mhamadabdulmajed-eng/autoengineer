@@ -12,6 +12,8 @@ const COLDEF = {
   pn: {lbl: 'Part number', exact: ['partno','partnumber','pn','part','partnum','number','item','itemno','itemnumber','material','code','partcode','رقمالقطعة','رقم','ژمارە','ژمارەیپارچە'], has: ['partno','partnum','رقمالقطع','ژمارەیپارچ']},
   q: {lbl: 'Quantity', exact: ['qty','quantity','stock','onhand','soh','available','availableqty','balance','qoh','stockqty','freestock','free','qtyonhand','instock','الكمية','كمية','عدد','بڕ'], has: ['qty','quantity','onhand','كمي','بڕ']},
   w: {lbl: 'Wholesale price', exact: ['wholesale','wholesaleprice','trade','tradeprice','dealer','dealerprice','wsprice','ws','wsp','partnerprice','wholesaleiqd','price','unitprice','sellingprice','saleprice','netprice','السعر','سعر','سعرالجملة','نرخ','نرخیکۆ'], has: ['wholesale','trade','dealer','price','سعر','نرخ'], not: ['retail','cost','total','amount','مفرد','تاک']},
+  b: {lbl: 'Brand', exact: ['brand','make','manufacturer','maker','brandname','الماركة','ماركة','العلامة','العلامةالتجارية','براند','مارکە','براند'], has: ['brand','manufactur','مارك','علامة','مارکە']},
+  s: {lbl: 'Section', exact: ['section','category','group','department','type','القسم','قسم','الفئة','فئة','بەش','جۆر'], has: ['section','categor','قسم','فئة','بەش']},
   n: {lbl: 'Name', exact: ['name','description','desc','partname','itemname','itemdescription','partdescription','nomenclature','الاسم','اسم','الوصف','وصف','ناو','ناوی'], has: ['name','desc','اسم','وصف','ناو']}
 };
 function findCol(h, def, used){
@@ -22,8 +24,8 @@ function detectCols(rows){
   for(let r = 0; r < Math.min(rows.length, 15); r++){
     const h = (rows[r] || []).map(hNorm); const pn = findCol(h, COLDEF.pn, []); if(pn < 0) continue;
     const q = findCol(h, COLDEF.q, [pn]); if(q < 0) continue;
-    const w = findCol(h, COLDEF.w, [pn, q]), n = findCol(h, COLDEF.n, [pn, q, w]);
-    return {start: r + 1, hdr: (rows[r] || []).map(x => String(x == null ? '' : x).trim()), pn, q, w, n};
+    const w = findCol(h, COLDEF.w, [pn, q]), n = findCol(h, COLDEF.n, [pn, q, w]), b = findCol(h, COLDEF.b, [pn, q, w, n]), s = findCol(h, COLDEF.s, [pn, q, w, n, b]);
+    return {start: r + 1, hdr: (rows[r] || []).map(x => String(x == null ? '' : x).trim()), pn, q, w, n, b, s};
   }
   return null;
 }
@@ -39,8 +41,8 @@ function parseStockRows(rows, cols){
     const k = pnKey(pn); if(k.length < 4){ if(row.some(Boolean)) bad++; continue; }
     const n = Number(String(q == null ? '' : q).replace(/,/g, '')); if(q === '' || q == null || !isFinite(n)){ bad++; continue; }
     const wv = cols && cols.w >= 0 ? Number(String(row[cols.w] || '').replace(/[^0-9.]/g, '')) : 0, w = wv > 0 ? wv : null;
-    const nm = cols && cols.n >= 0 ? String(row[cols.n] || '').trim() : '';
-    const e = out.get(k); out.set(k, {pn: e ? e.pn : String(pn).trim(), key: k, qty: (e ? e.qty : 0) + Math.max(0, Math.floor(n)), w: w || (e ? e.w : null), n: nm || (e ? e.n : '')});
+    const nm = cols && cols.n >= 0 ? String(row[cols.n] || '').trim() : '', br = cols && cols.b >= 0 ? String(row[cols.b] || '').trim() : '', sc = cols && cols.s >= 0 ? secCanon(row[cols.s]) : '';
+    const e = out.get(k); out.set(k, {pn: e ? e.pn : String(pn).trim(), key: k, qty: (e ? e.qty : 0) + Math.max(0, Math.floor(n)), w: w || (e ? e.w : null), n: nm || (e ? e.n : ''), b: br || (e ? e.b : ''), s: sc || (e ? e.s : '')});
   }
   return {items: [...out.values()], bad, cols};
 }
@@ -56,14 +58,15 @@ const StockAPI = {
     return {matched: keys.length - unk.length, unknownCount: unk.length, unknown: unk.slice(0, 300),
       missing: parts.filter(p => !ks.has(pnKey(p.partNo)) && ((+p.qty || 0) > 0 || p.stock === 'In stock')).length};
   },
-  async apply(items, zs, col, onProgress){ let changed = 0;
+  async apply(items, zs, col, onProgress, defSec){ let changed = 0; defSec = defSec || '';
     for(let i = 0; i < items.length; i += 1500){ const part = items.slice(i, i + 1500);
-      if(this.live()){ const {data, error} = await S.sb.rpc('stock_apply', {p_rows: part.map(x => { const o = {k: x.key, q: x.qty}; if(x.w) o.w = x.w; if(col === 'wparts'){ o.pn = x.pn; if(x.n) o.n = x.n; } return o; }), p_zero_status: zs, p_col: col}); if(error) throw error; changed += data || 0; }
+      if(this.live()){ const {data, error} = await S.sb.rpc('stock_apply', {p_rows: part.map(x => { const o = {k: x.key, q: x.qty}; if(x.w) o.w = x.w; if(col === 'wparts'){ o.pn = x.pn; if(x.n) o.n = x.n; if(x.b) o.b = x.b; if(x.s || defSec) o.s = x.s || defSec; } return o; }), p_zero_status: zs, p_col: col}); if(error) throw error; changed += data || 0; }
       else{ const by = new Map(part.map(x => [x.key, x])), seen = new Set();
         for(const p of Store.all(col)){ const x = by.get(pnKey(p.partNo)); if(!x) continue; seen.add(x.key); const q = x.qty, st = q > 0 ? 'In stock' : zs;
-          if(p.qty === q && p.stock === st && (!x.w || +p.wholesalePrice === x.w) && !(col === 'wparts' && x.n && x.n !== p.name)) continue;
-          const d = {...p, qty: q, stock: st}; if(x.w) d.wholesalePrice = x.w; if(col === 'wparts' && x.n) d.name = x.n; delete d.id; await Store.set(col, p.id, d); changed++; }
-        if(col === 'wparts') for(const x of part){ if(seen.has(x.key)) continue; const d = {partNo: x.pn, name: x.n || '', qty: x.qty, stock: x.qty > 0 ? 'In stock' : zs, createdAt: Date.now()}; if(x.w) d.wholesalePrice = x.w; await Store.set('wparts', wpId(x.pn), d); changed++; } }
+          const sec = x.s || defSec;
+          if(p.qty === q && p.stock === st && (!x.w || +p.wholesalePrice === x.w) && !(col === 'wparts' && ((x.n && x.n !== p.name) || (x.b && x.b !== p.brand) || (sec && sec !== p.section)))) continue;
+          const d = {...p, qty: q, stock: st}; if(x.w) d.wholesalePrice = x.w; if(col === 'wparts'){ if(x.n) d.name = x.n; if(x.b) d.brand = x.b; if(sec) d.section = sec; } delete d.id; await Store.set(col, p.id, d); changed++; }
+        if(col === 'wparts') for(const x of part){ if(seen.has(x.key)) continue; const d = {partNo: x.pn, name: x.n || '', qty: x.qty, stock: x.qty > 0 ? 'In stock' : zs, createdAt: Date.now()}; if(x.w) d.wholesalePrice = x.w; if(x.b) d.brand = x.b; if(x.s || defSec) d.section = x.s || defSec; await Store.set('wparts', wpId(x.pn), d); changed++; } }
       onProgress && onProgress(Math.min(items.length, i + 1500), items.length); }
     return changed; },
   async zeroMissing(keys, zs, col){ let total = 0;
@@ -102,8 +105,9 @@ function openStockUpdate(col){ col = col === 'wparts' ? 'wparts' : 'parts'; cons
       $('#skFile').textContent = st.fname + ' · ' + t('{n} part numbers', {n: r.items.length.toLocaleString('en-US')}); }
     const c = st.cols; if(!c){ $('#skCols').innerHTML = W && st.raw && st.raw.length ? `<p class="err">${t('No heading row found. Add a first row with column names, e.g. PartNo, Name, Qty, Wholesale.')}</p>` : ''; return; }
     const opt = (k, opt) => `<label class="mini" style="display:grid;gap:4px">${t(COLDEF[k].lbl)}<select class="sel" data-col="${k}">${opt ? `<option value="-1" ${c[k] < 0 ? 'selected' : ''}>— ${t('none')} —</option>` : ''}${c.hdr.map((h, i) => `<option value="${i}" ${c[k] === i ? 'selected' : ''}>${esc(h || t('Column {n}', {n: i + 1}))}</option>`).join('')}</select></label>`;
-    $('#skCols').innerHTML = `<div class="box" style="margin-top:12px"><h4 style="margin:0 0 8px">${t('Columns in your file')}</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">${opt('pn')}${opt('q')}${W ? opt('w', 1) + opt('n', 1) : ''}</div></div>`; };
-  $('#skCols') && ($('#skCols').onchange = async e => { const sel = e.target.closest('[data-col]'); if(!sel || !st.cols) return; st.cols[sel.dataset.col] = +sel.value; st.pv = null; $('#skGo').classList.add('hidden'); parseNow(); await check(); });
+    $('#skCols').innerHTML = `<div class="box" style="margin-top:12px"><h4 style="margin:0 0 8px">${t('Columns in your file')}</h4><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">${opt('pn')}${opt('q')}${W ? opt('w', 1) + opt('n', 1) + opt('b', 1) + opt('s', 1) : ''}</div>
+      ${W ? `<label class="mini" style="display:flex;gap:8px;align-items:center;margin-top:10px">${t('Section for lines without one')}<select class="sel" id="skSec" style="flex:1"><option value="">— ${t('none')} —</option>${wsSections().map(x => `<option value="${esc(x)}" ${st.defSec === x ? 'selected' : ''}>${esc(secName(x))}</option>`).join('')}</select></label>` : ''}</div>`; };
+  $('#skCols') && ($('#skCols').onchange = async e => { if(e.target.id === 'skSec'){ st.defSec = e.target.value; return; } const sel = e.target.closest('[data-col]'); if(!sel || !st.cols) return; st.cols[sel.dataset.col] = +sel.value; st.pv = null; $('#skGo').classList.add('hidden'); parseNow(); await check(); });
   const check = async () => {
     if(!st.fromFile){ st.raw = textRows($('#skT').value); st.cols = detectCols(st.raw); parseNow(); }
     if(!st.items.length){ $('#skR').innerHTML = `<p class="err">${t('No part numbers with quantities found.')}</p>`; return; }
@@ -124,7 +128,7 @@ function openStockUpdate(col){ col = col === 'wparts' ? 'wparts' : 'parts'; cons
   $('#skChk').onclick = check;
   $('#skGo').onclick = async () => { const zs = $('#skZ').value, zero = $('#skM').checked, b = $('#skGo'); b.disabled = true; $('#skChk').disabled = true;
     const msg = x => { b.textContent = x; };
-    try{ msg(t('Saving…')); const changed = await StockAPI.apply(st.items, zs, col, (a, n) => msg(t('Saving…') + ` ${a.toLocaleString('en-US')} / ${n.toLocaleString('en-US')}`));
+    try{ msg(t('Saving…')); const changed = await StockAPI.apply(st.items, zs, col, (a, n) => msg(t('Saving…') + ` ${a.toLocaleString('en-US')} / ${n.toLocaleString('en-US')}`), W ? st.defSec : '');
       const zeroed = zero ? await StockAPI.zeroMissing(st.items.map(x => x.key), zs, col) : 0;
       await StockAPI.done(st.items.length, (+st.pv.matched || 0) + (W ? +st.pv.unknownCount || 0 : 0), col);
       closeModal(); toast(t('Stock updated: {a} changed, {z} set to 0', {a: changed.toLocaleString('en-US'), z: zeroed.toLocaleString('en-US')}));

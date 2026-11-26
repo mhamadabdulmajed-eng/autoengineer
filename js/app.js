@@ -159,6 +159,12 @@ const partId=no=>'p_'+String(no||rid(8)).toUpperCase().replace(/[^A-Z0-9_.-]/g,'
 let rq=0;Store.listeners.add(c=>{if(c==='orders')checkAlerts();if(c==='config')applyLogo();cancelAnimationFrame(rq);rq=requestAnimationFrame(()=>renderCurrent(true))});
 
 /* ================= MONEY ================= */
+/* wholesale sections (editable in Settings) */
+const WS_SECTIONS_DEFAULT=['Genuine car parts','Aftermarket parts','Oils & lubricants','Batteries','Tyres & wheels','Filters','Bearings & seals','Electrical','Hydraulics & pneumatics','Tools & equipment','Industrial & engineering supplies','Chemicals & car care'];
+const SEC_ICON={'Genuine car parts':'🚗','Aftermarket parts':'🔧','Oils & lubricants':'🛢️','Batteries':'🔋','Tyres & wheels':'🛞','Filters':'🧽','Bearings & seals':'⚙️','Electrical':'⚡','Hydraulics & pneumatics':'💧','Tools & equipment':'🛠️','Industrial & engineering supplies':'🏭','Chemicals & car care':'🧪'};
+const wsSections=()=>{const s=settings().wsSections;return Array.isArray(s)&&s.length?s:WS_SECTIONS_DEFAULT};
+const secName=s=>s?((SEC_ICON[s]||'▪️')+' '+t(s)):'';
+const secCanon=v=>{const x=String(v||'').trim();if(!x)return '';const k=x.toLowerCase();return wsSections().find(s=>s.toLowerCase()===k||t(s).toLowerCase()===k)||x};
 /* wholesale business (catalog, partner orders, partner credit) is in US dollars */
 const usd=(v,l)=>money(v,l,'USD');
 function money(v,l,c){if(!nz(v))return '';const cur=c||settings().currency;const n=Number(v);
@@ -552,10 +558,10 @@ async function loadListings(){if(listCache&&Date.now()-listAt<3e5)return listCac
   listAt=Date.now();return listCache}
 async function drawListings(){const box=$('#pListRes');if(!box)return;if(window.loadShops)await loadShops();const q=S.q.trim().toLowerCase().replace(/-/g,'');
   if(room()!=='retail'||q.length<2){box.innerHTML='';return}
-  const L=(await loadListings()).filter(l=>(+l.qty||0)>0&&((l.partNo||'').toLowerCase().replace(/-/g,'').includes(q)||[l.name,l.nameAr,l.nameKu].some(x=>String(x||'').toLowerCase().includes(S.q.trim().toLowerCase())))).slice(0,24);
+  const L=(await loadListings()).filter(l=>(+l.qty||0)>0&&((l.partNo||'').toLowerCase().replace(/-/g,'').includes(q)||[l.name,l.nameAr,l.nameKu,l.brand].some(x=>String(x||'').toLowerCase().includes(S.q.trim().toLowerCase())))).slice(0,24);
   if(S.q.trim().toLowerCase().replace(/-/g,'')!==q)return;
   const inB=new Set(S.basket.map(b=>b.listingId));const CL={genuine:'New genuine',aftermarket:'New aftermarket',used:'Used'};
-  box.innerHTML=L.length?`<h3 class="plist-h">${t('From verified partner shops')}</h3><div class="grid">${L.map(l=>`<article class="pcard plist"><div class="pbody"><span class="pno">${esc(l.partNo)}</span><span class="pname">${esc((LANG==='ar'&&l.nameAr)||(LANG==='ku'&&l.nameKu)||l.name)}</span>
+  box.innerHTML=L.length?`<h3 class="plist-h">${t('From verified partner shops')}</h3><div class="grid">${L.map(l=>`<article class="pcard plist"><div class="pbody"><span class="pno">${esc(l.partNo)}</span><span class="pname">${l.brand?`<em class="pt-brand">${esc(l.brand)}</em> `:''}${esc((LANG==='ar'&&l.nameAr)||(LANG==='ku'&&l.nameKu)||l.name)}</span>
     <span class="pfit">${t(CL[l.cond]||'')}${l.note?' · '+esc(l.note):''}</span><span class="pshop">🏪 ${(sh=>sh?`<a href="#store/${encodeURIComponent(sh.slug)}">${t('Sold by {s}',{s:esc(sh.name||l.shop||'')})}</a>`:t('Sold by {s}',{s:esc(l.shop||'')}))(window.shopOf&&shopOf(l.pid))}${l.city?' · '+esc(l.city):''} · <b>✓ ${t('Verified partner')}</b></span>
     <div class="prow"><span class="price">${money(l.price)}</span><button class="add ${inB.has(l.id)?'done':''}" data-ladd="${esc(l.id)}">${inB.has(l.id)?'✓ '+t('Added'):t('Add')}</button></div></div></article>`).join('')}</div>`:'';
   box.onclick=e=>{const b=e.target.closest('[data-ladd]');if(!b)return;const l=L.find(x=>x.id===b.dataset.ladd);const ex=S.basket.find(x=>x.listingId===l.id);
@@ -1231,6 +1237,8 @@ function adminSettings(){
     <label class="chk" style="opacity:.6"><input type="checkbox" name="payOnline" disabled> ${t('Online payment: Qi Card, FIB, ZainCash, Visa / Mastercard')} <i>(${t('available when the payment gateway is connected')})</i></label>
     <h3 style="margin-top:20px">🏆 ${t('Partner volume rewards')}</h3><p class="sub">${t('Extra discount next month when a partner buys this much (USD) in a month. One per line: amount = extra %. Example: 10000 = 2')}</p>
     <textarea name="rewardTxt" rows="3" dir="ltr" style="width:100%;font-family:inherit;padding:10px;border:1px solid rgba(0,0,0,.14);border-radius:10px">${esc((s.rewardTiers||[]).map(x=>x.min+' = '+x.pct).join('\n'))}</textarea>
+    <h3 style="margin-top:20px">🏪 ${t('Wholesale sections')}</h3><p class="sub">${t('The sections of your wholesale room (not only car parts). One per line. Partners browse by section; uploads can carry a Section column.')}</p>
+    <textarea name="wsSecTxt" rows="6" style="width:100%;font-family:inherit;padding:10px;border:1px solid rgba(0,0,0,.14);border-radius:10px">${esc(wsSections().join('\n'))}</textarea>
     <h3 style="margin-top:20px">${t('Branches')}</h3><p class="sub">${t('Customers can choose a branch for pickup. Orders and sales staff can be assigned to a branch.')}</p><div id="brList"></div><button type="button" class="btn sm ghost" id="brAdd">+ ${t('Add branch')}</button>
     <div style="margin-top:20px"><button class="btn red">${t('Save settings')}</button></div></form>`;
   const drawBr=()=>{$('#brList').innerHTML=brs.map((b,i)=>`<div class="row3" style="grid-template-columns:2fr 1fr 1fr auto;align-items:end"><div class="f"><label>${t('Branch name')}</label><input data-b="${i}" data-k="name" value="${esc(b.name||'')}"></div><div class="f"><label>${t('City')}</label><input data-b="${i}" data-k="city" value="${esc(b.city||'')}" list="cities"></div><div class="f"><label>${t('Phone')}</label><input data-b="${i}" data-k="phone" value="${esc(b.phone||'')}" dir="ltr"></div><div class="f"><button type="button" class="rm" data-brdel="${i}">✕</button></div></div>`).join('')+citiesList()};drawBr();
@@ -1238,7 +1246,7 @@ function adminSettings(){
   $('#brList').onclick=e=>{const d=e.target.closest('[data-brdel]');if(d){brs.splice(+d.dataset.brdel,1);drawBr()}};
   $('#brAdd').onclick=()=>{brs.push({id:'b_'+rid(5).toLowerCase(),name:'',city:'',phone:''});drawBr()};
   let logo=s.logo||'';$('#logoIn').onchange=async e=>{if(e.target.files[0]){logo=await compressImg(e.target.files[0],500,.85);$('#logoTh').innerHTML=`<img src="${logo}" style="object-fit:contain;background:#fff">`}};
-  $('#setF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));try{const rewardTiers=String(fd.rewardTxt||'').split(/\n+/).map(x=>{const m=x.replace(/[, ]/g,'').match(/^(\d+)=(\d+(?:\.\d+)?)%?$/);return m?{min:+m[1],pct:+m[2]}:null}).filter(Boolean).sort((a,b)=>a.min-b.min);delete fd.rewardTxt;
+  $('#setF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));try{const rewardTiers=String(fd.rewardTxt||'').split(/\n+/).map(x=>{const m=x.replace(/[, ]/g,'').match(/^(\d+)=(\d+(?:\.\d+)?)%?$/);return m?{min:+m[1],pct:+m[2]}:null}).filter(Boolean).sort((a,b)=>a.min-b.min);delete fd.rewardTxt;const wsSec=[...new Set(String(fd.wsSecTxt||'').split(/\n+/).map(x=>x.trim()).filter(Boolean))].slice(0,40);delete fd.wsSecTxt;fd.wsSections=wsSec.length?wsSec:WS_SECTIONS_DEFAULT;
   await Store.set('config','settings',{...settings(),...fd,rewardTiers,payCOD:fd.payCOD==='on',payOnline:false,quoteValidity:+fd.quoteValidity||7,logo,branches:brs.filter(b=>b.name)});toast(t('Settings saved'))}catch(_){}};
 }
 function applyLogo(){const s=settings();$$('.brand-mark').forEach(m=>{m.innerHTML=s.logo?`<img src="${esc(s.logo)}" style="width:100%;height:100%;object-fit:contain;border-radius:8px;background:#fff">`:'<img src="img/logo-mark.svg" alt="">'})}
