@@ -219,7 +219,7 @@ function buildHome(){
   const mk=M.map((m,i)=>`<span>${i%2?'<b>'+m.name+'</b>':m.name}</span>`).join('');
   const stmt=t('Send us your parts list. We reply with [prices], availability and your [discount], then issue your [quotation] and [invoice].');
   const stmtHtml=stmt.split(/\s+/).map(w=>{const red=/\[|\]/.test(w);return `<span class="w${red?' r':''}">${esc(w.replace(/[\[\]]/g,''))}</span>`}).join(' ');
-  const h1=t('Next part.|[Smarter] part.').split('|').map(x=>`<span class="ln"><span>${esc(x).replace(/\[(.*?)\]/,'<em>$1</em>')}</span></span>`).join('');
+  const h1=t('Right part.|[First time.]').split('|').map(x=>`<span class="ln"><span>${esc(x).replace(/\[(.*?)\]/,'<em>$1</em>')}</span></span>`).join('');
   $('#view-home').innerHTML=`<div class="dark-zone">
   <section class="hero hero-engine" id="hero"><div class="hero-grid"></div><div class="hero-glow"></div>
     <div class="hero-tech tech-host" id="heroTech"></div>
