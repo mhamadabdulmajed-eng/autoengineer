@@ -82,7 +82,7 @@ function openFindPart(preset){
   drawFindPart();
 }
 function fpHead(){
-  const steps=['Your Toyota','What you need','Send to our team'];
+  const steps=['Your car','What you need','Send to our team'];
   return `<div class="modal-head fp-head"><div><span class="eyebrow">${t('Find my part')}</span><h3>${t('No part number? No problem.')}</h3>
     <div class="fp-steps">${steps.map((s,i)=>`<span class="${FP.step===i+1?'on':FP.step>i+1?'done':''}"><b>${i+1}</b>${t(s)}</span>`).join('')}</div></div><button class="x" data-mclose>×</button></div>`;
 }
@@ -92,7 +92,7 @@ function drawFindPart(){
   if(FP.step===1){
     const years=[];for(let y=new Date().getFullYear()+1;y>=1990;y--)years.push(y);
     const vi = vinInfo(FP.vin);
-    body=`<p class="fp-lead">${t('Choose your Toyota. If you have the chassis number (VIN), add it and we can be 100% sure the part fits.')}</p>
+    body=`<p class="fp-lead">${t('Choose your car. If you have the chassis number (VIN), add it and we can be 100% sure the part fits.')}</p>
     <div class="fp-models">${M.map(x=>`<button class="fp-model ${FP.model===x.id?'on':''}" data-fm="${x.id}">${modelArt(x,{cls:'fp-art'})}<span>${esc(x.name)}</span></button>`).join('')}</div>
     <div class="row2" style="margin-top:16px"><div class="f"><label>${t('Year')}</label><select id="fpYear"><option value="">${t('Not sure')}</option>${years.map(y=>`<option ${String(FP.year)===String(y)?'selected':''}>${y}</option>`).join('')}</select></div>
       <div class="f"><label>${t('Chassis number (VIN)')} <i>(${t('optional')})</i></label><input id="fpVin" dir="ltr" maxlength="20" placeholder="JTEBR3FJ…" value="${esc(FP.vin)}" style="text-transform:uppercase;letter-spacing:.06em">
@@ -112,7 +112,7 @@ function drawFindPart(){
     const ws=S.ws, last=ls('ae:me')||{}, pre=ws?{name:ws.name,phone:ws.phone,location:ws.location}:last;
     const cp=commonPartOf(FP.q);
     body=`<div class="fp-car">${m?modelArt(m,{cls:'fp-car-art'}):''}<div><b>Toyota ${esc(m?m.name:'')}</b>${FP.year?` · ${FP.year}`:''}${FP.vin?` · <span class="ltr mini">${esc(FP.vin.toUpperCase())}</span>`:''}</div></div>
-    <p class="fp-lead">${t('Tell us what you need and add photos if you can. Our Toyota parts team finds the exact part number and sends you the price.')}</p>
+    <p class="fp-lead">${t('Tell us what you need and add photos if you can. Our parts team finds the exact part number and sends you the price.')}</p>
     <form id="fpForm"><div class="f"><label>${t('What do you need?')}</label><textarea name="need" required placeholder="${esc(t('e.g. front left headlight, the glass is broken'))}">${esc(FP.note || (cp?cpName(cp):FP.q))}</textarea></div>
       <div class="f"><label>${t('Photos')} <i>(${t('up to 3, of the part or the damaged area')})</i></label><label class="fp-drop"><input type="file" accept="image/*" multiple id="fpPh" hidden><span>📷 ${t('Add photos')}</span></label><div class="thumbs" id="fpThumbs">${FP.photos.map(s=>`<img src="${s}">`).join('')}</div></div>
       <div class="row3"><div class="f"><label>${t('Name')}</label><input name="name" required value="${esc(pre.name||'')}"></div><div class="f"><label>${t('Phone / WhatsApp')}</label><input name="phone" type="tel" required dir="ltr" value="${esc(pre.phone||'')}"></div><div class="f"><label>${t('Location')}</label><input name="location" list="cities" required value="${esc(pre.location||'')}"></div></div>
@@ -128,7 +128,7 @@ function fpResults(res,cp){
   if(res===null) return `<p class="mini fp-hint">${t('Searching…')}</p>`;
   if(!res.length) return `<div class="fp-none"><b>${t('We couldn’t find it in the online catalog yet.')}</b><p>${t('No problem: send it to our team with a photo and we’ll find the exact part for your car.')}</p><button class="btn red" id="fpAsk2">${t('Ask our team')} →</button></div>`;
   const inB=new Set(S.basket.map(b=>b.partId));
-  return `<p class="mini" style="margin:4px 0 8px">${t('{n} parts fit your Toyota',{n:res.length})}</p><div class="fp-list">${res.map(p=>{const pr=priceFor(p,'retail');return `<div class="fp-item"><div class="fp-ico">${p.image?`<img src="${esc(p.image)}" alt="">`:icon(p.category,1.4)}</div><div class="fp-txt"><b>${esc(pName(p))}</b><small><span class="ltr">${esc(p.partNo)}</span> · ${esc(fitText(p))}</small></div><div class="fp-pr">${pr!==null?money(pr):`<small>${t('Price on request')}</small>`}</div><button class="add ${inB.has(p.id)?'done':''}" data-fadd="${esc(p.id)}">${inB.has(p.id)?'✓ '+t('Added'):t('Add')}</button></div>`}).join('')}</div>
+  return `<p class="mini" style="margin:4px 0 8px">${t('{n} parts fit your car',{n:res.length})}</p><div class="fp-list">${res.map(p=>{const pr=priceFor(p,'retail');return `<div class="fp-item"><div class="fp-ico">${p.image?`<img src="${esc(p.image)}" alt="">`:icon(p.category,1.4)}</div><div class="fp-txt"><b>${esc(pName(p))}</b><small><span class="ltr">${esc(p.partNo)}</span> · ${esc(fitText(p))}</small></div><div class="fp-pr">${pr!==null?money(pr):`<small>${t('Price on request')}</small>`}</div><button class="add ${inB.has(p.id)?'done':''}" data-fadd="${esc(p.id)}">${inB.has(p.id)?'✓ '+t('Added'):t('Add')}</button></div>`}).join('')}</div>
    <p class="mini" style="margin-top:10px">${t('Not the right one?')} <button class="linkbtn" id="fpAsk3">${t('Ask our team')}</button></p>`;
 }
 function bindFindPart(){
@@ -169,7 +169,7 @@ async function sendFindPart(e){
   try{await Store.set('orders',no,order);await API.upsertCustomer(order).catch(()=>{});
     ls('ae:me',{name:fd.name,phone:fd.phone,location:fd.location});S.lastOrder={no,phone:fd.phone};
     openModal(mHead('')+`<div class="modal-body"><div class="success"><div class="tick">✓</div><h3 style="font-family:var(--display);font-size:26px">${t('Sent to our parts team')}</h3><p style="color:var(--muted)">${t('Your request number')}</p><code class="ltr">${esc(no)}</code>
-      <p style="color:var(--muted);line-height:1.6;margin:8px 0 18px">${t('We’ll find the exact part for your Toyota and contact you on {p} with the part number and price.',{p:'<b class="ltr">'+esc(fd.phone)+'</b>'})}</p><a class="btn block" href="#track" id="fpTrack">${t('Track this request')}</a></div></div>`);
+      <p style="color:var(--muted);line-height:1.6;margin:8px 0 18px">${t('We’ll find the exact part for your car and contact you on {p} with the part number and price.',{p:'<b class="ltr">'+esc(fd.phone)+'</b>'})}</p><a class="btn block" href="#track" id="fpTrack">${t('Track this request')}</a></div></div>`);
     $('#fpTrack').onclick=closeAll;FP=null;
   }catch(err){btn.disabled=false;btn.textContent=t('Try again')}
 }

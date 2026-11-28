@@ -152,7 +152,7 @@ function mountTechnician(host, opts = {}){
   /* ---------- the questions ---------- */
   const years = []; for(let y = new Date().getFullYear() + 1; y >= 1985; y--) years.push(y);
   const Q = [
-    { key:'model', ask:() => t('Which Toyota do you drive?'),
+    { key:'model', ask:() => t('Which car do you drive?'),
       ui:() => chips((window.TOYOTA_MODELS || []).map(m => [m.id, m.name]), draft.model, `<button type="button" class="tchip ${draft.model === 'other' ? 'on' : ''}" data-v="other">${t('Other')}</button>`),
       pick:(v, done) => { if(v !== 'other'){ draft.model = v; draft.modelName = modelById(v).name; return done(modelById(v).name); }
         ans.innerHTML = `<form class="tform"><input name="x" maxlength="40" placeholder="${esc(t('Model name, e.g. Fortuner'))}" value="${esc(draft.model === 'other' ? draft.modelName || '' : '')}" required><button class="btn red sm">${t('OK')}</button></form>`;

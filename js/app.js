@@ -36,7 +36,7 @@ const STOCKS=['In stock','On order','Ask','Out of stock'];
 const PAY_METHODS=['Cash','Bank transfer','FIB','ZainCash','Card','Other'];
 const ROLES={owner:'Owner',admin:'Admin',manager:'Manager',sales:'Sales'};
 const PERMS={owner:['orders','customers','parts','sell','wholesalers','partners','staff','settings','delete','owners'],admin:['orders','customers','parts','sell','wholesalers','partners','staff','settings','delete'],manager:['orders','customers','parts','sell','wholesalers','partners','delete'],sales:['orders','customers','sell']};
-const DEFAULT_SETTINGS={company:'Auto Engineer',tagline:'Toyota Spare Parts',phone:'',whatsapp:'',email:'',address:'',currency:'IQD',quoteValidity:7,invoiceNote:'Thank you for your business.',quoteNote:'Prices are valid for the period shown. Availability is confirmed at the time of order.',branches:[],logo:''};
+const DEFAULT_SETTINGS={company:'Auto Engineer',tagline:'Spare Parts',phone:'',whatsapp:'',email:'',address:'',currency:'IQD',quoteValidity:7,invoiceNote:'Thank you for your business.',quoteNote:'Prices are valid for the period shown. Availability is confirmed at the time of order.',branches:[],logo:''};
 
 /* sample data — only used in local preview (no database) */
 const SAMPLE_PARTS=[
@@ -201,7 +201,7 @@ function buildChrome(){
   $('#navLinks').innerHTML=`<a href="#find" class="nav-find">${t('Find my part')}</a><a href="#shop" data-v="shop">${t('Retail')}</a><a href="#shops" data-v="shops">${t('Shops')}</a><a href="#partner" data-v="partner">${t('Wholesale')}</a><a href="#sell" data-v="sell">${t('Sell your parts')}</a><a href="#track" data-v="track">${t('Track order')}</a><a href="#admin" data-v="admin" class="admin-link">${t('Staff')}</a>`;
   $$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===current));
   $('#basketLbl').textContent=t('Basket');$('#langBtn').textContent=LANGS[LANG||'en'].short;$('#brandName').textContent=t('AUTO ENGINEER');
-  document.title=t('Auto Engineer — Toyota Spare Parts');
+  document.title=t('Auto Engineer — Spare Parts');
 }
 $('#menuBtn').onclick=()=>$('#navLinks').classList.toggle('open');
 $('#langBtn').onclick=e=>{e.stopPropagation();const m=$('#langMenu');m.classList.toggle('hidden');m.innerHTML=Object.entries(LANGS).map(([k,v])=>`<button data-l="${k}" class="${k===LANG?'on':''}">${v.native}${k!=='en'?' · '+v.name:''}</button>`).join('')};
@@ -224,7 +224,7 @@ function buildHome(){
   <section class="hero hero-engine" id="hero"><div class="hero-grid"></div><div class="hero-glow"></div>
     <div class="hero-tech tech-host" id="heroTech"></div>
     <div class="hero-inner"><span class="eyebrow">${t('Spare parts specialist')}</span><h1>${h1}</h1>
-      <form class="hero-search" id="heroSearch"><input name="q" placeholder="${esc(t('Part name, part number or Toyota model…'))}" autocomplete="off"><button>${t('Search parts')}</button></form>
+      <form class="hero-search" id="heroSearch"><input name="q" placeholder="${esc(t('Part name, part number or car model…'))}" autocomplete="off"><button>${t('Search parts')}</button></form>
       <a class="hero-find" href="#find"><span class="hf-q">${t('No part number?')}</span><b>${t('FIND MY PART')}</b><span class="hf-arrow">→</span></a>
       <div class="hero-tags" id="heroTags">${tags.map(x=>`<button type="button" data-q="${esc(t(x))}">${esc(t(x))}</button>`).join('')}</div></div>
     <div class="scroll-hint">${t('Scroll')}<i></i></div></section>
@@ -250,7 +250,7 @@ function buildHome(){
   <footer><div class="foot"><div><div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>${t('AUTO ENGINEER')}</div><div style="opacity:.7;margin:-4px 0 10px">${t('Spare parts specialist')}</div><div id="footContact" style="line-height:1.8"></div></div>
     <div><a href="#shop">${t('Retail room')}</a><a href="#shops">${t('Shops & brands')}</a><a href="#wholesale">${t('Wholesale room')}</a><a href="#sell">${t('Sell your parts')}</a><a href="#track">${t('Track order')}</a><a href="#terms">${t('Terms & privacy')}</a></div>
     <div id="footBranches" style="line-height:1.8"></div></div>
-    <div class="foot" style="margin-top:36px;font-size:12px;opacity:.6"><span>© ${new Date().getFullYear()} ${t('Auto Engineer')}. ${t('All rights reserved.')} ${t('Toyota and model names are trademarks of Toyota Motor Corporation.')}</span></div></footer>`;
+    <div class="foot" style="margin-top:36px;font-size:12px;opacity:.6"><span>© ${new Date().getFullYear()} ${t('Auto Engineer')}. ${t('All rights reserved.')} ${t('Brand and model names are trademarks of their owners.')}</span></div></footer>`;
   $$('#engine .ep-txt').forEach(x=>x.textContent=t(x.dataset.label));
   $('#heroTags').onclick=e=>{const b=e.target.closest('button');if(b){const mid=modelIdOf(b.dataset.q);if(mid&&mid!=='*'){S.f.model=mid;S.q=''}else{S.q=b.dataset.q;S.jump=true}location.hash='shop'}};
   $('#heroSearch').onsubmit=e=>{e.preventDefault();S.q=e.target.q.value.trim();if(S.q)S.jump=true;location.hash='shop'};
@@ -417,7 +417,7 @@ function setStage(id){if(id&&window.modelById&&modelById(id))Visitor.search(mode
   nm.textContent=m?m.name:'TOYOTA';
   if(window.gsap)gsap.fromTo(nm,{opacity:0,y:30},{opacity:1,y:0,duration:.7,ease:'power3.out'});
   $('#stage').classList.toggle('has-model',!!m);
-  const st=$('#stageTitle');if(st&&room()==='retail')st.textContent=m?t('Parts for Toyota {m}',{m:m.name}):t('Find your part');
+  const st=$('#stageTitle');if(st&&room()==='retail')st.textContent=m?t('Parts for {m}',{m:m.name}):t('Find your part');
 }
 function stageParallax(){
   if(!window.gsap||!window.ScrollTrigger)return;
@@ -467,7 +467,7 @@ function showPhoneGate(){
   if(Visitor.get()||$('.phonegate'))return;
   const el=document.createElement('div');el.className='langpick phonegate';
   el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>AUTO ENGINEER</div>
-    <div class="pg-box"><h2>${t('Welcome to Auto Engineer')}</h2><p>${t('Enter your mobile number to see genuine Toyota parts and prices.')}</p>
+    <div class="pg-box"><h2>${t('Welcome to Auto Engineer')}</h2><p>${t('Enter your mobile number to see genuine parts and prices.')}</p>
     <form class="pg-form" novalidate><div class="pg-num" dir="ltr"><select name="cc" aria-label="${esc(t('Country code'))}">${CCODES.map(([k,c,f,n])=>`<option value="${c}" ${k==='IQ'?'selected':''}>${f} +${c} ${n}</option>`).join('')}</select><span class="pg-cc" aria-hidden="true">🇮🇶 +964</span><input name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel-national" placeholder="750 123 4567" required></div><button class="btn red">${t('Continue')} →</button></form>
     <p class="pg-err hidden">${t('Please enter a valid mobile number, for example 0750 123 4567.')}</p>
     <p class="pg-note">${t('We use your number only to send you prices, offers and order updates.')}</p></div>`;
@@ -491,7 +491,7 @@ function showTypeGate(){
   el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>AUTO ENGINEER</div>
     <div class="pg-box tg-box"><h2>${t('How can we help you?')}</h2><p>${t('Choose one, so we show you the right room.')}</p>
     <div class="tg-opts">
-      <button data-ct="retail"><i>🛒</i><b>${t('I want to buy parts')}</b><span>${t('Retail customer: genuine Toyota parts for my car.')}</span></button>
+      <button data-ct="retail"><i>🛒</i><b>${t('I want to buy parts')}</b><span>${t('Retail customer: genuine parts for my car.')}</span></button>
       <button data-ct="wholesale"><i>🏪</i><b>${t('I am a shop / wholesale buyer')}</b><span>${t('Trade prices, bulk orders and a free stock system for partner shops.')}</span></button>
       <button data-ct="seller"><i>🔧</i><b>${t('I have a few parts to sell')}</b><span>${t('Sell your spare parts to us. You can also buy parts any time.')}</span></button>
     </div></div>`;
@@ -743,7 +743,7 @@ function checkAlerts(){if(!S.admin)return;const ids=new Set(Object.keys(S.data.o
   const fresh=[...ids].filter(id=>!S.seenOrders.has(id));S.seenOrders=ids;if(!fresh.length)return;
   S.alerts+=fresh.length;document.title=`(${S.alerts}) ${t('New order')} — ${t('Auto Engineer')}`;toast(t('New order received: {n}',{n:fresh[0]}));beep()}
 function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();[0,.18].forEach(d=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.15,a.currentTime+d);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d+.15);o.start(a.currentTime+d);o.stop(a.currentTime+d+.16)})}catch(e){}}
-window.addEventListener('focus',()=>{if(S.alerts){S.alerts=0;document.title=t('Auto Engineer — Toyota Spare Parts')}});
+window.addEventListener('focus',()=>{if(S.alerts){S.alerts=0;document.title=t('Auto Engineer — Spare Parts')}});
 
 /* ================= ADMIN ================= */
 function renderAdmin(fromData){

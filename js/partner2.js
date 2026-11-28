@@ -230,7 +230,7 @@ function ptVin(){
     <div id="ptVinR"></div></div>`;
   const go = () => { const v = $('#ptVinI').value.toUpperCase().replace(/[^A-Z0-9]/g, ''); PS.vin = v; const r = window.vinInfo ? vinInfo(v) : {ok: v.length === 17, s: v}; const el = $('#ptVinR');
     if(!r.ok){ el.innerHTML = `<p class="err">${t('A VIN has 17 letters and numbers')}</p>`; return; }
-    const maker = WMI[v.slice(0, 3)] || (r.toyota ? 'Toyota' : t('Not a Toyota VIN (or unknown maker)'));
+    const maker = WMI[v.slice(0, 3)] || (r.toyota ? 'Toyota' : t('Maker not recognised'));
     el.innerHTML = `<dl class="pt-dl" style="margin-top:14px"><dt>VIN</dt><dd class="ltr">${esc(v)}</dd><dt>${t('Maker / origin')}</dt><dd>${esc(maker)}</dd><dt>${t('Model year')}</dt><dd>${r.year || '—'}</dd><dt>${t('Serial')}</dt><dd class="ltr">${esc(v.slice(11))}</dd></dl>
       <button class="btn red" id="ptVinFind">${t('Find the right parts for this car')}</button>
       <p class="mini">${t('Our team checks the exact part numbers for this VIN and replies with prices. Instant catalogue lookup is coming soon.')}</p>`;
