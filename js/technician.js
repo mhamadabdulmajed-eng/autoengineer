@@ -1,4 +1,4 @@
-/* Partamo — "Mohammed", the AI Technician (Retail room).
+/* Partamo — "Partamo", the AI Technician (Retail room).
    He greets the customer and registers their car one question at a time:
    model, year, fuel, engine size, gearbox, where the car was first sold, VIN and mileage.
    Cars are kept on the phone (localStorage 'ae:garage') and sent to the visitor record
@@ -122,7 +122,7 @@ function mountTechnician(host, opts = {}){
   const animate = (first || opts.lazy) && !reduce && !opts.quiet;
   const uid = 't' + Math.random().toString(36).slice(2, 7);
   host.innerHTML = `<div class="tech"><div class="tech-av">${TECH_SVG.replace(/(id="|url\(#)tg/g, '$1' + uid)}</div>
-    <div class="tech-chat"><div class="tech-name"><b>${t('Mohammed')}</b><span>${t('AI Technician')}</span><i class="tech-on" aria-hidden="true"></i></div>
+    <div class="tech-chat"><div class="tech-name"><b>${t('Partamo')}</b><span>${t('AI Technician')}</span><i class="tech-on" aria-hidden="true"></i></div>
     <div class="tech-log" aria-live="polite"></div><div class="tech-ans"></div></div></div>`;
   const root = host.firstElementChild, log = root.querySelector('.tech-log'), ans = root.querySelector('.tech-ans');
   let token = 0;   // stops old timers when the conversation restarts
@@ -210,7 +210,7 @@ function mountTechnician(host, opts = {}){
   function start(){
     const car = Garage.active(); sheet(car);
     if(!car){
-      say([t('Hi! I’m Mohammed, your AI technician.'), t('Tell me about your car once, and I will help you find parts that fit it.')], () => {
+      say([t('Hi! I’m Partamo, your AI technician.'), t('Tell me about your car once, and I will help you find parts that fit it.')], () => {
         ans.innerHTML = `<div class="tchips"><button type="button" class="btn red sm" data-a="reg">${t('Register my car')}</button><button type="button" class="tchip" data-a="later">${t('Later')}</button></div>`;
         ans.onclick = e => { const a = e.target.closest('[data-a]'); if(!a) return;
           if(a.dataset.a === 'later'){ me(t('Later')); say(t('No problem. I’m here when you need me.'), () => { ans.innerHTML = `<div class="tchips"><button type="button" class="tchip" data-a="reg">${t('Register my car')}</button></div>`; }); return; }

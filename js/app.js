@@ -335,7 +335,7 @@ function renderShop(fromData){
     [['fCond','cond']].forEach(([id,k])=>$('#'+id).onchange=e=>{S.f[k]=e.target.value;renderFilters();renderResults()});
     if($('#wsOut'))$('#wsOut').onclick=()=>{S.ws=null;S.wsPrices={};ls('ae:ws',null);renderShop()};
     stageParallax();
-    // Retail: Mohammed, the AI Technician, registers the customer's car
+    // Retail: Partamo, the AI Technician, registers the customer's car
     if(r==='retail'&&window.mountTechnician){mountTechnician($('#xcarHost'),{quiet:!!S.skipIntro,onFind:carFind});
       $('#stage').classList.add('has-xcar')}
   }

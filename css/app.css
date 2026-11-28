@@ -643,7 +643,7 @@ a.btn{text-decoration:none}
   .xl[data-k="rdisc"],.xl[data-k="rwheel"],.xl[data-k="rshock"],.xl[data-k="rack"],.xl[data-k="exhaust"],.xl[data-k="mirror"],.xl[data-k="seat"]{display:none}
 }
 
-/* ===== Retail: Mohammed, the AI Technician ===== */
+/* ===== Retail: Partamo, the AI Technician ===== */
 .tech-host{flex:1 1 560px;max-width:640px;margin:0}
 .tech{display:flex;align-items:flex-end;gap:14px}
 .tech-av{flex:0 0 205px;align-self:flex-end;margin-bottom:-14px}
@@ -705,7 +705,7 @@ a.btn{text-decoration:none}
 }
 @media(prefers-reduced-motion:reduce){.tech-wave,.tech-body,.tech-eyes,.tech-scan,.tech-led,.tech-mic,.tb{animation:none!important}}
 
-/* home: Meet Mohammed */
+/* home: Meet Partamo */
 .tech-sec{padding:70px clamp(16px,4vw,40px) 90px;color:#fff}
 .tech-sec .sec-head{text-align:center;max-width:640px;margin:0 auto 26px}
 .tech-sec .sec-head p{color:rgba(255,255,255,.7);margin-top:10px;line-height:1.5}
@@ -783,7 +783,7 @@ footer b[style*="color:#fff"]{color:var(--text)!important}
 .mchip{color:var(--text);border-color:var(--edge);background:var(--soft)}
 .mchip:hover{border-color:#c4cad2;background:#fff}
 .mchip.on{color:#fff}
-/* Mohammed's chat */
+/* Partamo's chat */
 .tech-chat{background:#fff;border-color:var(--edge);box-shadow:0 2px 6px rgba(16,19,24,.04),0 16px 40px rgba(16,19,24,.08);backdrop-filter:none}
 .tech-name{border-color:var(--edge)}
 .tech-name b{color:var(--text)}
@@ -806,7 +806,7 @@ footer b[style*="color:#fff"]{color:var(--text)!important}
 .phonegate h2{color:var(--text)}
 .phonegate p{color:#4b525b}.phonegate .btn.red{color:#fff}
 
-/* ===== Home top: Mohammed instead of the engine ===== */
+/* ===== Home top: Partamo instead of the engine ===== */
 .hero-tech{position:absolute;z-index:2;top:50%;transform:translateY(-46%);right:clamp(16px,4vw,64px);width:min(48vw,640px);margin:0}
 [dir=rtl] .hero-tech{right:auto;left:clamp(16px,4vw,64px)}
 .hero-tech .tech-av{flex-basis:clamp(170px,15vw,230px);margin-bottom:0}
@@ -832,7 +832,7 @@ footer b[style*="color:#fff"]{color:var(--text)!important}
 @media(max-width:860px){.stage-search{gap:8px;margin-bottom:18px}.stage-search .stage-find{width:100%}}
 .stage .stage-bg,.stage .stage-name{display:none}
 .stage::after,[dir=rtl] .stage::after{display:none}
-/* home top: Mohammed higher, search visible without scrolling */
+/* home top: Partamo higher, search visible without scrolling */
 @media(min-width:861px){
   .hero-tech{top:96px;transform:none}
   .hero-engine{align-items:flex-start;min-height:max(620px,100vh);padding-top:120px}
