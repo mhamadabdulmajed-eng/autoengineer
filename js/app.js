@@ -223,7 +223,7 @@ function buildHome(){
   $('#view-home').innerHTML=`<div class="dark-zone">
   <section class="hero hero-engine" id="hero"><div class="hero-grid"></div><div class="hero-glow"></div>
     <div class="hero-tech tech-host" id="heroTech"></div>
-    <div class="hero-inner"><span class="eyebrow">${t('Toyota spare parts specialist')}</span><h1>${h1}</h1>
+    <div class="hero-inner"><span class="eyebrow">${t('Spare parts specialist')}</span><h1>${h1}</h1>
       <form class="hero-search" id="heroSearch"><input name="q" placeholder="${esc(t('Part name, part number or Toyota model…'))}" autocomplete="off"><button>${t('Search parts')}</button></form>
       <a class="hero-find" href="#find"><span class="hf-q">${t('No part number?')}</span><b>${t('FIND MY PART')}</b><span class="hf-arrow">→</span></a>
       <div class="hero-tags" id="heroTags">${tags.map(x=>`<button type="button" data-q="${esc(t(x))}">${esc(t(x))}</button>`).join('')}</div></div>
@@ -247,7 +247,7 @@ function buildHome(){
   <div class="dark-zone"><section class="statement"><p id="statement">${stmtHtml}</p></section>
     <div class="stats">${[[M.length,'','Toyota models covered'],[4,'','Fields to place an order'],[10,'','Part categories'],[24,'h','Target reply time (hours)']].map(([n,s,l])=>`<div class="stat"><b data-count="${n}" data-suffix="${s}">0</b><span>${t(l)}</span></div>`).join('')}</div></div>
   <section class="cta"><h2>${t('Find your part today')}</h2><div class="btns"><a class="btn-w" href="#shop">${t('Browse parts')}</a><a class="btn-o" href="#wholesale">${t('Wholesale account')}</a></div></section>
-  <footer><div class="foot"><div><div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>${t('AUTO ENGINEER')}</div><div style="opacity:.7;margin:-4px 0 10px">${t('Toyota spare parts specialist')}</div><div id="footContact" style="line-height:1.8"></div></div>
+  <footer><div class="foot"><div><div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>${t('AUTO ENGINEER')}</div><div style="opacity:.7;margin:-4px 0 10px">${t('Spare parts specialist')}</div><div id="footContact" style="line-height:1.8"></div></div>
     <div><a href="#shop">${t('Retail room')}</a><a href="#shops">${t('Shops & brands')}</a><a href="#wholesale">${t('Wholesale room')}</a><a href="#sell">${t('Sell your parts')}</a><a href="#track">${t('Track order')}</a><a href="#terms">${t('Terms & privacy')}</a></div>
     <div id="footBranches" style="line-height:1.8"></div></div>
     <div class="foot" style="margin-top:36px;font-size:12px;opacity:.6"><span>© ${new Date().getFullYear()} ${t('Auto Engineer')}. ${t('All rights reserved.')} ${t('Toyota and model names are trademarks of Toyota Motor Corporation.')}</span></div></footer>`;
