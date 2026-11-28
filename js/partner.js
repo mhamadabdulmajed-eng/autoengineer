@@ -184,7 +184,7 @@ function ptOverview(){
   $('#ptBody').innerHTML = `<div class="pt-start">
       <button data-go="stock"><i>📦</i><b>${t('My stock')}</b><span>${t('Add your items, see what you have and what is running low.')}</span></button>
       <button data-go="buy"><i>🛒</i><b>${t('Place an order')}</b><span>${t('Buy from Partamo at your partner price.')}</span></button>
-      <button data-go="sell"><i>🏪</i><b>${t('Sell my parts')}</b><span>${t('List your parts on autoengineeriq.com.')}</span></button></div>
+      <button data-go="sell"><i>🏪</i><b>${t('Sell my parts')}</b><span>${t('List your parts on partamoiq.com.')}</span></button></div>
     <div class="kpis">
       <div class="kpi"><span>${t('Items in stock')}</span><b>${st.length.toLocaleString('en')}</b></div>
       <div class="kpi"><span>${t('Stock value (cost)')}</span><b>${stockValue(st)}</b></div>
@@ -366,7 +366,7 @@ function ptOrders(){
 }
 
 function ptSell(){
-  $('#ptBody').innerHTML = `<div class="panel"><h3>${t('Sell on autoengineeriq.com')}</h3>
+  $('#ptBody').innerHTML = `<div class="panel"><h3>${t('Sell on partamoiq.com')}</h3>
     <p>${t('Soon you will list your own parts on our website, with your shop name as a verified partner. Every listing and every sale is approved by Partamo.')}</p>
     <ul class="pt-list"><li>${t('List items straight from My stock in one tap')}</li><li>${t('Customers pay online; Partamo pays you after delivery')}</li><li>${t('Commission: {c}% per sale', {c: S.partner.commission ?? 1.5})}</li></ul>
     <p class="mini">${t('Keep your stock up to date now, so your items are ready to list on day one.')}</p></div>`;
@@ -393,7 +393,7 @@ function adminPartners(){
   $('#adminBody').innerHTML = `${apps.length ? `<div class="panel" style="margin-bottom:16px"><h3 style="margin:0 0 8px">${t('Applications')} (${apps.length})</h3><div class="tblwrap"><table class="tbl"><tbody>
       ${apps.map(w => `<tr><td><b>${esc(w.company || '')}</b><br><span class="mini">${esc(w.name || '')}</span></td><td class="ltr">${esc(w.phone || '')}</td><td>${esc(w.location || '')}</td><td>${dateStr(w.createdAt)}</td>
         <td style="white-space:nowrap"><button class="btn sm red" data-mk="${esc(w.id)}">${t('Make partner')}</button> <button class="btn sm ghost" data-rj="${esc(w.id)}">${t('Reject')}</button></td></tr>`).join('')}</tbody></table></div></div>` : ''}
-    <div class="admin-bar"><span class="sub" style="flex:1">${t('Trusted shops only. You create their account; they sign in at autoengineeriq.com/#partner.')}</span><button class="btn red sm" id="apNew">+ ${t('Add partner')}</button></div>
+    <div class="admin-bar"><span class="sub" style="flex:1">${t('Trusted shops only. You create their account; they sign in at partamoiq.com/#partner.')}</span><button class="btn red sm" id="apNew">+ ${t('Add partner')}</button></div>
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Shop')}</th><th>${t('Phone')}</th><th>${t('City')}</th><th class="num">${t('Discount')}</th><th class="num">${t('Commission')}</th><th class="num">${t('Stock items')}</th><th class="num">${t('Orders')}</th><th>${t('Status')}</th><th></th></tr></thead><tbody>
     ${list.length ? list.map(p => `<tr data-id="${esc(p.id)}"><td><b>${esc(p.shop)}</b><br><span class="mini">${esc(p.owner || '')}</span></td><td class="ltr">${esc(p.phone)}</td><td>${esc(p.city || '')}</td><td class="num">${+p.discount || 0}%</td><td class="num">${p.commission ?? 1.5}%</td>
       <td class="num">${stock.filter(s => s.pid === p.id).length}</td><td class="num">${pos.filter(o => o.pid === p.id).length}</td><td><span class="vst ${p.status === 'paused' ? 'vis' : 'cust'}">${t(p.status === 'paused' ? 'Paused' : 'Active')}</span></td>
@@ -556,7 +556,7 @@ function poModal(o){
 }
 /* share a partner's sign-in details (WhatsApp / copy); optionally with a fresh password */
 function shareAccount(p, pw){
-  const L = p.lang || 'en', link = (/^https?:/.test(location.origin) ? location.origin : 'https://autoengineeriq.com') + '/#partner';
+  const L = p.lang || 'en', link = (/^https?:/.test(location.origin) ? location.origin : 'https://partamoiq.com') + '/#partner';
   const msg = `${t('Hello {n},', {n: p.owner || p.shop}, L)}\n\n${t('Your Partamo partner account', null, L)} · ${p.shop}\n${link}\n\n${t('Phone', null, L)}: ${p.phone}\n${pw ? t('Password', null, L) + ': ' + pw : t('Password: the one you already have. If you forgot it, ask us for a new one.', null, L)}\n\n${t('Sign in to see your prices and stock, order, and manage your shop stock for free.', null, L)}`;
   pModal(`<h3>📤 ${t('Share account')} · ${esc(p.shop)}</h3><p class="sub">${t('Send the sign-in details to the shop. The phone number is their username.')}</p><pre class="pt-pre">${esc(msg)}</pre>
     <div class="actions"><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${phoneKey(p.phone)}?text=${encodeURIComponent(msg)}" id="shWa">WhatsApp</a><button class="btn ghost" id="shCopy">${t('Copy')}</button>${navigator.share ? `<button class="btn ghost" id="shMore">${t('More…')}</button>` : ''}

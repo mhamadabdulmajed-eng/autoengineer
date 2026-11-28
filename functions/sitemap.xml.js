@@ -1,4 +1,4 @@
-// autoengineeriq.com/sitemap.xml : the home page plus one entry per part page.
+// partamoiq.com/sitemap.xml : the home page plus one entry per part page.
 import { SITE, rpc } from './_lib.js';
 export async function onRequestGet() {
   let list = '';

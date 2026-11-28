@@ -65,7 +65,7 @@ async function ptOverview(){
   const ords = myOrders().filter(o => !['received','cancelled','rejected'].includes(o.status));
   const buyer = PT_TABS.buy.includes(ptRole()), today = mySales().filter(x => x.at >= new Date().setHours(0, 0, 0, 0));
   const tiles = [['counter','🧾','Counter sale','Sell to a customer in your shop and print the invoice.'],['stock','📦','My stock','Add your items, see what you have and what is running low.'],
-    ['buy','🛒','Place an order','Buy from Partamo at your partner price.'],['web','🏪','Sell my parts','List your parts on autoengineeriq.com.']].filter(([k]) => PT_TABS[k].includes(ptRole()));
+    ['buy','🛒','Place an order','Buy from Partamo at your partner price.'],['web','🏪','Sell my parts','List your parts on partamoiq.com.']].filter(([k]) => PT_TABS[k].includes(ptRole()));
   $('#ptBody').innerHTML = `<div class="pt-start">${tiles.map(([k, i, h, p]) => `<button data-go="${k}"><i>${i}</i><b>${t(h)}</b><span>${t(p)}</span></button>`).join('')}</div>
     <div id="ptAlerts"></div>
     <div class="kpis"><div class="kpi"><span>${t('Sales today')}</span><b>${money(today.reduce((s, x) => s + (+x.total || 0), 0)) || '0'}</b></div>
@@ -161,7 +161,7 @@ async function ptSaveSale(){
 /* ================= SELL ON THE WEBSITE ================= */
 async function ptWeb(){
   const L = myListings(), com = S.partner.commission ?? 1.5;
-  $('#ptBody').innerHTML = `<div class="panel"><div class="pt-row"><div><h3>${t('Your items on autoengineeriq.com')}</h3><p class="sub" style="margin:4px 0 0">${t('Customers see them in the Retail room as "Sold by {s} · Verified partner". Partamo approves every item and every sale.', {s: esc(S.partner.shop)})}</p></div>
+  $('#ptBody').innerHTML = `<div class="panel"><div class="pt-row"><div><h3>${t('Your items on partamoiq.com')}</h3><p class="sub" style="margin:4px 0 0">${t('Customers see them in the Retail room as "Sold by {s} · Verified partner". Partamo approves every item and every sale.', {s: esc(S.partner.shop)})}</p></div>
       <button class="btn red sm" id="ptLNew">+ ${t('List an item')}</button></div>
       <ol class="pt-how"><li>${t('List an item from your stock and set your price.')}</li><li>${t('Partamo approves it; it appears on the website.')}</li><li>${t('A customer orders and pays; we tell you to prepare the part.')}</li><li>${t('After delivery we pay you the price minus {c}% commission.', {c: com})}</li></ol>
       <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Description')}</th><th>${t('Condition')}</th><th class="num">${t('Qty')}</th><th class="num">${t('Your price')}</th><th>${t('Status')}</th><th></th></tr></thead><tbody>
@@ -213,7 +213,7 @@ async function ptTrends(){
   const have = q => { const k = q.toLowerCase(); return myStock().some(s => (+s.qty || 0) > 0 && (s.partNo.toLowerCase().includes(k) || String(s.name || '').toLowerCase().includes(k))); };
   const list = (rows, miss) => rows && rows.length ? `<div class="tblwrap"><table class="tbl"><tbody>${rows.map((x, i) => `<tr><td class="num" style="width:36px">${i + 1}</td><td><b>${esc(x.q)}</b></td><td class="num">${x.n} ${t('searches')}</td>
     <td>${miss ? `<span class="pst new">${t('Not found on our site')}</span>` : x.found ? '' : `<span class="pst new">${t('Not found on our site')}</span>`}</td><td>${have(x.q) ? `<span class="pst received">✓ ${t('You have it')}</span>` : ''}</td></tr>`).join('')}</tbody></table></div>` : `<div class="empty">${t('No data yet.')}</div>`;
-  $('#ptBody').innerHTML = `<p class="sub">${t('What customers searched for on autoengineeriq.com in the last 30 days, across Iraq. Stock up on what is in demand.')}</p>
+  $('#ptBody').innerHTML = `<p class="sub">${t('What customers searched for on partamoiq.com in the last 30 days, across Iraq. Stock up on what is in demand.')}</p>
     <div class="grid2"><div class="panel"><h3>${t('Most searched')}</h3>${list(r && r.top, false)}</div>
     <div class="panel"><h3>${t('Searched but not found')}</h3><p class="sub">${t('Customers wanted these and could not find them. If you have them, list them on the website.')}</p>${list(r && r.missing, true)}
       ${ptOwner() ? `<button class="btn sm red" id="ptTList">+ ${t('List an item')}</button>` : ''}</div></div>`;

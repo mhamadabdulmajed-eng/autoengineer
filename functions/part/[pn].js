@@ -1,4 +1,4 @@
-// autoengineeriq.com/part/<part number> : one page per part, readable by Google.
+// partamoiq.com/part/<part number> : one page per part, readable by Google.
 import { SITE, rpc, esc, fmtPartNo, money } from '../_lib.js';
 
 const CATS = { Engine: ['محرك', 'بزوێنەر'], Brakes: ['فرامل', 'برێک'], Suspension: ['عفشة', 'ئەمۆرتیسەر'], Filters: ['فلاتر', 'فلتەر'],
@@ -113,7 +113,7 @@ ${price ? `<div class="price">${esc(price)}</div>` : `<div class="price req">Pri
 </article>
 ${related.length ? `<h2>Same part, other versions</h2><div class="rel">${related.map(r => `<a href="/part/${encodeURIComponent(r.partNo)}"><b>${esc(r.partNo)}</b><span>${esc(r.name)} · <span dir="rtl">${esc(r.nameAr || '')}</span></span><span>${esc(money(r.retailPrice) || 'Price on request')}</span></a>`).join('')}</div>` : ''}
 </main>
-<footer>© Partamo · Genuine Toyota spare parts · <a href="/">autoengineeriq.com</a></footer>
+<footer>© Partamo · Genuine spare parts · <a href="/">partamoiq.com</a></footer>
 </body>
 </html>`;
   return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=600, s-maxage=3600' } });

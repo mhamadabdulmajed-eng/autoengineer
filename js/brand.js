@@ -9,7 +9,7 @@ const MAKES = ['Toyota','Lexus','Nissan','Hyundai','Kia','Mitsubishi','Honda','M
 const PSERV = {delivery: 'Delivery', install: 'Fitting / installation', warranty: 'Warranty', order: 'Order on request', wholesale: 'Wholesale', used: 'Used parts'};
 const BRAND_ST = {draft: 'Draft', pending: 'Waiting for approval', approved: 'Published', rejected: 'Needs changes'};
 const slugify = s => String(s || '').toLowerCase().normalize('NFKD').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'shop';
-const shopUrl = slug => (/^https?:/.test(location.origin) ? location.origin : 'https://autoengineeriq.com') + '/#store/' + slug;
+const shopUrl = slug => (/^https?:/.test(location.origin) ? location.origin : 'https://partamoiq.com') + '/#store/' + slug;
 
 /* shrink an image file to a small webp/jpeg data URL (logo 300px, cover 1400px) */
 function imgToData(file, max, ratio){ return new Promise((res, rej) => { if(!file || !/^image\//.test(file.type)) return rej(new Error('not an image'));
@@ -34,7 +34,7 @@ function myBrand(){ return Store.get('pbrand', 'pb_' + S.partner.id); }
 function ptBrand(){
   const p = S.partner, b = myBrand() || {}, sh = (Store.get('pshop', 'sh_' + p.id)) || shopOf(p.id), st = b.status || 'draft';
   const v = k => esc(b[k] ?? ''), mk = new Set(b.makes || []), sv = new Set(b.services || []), sc = new Set(b.sections || []);
-  $('#ptBody').innerHTML = `<div class="panel"><div class="pt-row"><div><h3>🏪 ${t('My shop page')}</h3><p class="sub" style="margin:4px 0 0">${t('Build your own shop page on autoengineeriq.com: your logo, name and story. Customers find your shop and order your parts through Partamo. Every change is checked by Partamo before it is published.')}</p></div>
+  $('#ptBody').innerHTML = `<div class="panel"><div class="pt-row"><div><h3>🏪 ${t('My shop page')}</h3><p class="sub" style="margin:4px 0 0">${t('Build your own shop page on partamoiq.com: your logo, name and story. Customers find your shop and order your parts through Partamo. Every change is checked by Partamo before it is published.')}</p></div>
       <span class="pst ${st === 'approved' ? 'received' : st === 'pending' ? 'new' : st === 'rejected' ? 'rejected' : ''}">${t(BRAND_ST[st] || st)}</span></div>
     ${b.reply && st === 'rejected' ? `<p class="err">${t('Partamo')}: ${esc(b.reply)}</p>` : ''}
     ${sh && sh.slug ? `<div class="box" style="margin-top:10px">🌐 ${t('Your page is live')}: <a href="${shopUrl(sh.slug)}" target="_blank" rel="noopener" class="ltr">${esc(shopUrl(sh.slug))}</a> <button class="linkbtn" id="brShare">📤 ${t('Share')}</button>${st === 'pending' ? `<br><span class="mini">${t('Your latest changes are waiting for approval; customers still see the published version.')}</span>` : ''}</div>` : ''}</div>
@@ -57,7 +57,7 @@ function ptBrand(){
       <label class="span2">${t('Main suppliers and part brands you carry')}<input name="suppliers" value="${v('suppliers')}" placeholder="${esc(t('e.g. Toyota Genuine, Denso, Aisin, KYB'))}"></label></div>
     <p class="err hidden" id="brErr"></p>
     <div class="actions" style="margin-top:14px"><span class="mini" style="flex:1">${b.updatedAt ? t('Last saved {d}', {d: dtStr(b.updatedAt)}) : ''}</span><button type="button" class="btn ghost" id="brPrev">👁 ${t('Preview')}</button>${ptPreview() ? '' : `<button class="btn red">${t('Save and send for approval')}</button>`}</div>
-    ${ptPreview() ? `<p class="err" style="margin-top:10px">👁 ${t('You are in staff preview, so nothing is saved here. To test, sign in as the shop on your phone or in a private window (autoengineeriq.com/#partner).')}</p>` : ''}</form>
+    ${ptPreview() ? `<p class="err" style="margin-top:10px">👁 ${t('You are in staff preview, so nothing is saved here. To test, sign in as the shop on your phone or in a private window (partamoiq.com/#partner).')}</p>` : ''}</form>
   <div class="panel"><div class="pt-row"><div><h3>📄 ${t('Your price list')}</h3><p class="sub" style="margin:4px 0 0">${t('Upload the parts you sell with your retail price (IQD). They appear on your shop page and in Retail search after approval.')}</p></div>${ptPreview() ? '' : `<button class="btn red sm" id="brPL">📄 ${t('Upload price list')}</button>`}</div>
     <p class="mini">${t('{n} items on the website · {p} waiting for approval', {n: myListings().filter(l => l.status === 'approved').length, p: myListings().filter(l => l.status === 'pending').length})} · <button class="linkbtn" id="brGoWeb">${t('See all items')}</button></p></div>`;
   const draft = {logo: b.logo || '', cover: b.cover || ''};

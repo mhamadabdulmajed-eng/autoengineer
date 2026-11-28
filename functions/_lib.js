@@ -1,5 +1,5 @@
 // Shared helpers for the public part pages and the sitemap (Cloudflare Pages Functions).
-export const SITE = 'https://autoengineeriq.com';
+export const SITE = 'https://partamoiq.com';
 const SB = 'https://qkrjvbpdhaqukzbhpeqg.supabase.co';
 const KEY = 'sb_publishable_ZpCOArZh0pjeJY3l8LBAkw_rG4fHlDa'; // public key, same as config.js
 

@@ -68,7 +68,7 @@ const branches=()=>(settings().branches||[]).filter(b=>b&&b.name);
 const can=p=>S.admin&&(PERMS[S.role||'admin']||[]).includes(p);
 
 /* ================= DATA BACKENDS =================
-   supabase: live site (autoengineer.iq)   claude: hosted on Claude   local: this browser only */
+   supabase: live site (partamoiq.com)   claude: hosted on Claude   local: this browser only */
 const Store={
   listeners:new Set(),
   emit(col){this.listeners.forEach(f=>f(col))},
@@ -931,7 +931,7 @@ function shareKey(){const a=new Uint8Array(20);crypto.getRandomValues(a);return 
 function invPriced(o){const ls=(o.lines||[]).filter(l=>l.avail!=='unavailable');return ls.length>0&&ls.every(l=>nz(l.price))}
 async function ensureInvoice(o){if(!o.invoiceNo)o.invoiceNo=await API.nextNo('invoice');if(!['confirmed','delivered'].includes(o.status)){o.status='confirmed';o.log=[...(o.log||[]),{at:Date.now(),s:'confirmed'}]}
   o.invoicedAt=o.invoicedAt||Date.now();if(!o.shareKey)o.shareKey=shareKey();if(o.invoiceTotal==null)o.invoiceTotal=totals(o).total}
-function invLink(key){return (/^https?:/.test(location.origin)?location.origin:'https://autoengineeriq.com')+'/#inv/'+key}
+function invLink(key){return (/^https?:/.test(location.origin)?location.origin:'https://partamoiq.com')+'/#inv/'+key}
 function invWaText(o,L){const s=settings(),x=totals(o),upd=o.invoiceSentAt&&o.revisedAt&&o.revisedAt>o.invoiceSentAt;
   return `${t('Hello {n},',{n:o.customer.name},L)}\n\n${t(upd?'Your invoice {no} from {c} has been updated.':'Your invoice {no} from {c} is ready.',{no:o.invoiceNo,c:s.company},L)}\n${t('Total',null,L)}: ${money(x.net,L)}${x.paid?`\n${t('Paid',null,L)}: ${money(x.paid,L)}\n${t('Balance due',null,L)}: ${money(Math.max(0,x.balance),L)}`:''}\n\n${t('View and download your invoice:',null,L)}\n${invLink(o.shareKey)}\n\n${t('Thank you for your business.',null,L)}`}
 function invWaUrl(o){return `https://wa.me/${o.customer.phoneKey}?text=${encodeURIComponent(invWaText(o,o.pdfLang||o.lang||'en'))}`}
@@ -1317,7 +1317,7 @@ async function savePdf(html,fname){fname=fname.replace(/[\\/:*?"<>|]/g,'');
 /* ================= BOOT ================= */
 let storeReady;
 (function boot(){storeReady=initStore();const hadLang=!!LANG;const isInv=/^#inv\//.test(location.hash);
-  // links like autoengineeriq.com/?q=04465-0K290 (from Google) open the shop with that search
+  // links like partamoiq.com/?q=04465-0K290 (from Google) open the shop with that search
   try{const uq=new URLSearchParams(location.search).get('q');if(uq){S.q=uq.slice(0,80);S.skipIntro=true;S.jump=true;history.replaceState(null,'',location.pathname+'#shop')}}catch(e){}
   if(!LANG){LANG='en';document.documentElement.dir='ltr';buildChrome();buildHome();route();if(!isInv)showLangPicker()}
   else{document.documentElement.lang=LANG==='ku'?'ckb':LANG;document.documentElement.dir=LANGS[LANG].dir;buildChrome();buildHome();route()}

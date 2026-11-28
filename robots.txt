@@ -3,4 +3,4 @@ Allow: /
 Disallow: /supabase/
 Disallow: /tools/
 
-Sitemap: https://autoengineeriq.com/sitemap.xml
+Sitemap: https://partamoiq.com/sitemap.xml
