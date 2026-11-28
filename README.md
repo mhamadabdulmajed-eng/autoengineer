@@ -1,4 +1,4 @@
-# Auto Engineer website — files for autoengineer.iq
+# Partamo website — files for autoengineer.iq
 
 | File | What it is |
 |---|---|
@@ -7,7 +7,7 @@
 | `js/i18n.js` | All Arabic and Kurdish text. Edit the right-hand side to correct any wording. |
 | `supabase/schema.sql` | Run once in Supabase → SQL Editor. Creates the database and security rules. |
 
-Full step-by-step setup is in the "Auto Engineer — Go-live guide" document.
+Full step-by-step setup is in the "Partamo — Go-live guide" document.
 
 Parts import columns (Excel/CSV):
 `PartNo, Name, NameAr, NameKu, Brand, Make, Model, YearFrom, YearTo, Category, Condition, RetailPrice, WholesalePrice, Stock`

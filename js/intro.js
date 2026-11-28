@@ -1,4 +1,4 @@
-/* Auto Engineer — short room intros (about 3.5 seconds, once per visit, with Skip)
+/* Partamo — short room intros (about 3.5 seconds, once per visit, with Skip)
    Retail   : a real Toyota photo shatters into pieces and snaps back together, then search opens.
    Wholesale: parts fly in from cities around the world into one search bar.                    */
 (function () {

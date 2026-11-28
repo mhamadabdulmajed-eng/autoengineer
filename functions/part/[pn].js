@@ -19,8 +19,8 @@ export async function onRequestGet({ params }) {
   const price = money(p.retailPrice);
   const cat = CATS[p.category] || ['', ''];
   const shop = `${SITE}/?q=${encodeURIComponent(p.partNo)}`;
-  const title = `${p.partNo} ${p.name} — Genuine Toyota | Auto Engineer`;
-  const desc = `${p.partNo} ${p.name} (${p.nameAr || ''} · ${p.nameKu || ''}). Genuine Toyota part${price ? ', ' + price : ''}. Order online from Auto Engineer, Iraq.`;
+  const title = `${p.partNo} ${p.name} — Genuine Toyota | Partamo`;
+  const desc = `${p.partNo} ${p.name} (${p.nameAr || ''} · ${p.nameKu || ''}). Genuine Toyota part${price ? ', ' + price : ''}. Order online from Partamo, Iraq.`;
   const ld = {
     '@context': 'https://schema.org', '@type': 'Product',
     name: `${p.name} — Toyota ${p.partNo}`, sku: p.partNo, mpn: p.partNo,
@@ -28,11 +28,11 @@ export async function onRequestGet({ params }) {
     description: `Genuine Toyota ${p.name}, part number ${p.partNo}. ${p.nameAr || ''} · ${p.nameKu || ''}`,
     image: `${SITE}/img/og.png`, url,
     offers: p.retailPrice ? { '@type': 'Offer', url, priceCurrency: 'IQD', price: String(p.retailPrice),
-      itemCondition: 'https://schema.org/NewCondition', seller: { '@type': 'Organization', name: 'Auto Engineer' },
+      itemCondition: 'https://schema.org/NewCondition', seller: { '@type': 'Organization', name: 'Partamo' },
       areaServed: 'IQ' } : undefined,
   };
   const crumbs = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Auto Engineer', item: SITE + '/' },
+    { '@type': 'ListItem', position: 1, name: 'Partamo', item: SITE + '/' },
     { '@type': 'ListItem', position: 2, name: p.category || 'Parts', item: `${SITE}/#shop` },
     { '@type': 'ListItem', position: 3, name: p.partNo, item: url } ] };
 
@@ -45,7 +45,7 @@ export async function onRequestGet({ params }) {
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${esc(url)}">
 <meta property="og:type" content="product">
-<meta property="og:title" content="${esc(p.partNo + ' ' + p.name + ' — Auto Engineer')}">
+<meta property="og:title" content="${esc(p.partNo + ' ' + p.name + ' — Partamo')}">
 <meta property="og:description" content="${esc(desc)}">
 <meta property="og:url" content="${esc(url)}">
 <meta property="og:image" content="${SITE}/img/og.png">
@@ -92,16 +92,16 @@ footer{text-align:center;color:#69717C;font-size:13px;padding:30px}
 <form class="search" action="/" method="get"><input name="q" placeholder="Part number or name…" aria-label="Search parts"><button>Search</button></form>
 </div></header>
 <main>
-<nav class="crumbs"><a href="/">Auto Engineer</a> › <a href="/#shop">${esc(p.category || 'Parts')}</a> › ${esc(p.partNo)}</nav>
+<nav class="crumbs"><a href="/">Partamo</a> › <a href="/#shop">${esc(p.category || 'Parts')}</a> › ${esc(p.partNo)}</nav>
 <article class="card">
 <div>
 <div class="pno">TOYOTA ${esc(p.partNo)}</div>
 <h1>${esc(p.name)}</h1>
 <div class="names"><p lang="ar" dir="rtl">${esc(p.nameAr || '')}</p><p lang="ckb" dir="rtl">${esc(p.nameKu || '')}</p></div>
 <div class="tags"><span>Genuine Toyota</span><span>${esc(p.category || '')}${cat[0] ? ' · ' + cat[0] + ' · ' + cat[1] : ''}</span><span>${esc(p.model ? p.model : 'Toyota')}</span></div>
-<p class="about">Genuine Toyota part number <b>${esc(p.partNo)}</b> — ${esc(p.name)}. Order online from Auto Engineer with delivery across Iraq. Not sure it fits your car? Send us your VIN and we will check it for you.</p>
-<p class="about" lang="ar" dir="rtl">قطعة تويوتا أصلية رقم <b dir="ltr"><bdi>${esc(p.partNo)}</bdi></b> — ${esc(p.nameAr || p.name)}. اطلبها أونلاين من أوتو إنجنير مع التوصيل لكل العراق.</p>
-<p class="about" lang="ckb" dir="rtl">پارچەی ئەسڵی تۆیۆتا ژمارە <b dir="ltr"><bdi>${esc(p.partNo)}</bdi></b> — ${esc(p.nameKu || p.name)}. بە ئۆنلاین داوای بکە لە ئۆتۆ ئەندازیار، گەیاندن بۆ هەموو عێراق.</p>
+<p class="about">Genuine Toyota part number <b>${esc(p.partNo)}</b> — ${esc(p.name)}. Order online from Partamo with delivery across Iraq. Not sure it fits your car? Send us your VIN and we will check it for you.</p>
+<p class="about" lang="ar" dir="rtl">قطعة تويوتا أصلية رقم <b dir="ltr"><bdi>${esc(p.partNo)}</bdi></b> — ${esc(p.nameAr || p.name)}. اطلبها أونلاين من بارتامو مع التوصيل لكل العراق.</p>
+<p class="about" lang="ckb" dir="rtl">پارچەی ئەسڵی تۆیۆتا ژمارە <b dir="ltr"><bdi>${esc(p.partNo)}</bdi></b> — ${esc(p.nameKu || p.name)}. بە ئۆنلاین داوای بکە لە پارتامۆ، گەیاندن بۆ هەموو عێراق.</p>
 </div>
 <aside class="buy">
 ${price ? `<div class="price">${esc(price)}</div>` : `<div class="price req">Price on request</div>`}
@@ -113,14 +113,14 @@ ${price ? `<div class="price">${esc(price)}</div>` : `<div class="price req">Pri
 </article>
 ${related.length ? `<h2>Same part, other versions</h2><div class="rel">${related.map(r => `<a href="/part/${encodeURIComponent(r.partNo)}"><b>${esc(r.partNo)}</b><span>${esc(r.name)} · <span dir="rtl">${esc(r.nameAr || '')}</span></span><span>${esc(money(r.retailPrice) || 'Price on request')}</span></a>`).join('')}</div>` : ''}
 </main>
-<footer>© Auto Engineer · Genuine Toyota spare parts · <a href="/">autoengineeriq.com</a></footer>
+<footer>© Partamo · Genuine Toyota spare parts · <a href="/">autoengineeriq.com</a></footer>
 </body>
 </html>`;
   return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=600, s-maxage=3600' } });
 }
 
 function notFound(pn) {
-  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Part not found — Auto Engineer</title></head>
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Part not found — Partamo</title></head>
 <body style="font-family:system-ui;padding:40px;text-align:center"><h1>Part ${esc(pn)} not found</h1><p>Search the catalog or send us a request and we will find it for you.</p>
 <p><a href="/?q=${encodeURIComponent(pn)}">Search ${esc(pn)}</a> · <a href="/#find">Find my part</a></p></body></html>`;
   return new Response(html, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });

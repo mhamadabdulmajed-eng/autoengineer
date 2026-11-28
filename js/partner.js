@@ -1,5 +1,5 @@
-/* Auto Engineer — Partner portal (trusted shops)
-   Windows: Overview · My stock (free stock management) · Buy from Auto Engineer · My orders · Sell (next step) · Account
+/* Partamo — Partner portal (trusted shops)
+   Windows: Overview · My stock (free stock management) · Buy from Partamo · My orders · Sell (next step) · Account
    Staff side: Partners (create/pause/reset password) and Partner orders (approve → paid → shipped → delivered).
    Partners only ever see their own data (enforced in the database, see supabase/partners.sql). */
 'use strict';
@@ -97,7 +97,7 @@ const PT_TABS = {overview: ['owner','buyer','seller'], counter: ['owner','buyer'
 const ROLE_LABEL = {owner: 'Owner', buyer: 'Buyer', seller: 'Seller'};
 const ptRole = () => (S.partner && S.partner.role) || 'owner';
 const ptOwner = () => ptRole() === 'owner';
-// credit account with Auto Engineer is in USD; money owed to the shop for website sales is in IQD
+// credit account with Partamo is in USD; money owed to the shop for website sales is in IQD
 const ptBalance = () => Store.all('pledger').filter(x => x.pid === (S.partner || {}).id && x.cur !== 'IQD').reduce((s, x) => s + (+x.amount || 0), 0);
 const costTxt = s => s.cost === null || s.cost === undefined || s.cost === '' ? '—' : (s.costCur === 'USD' ? usd : money)(s.cost);
 const stockValue = st => { const v = {IQD: 0, USD: 0}; st.forEach(x => { v[x.costCur === 'USD' ? 'USD' : 'IQD'] += (+x.qty || 0) * (+x.cost || 0); }); return [v.IQD ? money(v.IQD) : '', v.USD ? usd(v.USD) : ''].filter(Boolean).join(' + ') || '0'; };
@@ -125,7 +125,7 @@ function renderPartner(fromData){
   const st = myStock(), low = st.filter(s => lowOf(s)), ords = myOrders(), open = ords.filter(o => !['received','cancelled','rejected'].includes(o.status));
   const role = ptRole(), can = k => PT_TABS[k].includes(role);
   const pendingL = Store.all('plistings').filter(l => l.pid === S.partner.id && l.status === 'pending').length;
-  const tabs = [['overview','Overview',0],['counter','Counter sale',0],['stock','My stock',low.length],['buy','Buy from Auto Engineer',PS.cart.length],['orders','My orders',open.length],['web','Sell on website',pendingL],['brand','My shop page',0],['trends','Customer searches',0],['vin','VIN lookup',0],['account','Account',0]].filter(([k]) => can(k));
+  const tabs = [['overview','Overview',0],['counter','Counter sale',0],['stock','My stock',low.length],['buy','Buy from Partamo',PS.cart.length],['orders','My orders',open.length],['web','Sell on website',pendingL],['brand','My shop page',0],['trends','Customer searches',0],['vin','VIN lookup',0],['account','Account',0]].filter(([k]) => can(k));
   if(!can(PS.tab)) PS.tab = 'overview';
   page.innerHTML = `${ptPreview() ? `<div class="pt-preview">👁 ${t('Staff preview of {s}: you see exactly what this shop sees. Read-only.', {s: esc(S.partner.shop)})} <button class="linkbtn" id="ptExitPv">${t('Exit preview')}</button></div>` : ''}<div class="page-head pt-head"><div><span class="eyebrow">${t('Partner portal')}</span><h1>${esc(S.partner.shop || t('My shop'))}</h1>
       <p class="sub">${esc([S.partner.city, S.partner.phone].filter(Boolean).join(' · '))} · <span class="pt-verified">✓ ${t('Verified partner')}</span>${S.partner.userName ? ` · ${esc(S.partner.userName)} (${t(ROLE_LABEL[role] || role)})` : ''}</p></div>
@@ -156,7 +156,7 @@ function partnerLogin(page){
       <p class="sub">${t('For trusted partner shops: trade prices, bulk orders, a free stock system and selling on our website.')}</p></div>
       <div class="room-switch"><a href="#shop">${t('Retail')}</a><a href="#partner" class="on">${t('Wholesale')}</a></div></div>
     <div class="pt-login"><div class="panel"><span class="eyebrow">${t('Partner portal')}</span><h2 style="margin:6px 0 4px">${t('Sign in to your shop')}</h2>
-    <p class="sub">${t('For trusted partner shops of Auto Engineer. Your account is created by Auto Engineer.')}</p>
+    <p class="sub">${t('For trusted partner shops of Partamo. Your account is created by Partamo.')}</p>
     <form id="ptLogin" class="form"><label>${t('Phone number')}<input name="phone" type="tel" inputmode="tel" dir="ltr" placeholder="0750 123 4567" required></label>
     <label>${t('Password')}<input name="pw" type="password" required minlength="8"></label>
     <p class="err hidden" id="ptErr"></p><button class="btn red" style="width:100%">${t('Sign in')}</button></form>
@@ -165,7 +165,7 @@ function partnerLogin(page){
       <label>${t('Shop name')}<input name="company" required></label><label>${t('Your name')}<input name="name" required></label>
       <label>${t('Phone')}<input name="phone" type="tel" dir="ltr" required></label><label>${t('City')}<input name="location" required></label>
       <button class="btn">${t('Send application')}</button></form></div>
-    <div class="pt-why">${[['📦','Free stock system','Know what you have, what is running low and what to reorder.'],['🛒','Buy at trade price','Order from Auto Engineer at your own partner price.'],['🏪','Sell on our website','List your parts for thousands of customers (coming soon).']].map(([i, h, p]) => `<div><b>${i} ${t(h)}</b><span>${t(p)}</span></div>`).join('')}</div></div>`;
+    <div class="pt-why">${[['📦','Free stock system','Know what you have, what is running low and what to reorder.'],['🛒','Buy at trade price','Order from Partamo at your own partner price.'],['🏪','Sell on our website','List your parts for thousands of customers (coming soon).']].map(([i, h, p]) => `<div><b>${i} ${t(h)}</b><span>${t(p)}</span></div>`).join('')}</div></div>`;
   $('#ptApplyBtn').onclick = () => { $('#ptApply').classList.toggle('hidden'); };
   $('#ptApply').onsubmit = async e => { e.preventDefault(); const fd = Object.fromEntries(new FormData(e.target)), k = phoneKey(fd.phone);
     if(k.length < 12){ toast(t('Check the phone number.')); return; }
@@ -183,7 +183,7 @@ function ptOverview(){
   const ords = myOrders().filter(o => !['received','cancelled','rejected'].includes(o.status));
   $('#ptBody').innerHTML = `<div class="pt-start">
       <button data-go="stock"><i>📦</i><b>${t('My stock')}</b><span>${t('Add your items, see what you have and what is running low.')}</span></button>
-      <button data-go="buy"><i>🛒</i><b>${t('Place an order')}</b><span>${t('Buy from Auto Engineer at your partner price.')}</span></button>
+      <button data-go="buy"><i>🛒</i><b>${t('Place an order')}</b><span>${t('Buy from Partamo at your partner price.')}</span></button>
       <button data-go="sell"><i>🏪</i><b>${t('Sell my parts')}</b><span>${t('List your parts on autoengineeriq.com.')}</span></button></div>
     <div class="kpis">
       <div class="kpi"><span>${t('Items in stock')}</span><b>${st.length.toLocaleString('en')}</b></div>
@@ -192,15 +192,15 @@ function ptOverview(){
       <div class="kpi bad"><span>${t('Out of stock')}</span><b>${out.length}</b></div>
       <div class="kpi"><span>${t('Not moving 90+ days')}</span><b>${slow.length}</b></div>
       <div class="kpi"><span>${t('Open orders')}</span><b>${ords.length}</b></div></div>
-    <div class="panel"><div class="pt-row"><h3>${t('What you need')}</h3>${need.length ? `<button class="btn red sm" id="ptNeedAll">${t('Order all from Auto Engineer')}</button>` : ''}</div>
-      <p class="sub">${t('Items at or below the minimum level you set. Order them from Auto Engineer in one tap.')}</p>
+    <div class="panel"><div class="pt-row"><h3>${t('What you need')}</h3>${need.length ? `<button class="btn red sm" id="ptNeedAll">${t('Order all from Partamo')}</button>` : ''}</div>
+      <p class="sub">${t('Items at or below the minimum level you set. Order them from Partamo in one tap.')}</p>
       ${need.length ? `<div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Part number')}</th><th>${t('Description')}</th><th class="num">${t('In stock')}</th><th class="num">${t('Minimum')}</th><th class="num">${t('Suggested order')}</th><th></th></tr></thead><tbody>
         ${need.slice(0, 50).map(s => `<tr><td class="ltr"><b>${esc(s.partNo)}</b></td><td>${esc(sName(s))}</td><td class="num"><span class="qty ${lowOf(s)}">${+s.qty || 0}</span></td><td class="num">${+s.min || 0}</td><td class="num">${needQty(s)}</td>
           <td><button class="btn sm ghost" data-need="${esc(s.partNo)}" data-q="${needQty(s)}">${t('Add to order')}</button></td></tr>`).join('')}</tbody></table></div>`
         : `<div class="empty">${st.length ? t('Everything is above its minimum level. Set minimum levels in My stock to get reminders.') : t('Add your items in My stock to start. You can import them from Excel.')}</div>`}</div>`;
   const add = async list => { const ids = list.map(([no]) => wpId(no)); const pr = await PartnerAPI.prices(ids); let n = 0;
     list.forEach(([no, q]) => { const id = wpId(no); if(pr[id] === undefined) return; const ex = PS.cart.find(c => c.partId === id); if(ex) ex.qty = Math.max(ex.qty, q); else PS.cart.push({partId: id, partNo: no, qty: q}); n++; });
-    toast(n ? t('{n} added to your order', {n}) : t('Auto Engineer does not have these parts in the catalog.')); if(n){ PS.tab = 'buy'; renderPartner(); } };
+    toast(n ? t('{n} added to your order', {n}) : t('Partamo does not have these parts in the catalog.')); if(n){ PS.tab = 'buy'; renderPartner(); } };
   $('#ptBody').onclick = e => { const g = e.target.closest('[data-go]'); if(g){ PS.tab = g.dataset.go; renderPartner(); return; } const b = e.target.closest('[data-need]'); if(b) add([[b.dataset.need, +b.dataset.q]]); if(e.target.closest('#ptNeedAll')) add(need.map(s => [s.partNo, needQty(s)])); };
 }
 
@@ -271,7 +271,7 @@ function ptItemModal(s){
 
 function ptHistory(s){
   const mv = Store.all('pmoves').filter(m => m.stockId === s.id).sort((a, b) => b.at - a.at).slice(0, 100);
-  const kl = {in: 'Stock in', out: 'Stock out / sold', purchase: 'Bought from Auto Engineer', adjust: 'Adjustment', sale: 'Sold on website'};
+  const kl = {in: 'Stock in', out: 'Stock out / sold', purchase: 'Bought from Partamo', adjust: 'Adjustment', sale: 'Sold on website'};
   pModal(`<h3>${esc(s.partNo)} · ${esc(sName(s))}</h3><p class="sub">${t('In stock')}: <b>${+s.qty || 0}</b></p>
     <div class="tblwrap"><table class="tbl"><thead><tr><th>${t('Date')}</th><th>${t('Movement')}</th><th class="num">${t('Quantity')}</th><th>${t('Note')}</th></tr></thead><tbody>
     ${mv.length ? mv.map(m => `<tr><td>${dtStr(m.at)}</td><td>${t(kl[m.kind] || m.kind)}</td><td class="num"><b class="${m.delta < 0 ? 'neg' : 'pos'}">${m.delta > 0 ? '+' : ''}${m.delta}</b></td><td>${esc(m.note || '')}</td></tr>`).join('') : `<tr><td colspan="4" class="empty">${t('No movements yet.')}</td></tr>`}</tbody></table></div>
@@ -303,19 +303,19 @@ function ptExport(){
   const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Stock'); XLSX.writeFile(wb, (S.partner.shop || 'stock').replace(/[^\w\- ]+/g, '') + ' - stock.xlsx');
 }
 
-/* ---- buy from Auto Engineer ---- */
+/* ---- buy from Partamo ---- */
 function ptBuy(){
   const pay = payOpts(), cartTot = PS.cart.reduce((s, c) => s + (+PS.buyPrices[c.partId] || 0) * c.qty, 0);
   $('#ptBody').innerHTML = `<div class="pt-buy"><div>
       <div class="searchbar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="ptBuyQ" type="search" placeholder="${esc(t('Search: 04465-0K290, brake pads, oil filter…'))}" value="${esc(PS.buyQ)}"></div>
-      <p class="mini">${t('Your partner prices. Every order is confirmed by Auto Engineer before delivery.')}</p><div id="ptBuyRes" class="pt-res"></div></div>
+      <p class="mini">${t('Your partner prices. Every order is confirmed by Partamo before delivery.')}</p><div id="ptBuyRes" class="pt-res"></div></div>
     <aside class="panel pt-cart"><h3>${t('Your order')}</h3>
       ${PS.cart.length ? `<div class="pt-lines">${PS.cart.map((c, i) => `<div class="pt-line"><div><b class="ltr">${esc(c.partNo)}</b><span>${esc(c.name || '')}</span></div>
         <input type="number" min="1" step="1" value="${c.qty}" data-cq="${i}" dir="ltr"><span class="num">${PS.buyPrices[c.partId] ? usd(PS.buyPrices[c.partId] * c.qty) : '—'}</span><button class="linkbtn" data-cx="${i}" aria-label="${esc(t('Remove'))}">×</button></div>`).join('')}</div>
         <div class="pt-tot"><span>${t('Total')}</span><b>${usd(cartTot) || '—'}</b></div>
         <label class="mini">${t('Payment')}<select id="ptPay" class="sel">${pay.cod ? `<option value="cod">${t('Cash on delivery')}</option>` : ''}${pay.online ? `<option value="online">${t('Online payment')}</option>` : ''}</select></label>
         ${!pay.cod && !pay.online ? `<p class="err">${t('Online payment is coming soon. Ordering will open then.')}</p>` : ''}
-        <textarea id="ptNote" class="input" rows="2" placeholder="${esc(t('Note for Auto Engineer (optional)'))}"></textarea>
+        <textarea id="ptNote" class="input" rows="2" placeholder="${esc(t('Note for Partamo (optional)'))}"></textarea>
         <button class="btn red" id="ptSend" style="width:100%" ${!pay.cod && !pay.online ? 'disabled' : ''}>${t('Send order for approval')}</button>`
       : `<div class="empty">${t('Search for parts and add them here.')}</div>`}</aside></div>`;
   $('#ptBuyQ').oninput = e => { PS.buyQ = e.target.value; clearTimeout(PS.buyTimer); PS.buyTimer = setTimeout(ptBuySearch, 250); };
@@ -325,7 +325,7 @@ function ptBuy(){
   cart.onclick = async e => { const x = e.target.closest('[data-cx]'); if(x){ PS.cart.splice(+x.dataset.cx, 1); ptBuy(); return; }
     if(e.target.closest('#ptSend')){ if(ro()) return; const b = $('#ptSend'); b.disabled = true;
       try{ const no = await PartnerAPI.placeOrder(PS.cart.map(c => ({partId: c.partId, qty: c.qty})), $('#ptPay').value, $('#ptNote').value.trim());
-        PS.cart = []; PS.tab = 'orders'; toast(t('Order {no} sent. Auto Engineer will confirm it.', {no})); renderPartner();
+        PS.cart = []; PS.tab = 'orders'; toast(t('Order {no} sent. Partamo will confirm it.', {no})); renderPartner();
       }catch(er){ toast(t('Could not send the order. Try again.')); b.disabled = false; } } };
   ptBuySearch(true); ptCartPrices();
 }
@@ -353,10 +353,10 @@ function ptOrders(){
   $('#ptBody').innerHTML = ords.length ? ords.map(o => `<div class="panel pt-order"><div class="pt-row"><div><b>${esc(o.id)}</b> · ${dateStr(o.createdAt)} · ${poBadge(o.status)}</div><b>${usd(o.total) || ''}</b></div>
       ${['rejected','cancelled'].includes(o.status) ? '' : `<div class="pt-steps">${PO_FLOW.map((s, i) => `<span class="${PO_FLOW.indexOf(o.status) >= i ? 'on' : ''}">${t(PO_LABEL[s])}</span>`).join('')}</div>`}
       <div class="tblwrap"><table class="tbl"><tbody>${(o.lines || []).map(l => `<tr><td class="ltr">${esc(l.partNo)}</td><td>${esc(sName(l))}</td><td class="num">× ${l.qty}</td><td class="num">${usd((l.price || 0) * l.qty)}</td></tr>`).join('')}</tbody></table></div>
-      <p class="mini">${t('Payment')}: ${o.pay === 'online' ? t('Online payment') : t('Cash on delivery')}${o.courier ? ' · ' + t('Delivery') + ': ' + esc(o.courier) + (o.tracking ? ' (' + esc(o.tracking) + ')' : '') : ''}${o.reply ? '<br>' + t('Auto Engineer') + ': ' + esc(o.reply) : ''}</p>
+      <p class="mini">${t('Payment')}: ${o.pay === 'online' ? t('Online payment') : t('Cash on delivery')}${o.courier ? ' · ' + t('Delivery') + ': ' + esc(o.courier) + (o.tracking ? ' (' + esc(o.tracking) + ')' : '') : ''}${o.reply ? '<br>' + t('Partamo') + ': ' + esc(o.reply) : ''}</p>
       <div class="actions">${o.status === 'new' ? `<button class="btn sm ghost" data-cancel="${esc(o.id)}">${t('Cancel order')}</button>` : ''}
         ${['shipped','delivered'].includes(o.status) ? `<button class="btn sm red" data-recv="${esc(o.id)}">${t('I received it → add to my stock')}</button>` : ''}</div></div>`).join('')
-    : `<div class="empty panel">${t('No orders yet.')} <button class="linkbtn" id="ptGoBuy">${t('Buy from Auto Engineer')}</button></div>`;
+    : `<div class="empty panel">${t('No orders yet.')} <button class="linkbtn" id="ptGoBuy">${t('Buy from Partamo')}</button></div>`;
   $('#ptBody').onclick = async e => {
     if(e.target.closest('#ptGoBuy')){ PS.tab = 'buy'; renderPartner(); return; }
     const c = e.target.closest('[data-cancel]'); if(c && ro()) return; if(c && confirm(t('Cancel this order?'))){ await PartnerAPI.cancel(c.dataset.cancel).catch(() => toast(t('Could not save'))); renderPartner(); }
@@ -367,8 +367,8 @@ function ptOrders(){
 
 function ptSell(){
   $('#ptBody').innerHTML = `<div class="panel"><h3>${t('Sell on autoengineeriq.com')}</h3>
-    <p>${t('Soon you will list your own parts on our website, with your shop name as a verified partner. Every listing and every sale is approved by Auto Engineer.')}</p>
-    <ul class="pt-list"><li>${t('List items straight from My stock in one tap')}</li><li>${t('Customers pay online; Auto Engineer pays you after delivery')}</li><li>${t('Commission: {c}% per sale', {c: S.partner.commission ?? 1.5})}</li></ul>
+    <p>${t('Soon you will list your own parts on our website, with your shop name as a verified partner. Every listing and every sale is approved by Partamo.')}</p>
+    <ul class="pt-list"><li>${t('List items straight from My stock in one tap')}</li><li>${t('Customers pay online; Partamo pays you after delivery')}</li><li>${t('Commission: {c}% per sale', {c: S.partner.commission ?? 1.5})}</li></ul>
     <p class="mini">${t('Keep your stock up to date now, so your items are ready to list on day one.')}</p></div>`;
 }
 
@@ -377,7 +377,7 @@ function ptAccount(){
   $('#ptBody').innerHTML = `<div class="grid2"><div class="panel"><h3>${t('Shop details')}</h3>
       <dl class="pt-dl"><dt>${t('Shop')}</dt><dd>${esc(p.shop || '')}</dd><dt>${t('Owner')}</dt><dd>${esc(p.owner || '')}</dd><dt>${t('Phone')}</dt><dd class="ltr">${esc(p.phone || '')}</dd><dt>${t('City')}</dt><dd>${esc(p.city || '')}</dd>
       <dt>${t('Partner discount')}</dt><dd>${+p.discount || 0}%</dd><dt>${t('Commission on sales')}</dt><dd>${p.commission ?? 1.5}%</dd></dl>
-      <p class="mini">${t('To change these details, contact Auto Engineer.')}</p></div>
+      <p class="mini">${t('To change these details, contact Partamo.')}</p></div>
     <div class="panel"><h3>${t('Change password')}</h3><form id="ptPw" class="form"><label>${t('New password')}<input name="a" type="password" minlength="8" required></label><label>${t('Repeat new password')}<input name="b" type="password" minlength="8" required></label>
       <p class="err hidden" id="ptPwErr"></p><button class="btn red">${t('Save')}</button></form></div></div>`;
   $('#ptPw').onsubmit = async e => { e.preventDefault(); if(ro()) return; const f = e.target, er = $('#ptPwErr'); er.classList.add('hidden');
@@ -424,7 +424,7 @@ function partnerModal(p, pre){
     <div class="span2 actions">${isNew ? '' : `<button type="button" class="btn sm ghost" id="apPause">${t(p.status === 'paused' ? 'Activate' : 'Pause')}</button><button type="button" class="btn sm ghost" id="apReset">${t('Reset password')}</button>${['owner','admin'].includes(S.role || 'admin') ? `<button type="button" class="btn sm ghost danger" id="apDel">🗑 ${t('Delete account')}</button>` : ''}`}
       <span style="flex:1"></span><button type="button" class="btn ghost" data-mclose>${t('Cancel')}</button><button class="btn red">${t('Save')}</button></div></form>`, true);
   const f = $('#apF'), er = $('#apErr'), fail = m => { er.textContent = m; er.classList.remove('hidden'); };
-  const share = (pt, pw) => { const msg = `${t('Your Auto Engineer partner account')}\n${location.origin}/#partner\n${t('Phone')}: ${pt.phone}\n${t('Password')}: ${pw}`;
+  const share = (pt, pw) => { const msg = `${t('Your Partamo partner account')}\n${location.origin}/#partner\n${t('Phone')}: ${pt.phone}\n${t('Password')}: ${pw}`;
     pModal(`<h3>${t('Account ready')}</h3><p>${t('Send these sign-in details to the partner:')}</p><pre class="pt-pre">${esc(msg)}</pre>
       <div class="actions"><a class="btn red" target="_blank" rel="noopener" href="https://wa.me/${phoneKey(pt.phone)}?text=${encodeURIComponent(msg)}">WhatsApp</a><button class="btn ghost" id="apCopy">${t('Copy')}</button><button class="btn" data-mclose>${t('Done')}</button></div>`);
     $('#apCopy').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(msg); toast(t('Copied')); }; };
@@ -552,17 +552,17 @@ function poModal(o){
       delete d.id; await Store.set('porders', o.id, d); await poLedger(o.id).catch(() => {}); closeModal(); toast(send ? t('Invoice {no} sent', {no: d.invoiceNo}) : t('Saved'));
       if(send){ if(w) w.location.href = url; else location.href = url; return; }
     }catch(er){ if(w) w.close(); toast(t('Could not save')); return; }
-    if(st){ const pt = Store.get('partners', o.pid) || {}; ptWaPrompt(pt.phone || o.phone, `${t('Auto Engineer')} · ${o.id}: ${t(PO_LABEL[d.status] || d.status)}${d.courier ? ' · ' + d.courier + (d.tracking ? ' (' + d.tracking + ')' : '') : ''}${d.reply ? '\n' + d.reply : ''}${d.shareKey ? '\n' + t('Invoice') + ': ' + invLink(d.shareKey) : ''}`); } };
+    if(st){ const pt = Store.get('partners', o.pid) || {}; ptWaPrompt(pt.phone || o.phone, `${t('Partamo')} · ${o.id}: ${t(PO_LABEL[d.status] || d.status)}${d.courier ? ' · ' + d.courier + (d.tracking ? ' (' + d.tracking + ')' : '') : ''}${d.reply ? '\n' + d.reply : ''}${d.shareKey ? '\n' + t('Invoice') + ': ' + invLink(d.shareKey) : ''}`); } };
 }
 /* share a partner's sign-in details (WhatsApp / copy); optionally with a fresh password */
 function shareAccount(p, pw){
   const L = p.lang || 'en', link = (/^https?:/.test(location.origin) ? location.origin : 'https://autoengineeriq.com') + '/#partner';
-  const msg = `${t('Hello {n},', {n: p.owner || p.shop}, L)}\n\n${t('Your Auto Engineer partner account', null, L)} · ${p.shop}\n${link}\n\n${t('Phone', null, L)}: ${p.phone}\n${pw ? t('Password', null, L) + ': ' + pw : t('Password: the one you already have. If you forgot it, ask us for a new one.', null, L)}\n\n${t('Sign in to see your prices and stock, order, and manage your shop stock for free.', null, L)}`;
+  const msg = `${t('Hello {n},', {n: p.owner || p.shop}, L)}\n\n${t('Your Partamo partner account', null, L)} · ${p.shop}\n${link}\n\n${t('Phone', null, L)}: ${p.phone}\n${pw ? t('Password', null, L) + ': ' + pw : t('Password: the one you already have. If you forgot it, ask us for a new one.', null, L)}\n\n${t('Sign in to see your prices and stock, order, and manage your shop stock for free.', null, L)}`;
   pModal(`<h3>📤 ${t('Share account')} · ${esc(p.shop)}</h3><p class="sub">${t('Send the sign-in details to the shop. The phone number is their username.')}</p><pre class="pt-pre">${esc(msg)}</pre>
     <div class="actions"><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/${phoneKey(p.phone)}?text=${encodeURIComponent(msg)}" id="shWa">WhatsApp</a><button class="btn ghost" id="shCopy">${t('Copy')}</button>${navigator.share ? `<button class="btn ghost" id="shMore">${t('More…')}</button>` : ''}
       ${pw ? '' : `<span style="flex:1"></span><button class="btn ghost" id="shNew">🔑 ${t('New password + share')}</button>`}<button class="btn" data-mclose>${t('Done')}</button></div>`);
   $('#shCopy').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(msg); toast(t('Copied')); };
-  if($('#shMore')) $('#shMore').onclick = () => navigator.share({title: 'Auto Engineer', text: msg}).catch(() => {});
+  if($('#shMore')) $('#shMore').onclick = () => navigator.share({title: 'Partamo', text: msg}).catch(() => {});
   if($('#shNew')) $('#shNew').onclick = () => confirmBox(t('Make a new password for {s}? The old password stops working.', {s: p.shop}), async () => {
     const np = genPw(); try{ await PartnerAPI.setLogin(p.id, np); shareAccount(p, np); }catch(x){ toast(t('Could not save')); } });
 }

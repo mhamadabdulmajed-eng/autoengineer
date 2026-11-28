@@ -1,4 +1,4 @@
-/* Auto Engineer — application */
+/* Partamo — application */
 'use strict';
 
 /* ================= UTILITIES ================= */
@@ -36,7 +36,7 @@ const STOCKS=['In stock','On order','Ask','Out of stock'];
 const PAY_METHODS=['Cash','Bank transfer','FIB','ZainCash','Card','Other'];
 const ROLES={owner:'Owner',admin:'Admin',manager:'Manager',sales:'Sales'};
 const PERMS={owner:['orders','customers','parts','sell','wholesalers','partners','staff','settings','delete','owners'],admin:['orders','customers','parts','sell','wholesalers','partners','staff','settings','delete'],manager:['orders','customers','parts','sell','wholesalers','partners','delete'],sales:['orders','customers','sell']};
-const DEFAULT_SETTINGS={company:'Auto Engineer',tagline:'Spare Parts',phone:'',whatsapp:'',email:'',address:'',currency:'IQD',quoteValidity:7,invoiceNote:'Thank you for your business.',quoteNote:'Prices are valid for the period shown. Availability is confirmed at the time of order.',branches:[],logo:''};
+const DEFAULT_SETTINGS={company:'Partamo',tagline:'Spare Parts',phone:'',whatsapp:'',email:'',address:'',currency:'IQD',quoteValidity:7,invoiceNote:'Thank you for your business.',quoteNote:'Prices are valid for the period shown. Availability is confirmed at the time of order.',branches:[],logo:''};
 
 /* sample data — only used in local preview (no database) */
 const SAMPLE_PARTS=[
@@ -60,7 +60,7 @@ const waBiz=(msg)=>'https://wa.me/'+waNum()+(msg?'?text='+encodeURIComponent(msg
 function mountWaFab(){if($('#waFab'))return;const a=document.createElement('a');a.id='waFab';a.className='wa-fab';a.target='_blank';a.rel='noopener';
   a.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.7c-2 0-4-.6-5.7-1.6l-.4-.2-3.9 1 1-3.8-.3-.4A10.7 10.7 0 1 1 16 26.7zm5.9-8c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2l-1 1.2c-.2.2-.4.2-.7.1a8.7 8.7 0 0 1-4.3-3.8c-.3-.5.3-.5.9-1.6.1-.2 0-.4 0-.6l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.2 1.1-1.2 2.8s1.2 3.3 1.4 3.5c.2.2 2.4 3.7 5.9 5.2 2.2.9 3 1 4.1.8.7-.1 1.9-.8 2.2-1.5.3-.8.3-1.4.2-1.5-.1-.2-.3-.2-.6-.4z"/></svg><span></span>';
   document.body.appendChild(a);updWaFab()}
-function updWaFab(){const a=$('#waFab');if(!a)return;a.href=waBiz(t('Hello Auto Engineer, I need help finding a part.'));a.setAttribute('aria-label',t('Chat on WhatsApp'));a.querySelector('span').textContent=t('WhatsApp');
+function updWaFab(){const a=$('#waFab');if(!a)return;a.href=waBiz(t('Hello Partamo, I need help finding a part.'));a.setAttribute('aria-label',t('Chat on WhatsApp'));a.querySelector('span').textContent=t('WhatsApp');
   a.classList.toggle('hidden',/^#(admin|partner)/.test(location.hash))}
 /* country codes for the phone step (Iraq first) */
 const CCODES=[['IQ','964','🇮🇶','Iraq'],['KW','965','🇰🇼','Kuwait'],['SA','966','🇸🇦','Saudi Arabia'],['AE','971','🇦🇪','UAE'],['QA','974','🇶🇦','Qatar'],['BH','973','🇧🇭','Bahrain'],['OM','968','🇴🇲','Oman'],['JO','962','🇯🇴','Jordan'],['SY','963','🇸🇾','Syria'],['LB','961','🇱🇧','Lebanon'],['TR','90','🇹🇷','Turkey'],['IR','98','🇮🇷','Iran'],['EG','20','🇪🇬','Egypt'],['YE','967','🇾🇪','Yemen'],['LY','218','🇱🇾','Libya'],['SD','249','🇸🇩','Sudan'],['DZ','213','🇩🇿','Algeria'],['MA','212','🇲🇦','Morocco'],['TN','216','🇹🇳','Tunisia'],['PS','970','🇵🇸','Palestine'],['GE','995','🇬🇪','Georgia'],['AM','374','🇦🇲','Armenia'],['AZ','994','🇦🇿','Azerbaijan'],['AF','93','🇦🇫','Afghanistan'],['PK','92','🇵🇰','Pakistan'],['IN','91','🇮🇳','India'],['CN','86','🇨🇳','China'],['JP','81','🇯🇵','Japan'],['GB','44','🇬🇧','United Kingdom'],['DE','49','🇩🇪','Germany'],['SE','46','🇸🇪','Sweden'],['NL','31','🇳🇱','Netherlands'],['NO','47','🇳🇴','Norway'],['DK','45','🇩🇰','Denmark'],['FI','358','🇫🇮','Finland'],['FR','33','🇫🇷','France'],['BE','32','🇧🇪','Belgium'],['AT','43','🇦🇹','Austria'],['CH','41','🇨🇭','Switzerland'],['IT','39','🇮🇹','Italy'],['ES','34','🇪🇸','Spain'],['GR','30','🇬🇷','Greece'],['RU','7','🇷🇺','Russia'],['UA','380','🇺🇦','Ukraine'],['US','1','🇺🇸','USA / Canada'],['AU','61','🇦🇺','Australia']];
@@ -200,15 +200,15 @@ window.addEventListener('scroll',updateNav,{passive:true});
 function buildChrome(){
   $('#navLinks').innerHTML=`<a href="#find" class="nav-find">${t('Find my part')}</a><a href="#shop" data-v="shop">${t('Retail')}</a><a href="#shops" data-v="shops">${t('Shops')}</a><a href="#partner" data-v="partner">${t('Wholesale')}</a><a href="#sell" data-v="sell">${t('Sell your parts')}</a><a href="#track" data-v="track">${t('Track order')}</a><a href="#admin" data-v="admin" class="admin-link">${t('Staff')}</a>`;
   $$('#navLinks a').forEach(a=>a.classList.toggle('active',a.dataset.v===current));
-  $('#basketLbl').textContent=t('Basket');$('#langBtn').textContent=LANGS[LANG||'en'].short;$('#brandName').textContent=t('AUTO ENGINEER');
-  document.title=t('Auto Engineer — Spare Parts');
+  $('#basketLbl').textContent=t('Basket');$('#langBtn').textContent=LANGS[LANG||'en'].short;$('#brandName').textContent=t('PARTAMO');
+  document.title=t('Partamo — Spare Parts');
 }
 $('#menuBtn').onclick=()=>$('#navLinks').classList.toggle('open');
 $('#langBtn').onclick=e=>{e.stopPropagation();const m=$('#langMenu');m.classList.toggle('hidden');m.innerHTML=Object.entries(LANGS).map(([k,v])=>`<button data-l="${k}" class="${k===LANG?'on':''}">${v.native}${k!=='en'?' · '+v.name:''}</button>`).join('')};
 $('#langMenu').onclick=e=>{const b=e.target.closest('[data-l]');if(b){$('#langMenu').classList.add('hidden');setLang(b.dataset.l)}};
 document.addEventListener('click',()=>$('#langMenu').classList.add('hidden'));
 function showLangPicker(){const el=document.createElement('div');el.className='langpick';
-  el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>AUTO ENGINEER</div><h2>زمانێک هەڵبژێرە · اختر اللغة · Choose your language</h2><div class="opts">${['ku','ar','en'].map(k=>`<button data-l="${k}"><b>${LANGS[k].native}</b><span>${LANGS[k].name}</span></button>`).join('')}</div>`;
+  el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>PARTAMO</div><h2>زمانێک هەڵبژێرە · اختر اللغة · Choose your language</h2><div class="opts">${['ku','ar','en'].map(k=>`<button data-l="${k}"><b>${LANGS[k].native}</b><span>${LANGS[k].name}</span></button>`).join('')}</div>`;
   el.onclick=e=>{const b=e.target.closest('[data-l]');if(!b)return;setLang(b.dataset.l);el.remove();if(needsPhone())showPhoneGate()};document.body.appendChild(el)}
 
 /* ================= HOME ================= */
@@ -247,10 +247,10 @@ function buildHome(){
   <div class="dark-zone"><section class="statement"><p id="statement">${stmtHtml}</p></section>
     <div class="stats">${[[M.length,'','Toyota models covered'],[4,'','Fields to place an order'],[10,'','Part categories'],[24,'h','Target reply time (hours)']].map(([n,s,l])=>`<div class="stat"><b data-count="${n}" data-suffix="${s}">0</b><span>${t(l)}</span></div>`).join('')}</div></div>
   <section class="cta"><h2>${t('Find your part today')}</h2><div class="btns"><a class="btn-w" href="#shop">${t('Browse parts')}</a><a class="btn-o" href="#wholesale">${t('Wholesale account')}</a></div></section>
-  <footer><div class="foot"><div><div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>${t('AUTO ENGINEER')}</div><div style="opacity:.7;margin:-4px 0 10px">${t('Spare parts specialist')}</div><div id="footContact" style="line-height:1.8"></div></div>
+  <footer><div class="foot"><div><div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>${t('PARTAMO')}</div><div style="opacity:.7;margin:-4px 0 10px">${t('Spare parts specialist')}</div><div id="footContact" style="line-height:1.8"></div></div>
     <div><a href="#shop">${t('Retail room')}</a><a href="#shops">${t('Shops & brands')}</a><a href="#wholesale">${t('Wholesale room')}</a><a href="#sell">${t('Sell your parts')}</a><a href="#track">${t('Track order')}</a><a href="#terms">${t('Terms & privacy')}</a></div>
     <div id="footBranches" style="line-height:1.8"></div></div>
-    <div class="foot" style="margin-top:36px;font-size:12px;opacity:.6"><span>© ${new Date().getFullYear()} ${t('Auto Engineer')}. ${t('All rights reserved.')} ${t('Brand and model names are trademarks of their owners.')}</span></div></footer>`;
+    <div class="foot" style="margin-top:36px;font-size:12px;opacity:.6"><span>© ${new Date().getFullYear()} ${t('Partamo')}. ${t('All rights reserved.')} ${t('Brand and model names are trademarks of their owners.')}</span></div></footer>`;
   $$('#engine .ep-txt').forEach(x=>x.textContent=t(x.dataset.label));
   $('#heroTags').onclick=e=>{const b=e.target.closest('button');if(b){const mid=modelIdOf(b.dataset.q);if(mid&&mid!=='*'){S.f.model=mid;S.q=''}else{S.q=b.dataset.q;S.jump=true}location.hash='shop'}};
   $('#heroSearch').onsubmit=e=>{e.preventDefault();S.q=e.target.q.value.trim();if(S.q)S.jump=true;location.hash='shop'};
@@ -466,8 +466,8 @@ const Visitor={
 function showPhoneGate(){
   if(Visitor.get()||$('.phonegate'))return;
   const el=document.createElement('div');el.className='langpick phonegate';
-  el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>AUTO ENGINEER</div>
-    <div class="pg-box"><h2>${t('Welcome to Auto Engineer')}</h2><p>${t('Enter your mobile number to see genuine parts and prices.')}</p>
+  el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>PARTAMO</div>
+    <div class="pg-box"><h2>${t('Welcome to Partamo')}</h2><p>${t('Enter your mobile number to see genuine parts and prices.')}</p>
     <form class="pg-form" novalidate><div class="pg-num" dir="ltr"><select name="cc" aria-label="${esc(t('Country code'))}">${CCODES.map(([k,c,f,n])=>`<option value="${c}" ${k==='IQ'?'selected':''}>${f} +${c} ${n}</option>`).join('')}</select><span class="pg-cc" aria-hidden="true">🇮🇶 +964</span><input name="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="tel-national" placeholder="750 123 4567" required></div><button class="btn red">${t('Continue')} →</button></form>
     <p class="pg-err hidden">${t('Please enter a valid mobile number, for example 0750 123 4567.')}</p>
     <p class="pg-note">${t('We use your number only to send you prices, offers and order updates.')}</p></div>`;
@@ -488,7 +488,7 @@ const CTYPES={retail:'Retail customer',wholesale:'Wholesale',seller:'Retail · h
 function showTypeGate(){
   if($('.typegate'))return;
   const el=document.createElement('div');el.className='langpick phonegate typegate';
-  el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>AUTO ENGINEER</div>
+  el.innerHTML=`<div class="brand"><span class="brand-mark"><img src="img/logo-mark.svg" alt=""></span>PARTAMO</div>
     <div class="pg-box tg-box"><h2>${t('How can we help you?')}</h2><p>${t('Choose one, so we show you the right room.')}</p>
     <div class="tg-opts">
       <button data-ct="retail"><i>🛒</i><b>${t('I want to buy parts')}</b><span>${t('Retail customer: genuine parts for my car.')}</span></button>
@@ -692,7 +692,7 @@ function renderSell(fromData){
     <h3 style="margin-top:12px">${t('Your details')}</h3><p class="sub">${t('We’ll contact you on this number.')}</p>
     <div class="row3"><div class="f"><label>${t('Name')}</label><input name="name" required></div><div class="f"><label>${t('Phone / WhatsApp')}</label><input name="phone" type="tel" required dir="ltr"></div><div class="f"><label>${t('Location')}</label><input name="location" list="cities" required></div></div>
     <div class="f"><label>${t('Comment')} <i>(${t('optional')})</i></label><textarea name="comment"></textarea></div>
-    <button class="btn red" id="sellBtn" ${S.canWrite?'':'disabled'}>${t('Send to Auto Engineer')}</button></form>${citiesList()}`;
+    <button class="btn red" id="sellBtn" ${S.canWrite?'':'disabled'}>${t('Send to Partamo')}</button></form>${citiesList()}`;
   $('#sellPh').onchange=async e=>{for(const f of [...e.target.files].slice(0,3-sellPhotos.length)){try{sellPhotos.push(await compressImg(f,900,.62))}catch(_){}}$('#sellThumbs').innerHTML=sellPhotos.map(s=>`<img src="${s}">`).join('');e.target.value=''};
   $('#sellF').onsubmit=async e=>{e.preventDefault();const fd=Object.fromEntries(new FormData(e.target));const k=phoneKey(fd.phone);if(k.length<8){toast(t('Please enter a valid phone number'));return}
     $('#sellBtn').disabled=true;$('#sellBtn').textContent=t('Sending…');const id='s_'+Date.now().toString(36)+rid(3);
@@ -741,14 +741,14 @@ function renderTerms(){const s=settings();const page=$('#termsPage');
 function checkAlerts(){if(!S.admin)return;const ids=new Set(Object.keys(S.data.orders||{}));
   if(S.seenOrders===null){S.seenOrders=ids;return}
   const fresh=[...ids].filter(id=>!S.seenOrders.has(id));S.seenOrders=ids;if(!fresh.length)return;
-  S.alerts+=fresh.length;document.title=`(${S.alerts}) ${t('New order')} — ${t('Auto Engineer')}`;toast(t('New order received: {n}',{n:fresh[0]}));beep()}
+  S.alerts+=fresh.length;document.title=`(${S.alerts}) ${t('New order')} — ${t('Partamo')}`;toast(t('New order received: {n}',{n:fresh[0]}));beep()}
 function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)();[0,.18].forEach(d=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.setValueAtTime(.15,a.currentTime+d);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+d+.15);o.start(a.currentTime+d);o.stop(a.currentTime+d+.16)})}catch(e){}}
-window.addEventListener('focus',()=>{if(S.alerts){S.alerts=0;document.title=t('Auto Engineer — Spare Parts')}});
+window.addEventListener('focus',()=>{if(S.alerts){S.alerts=0;document.title=t('Partamo — Spare Parts')}});
 
 /* ================= ADMIN ================= */
 function renderAdmin(fromData){
   const page=$('#adminPage');if(!S.ready){page.innerHTML=`<div class="lock">${t('Loading…')}</div>`;return}
-  if(!S.admin){if(S.mode==='supabase'){if(!fromData||!$('#loginF'))renderLogin(page)}else page.innerHTML=`<div class="lock panel"><h3>${t('Staff only')}</h3><p class="sub">${t('This area is for the Auto Engineer team. Ask the owner to give you access.')}</p><a class="btn" href="#home">${t('Back to home')}</a></div>`;return}
+  if(!S.admin){if(S.mode==='supabase'){if(!fromData||!$('#loginF'))renderLogin(page)}else page.innerHTML=`<div class="lock panel"><h3>${t('Staff only')}</h3><p class="sub">${t('This area is for the Partamo team. Ask the owner to give you access.')}</p><a class="btn" href="#home">${t('Back to home')}</a></div>`;return}
   if(S.seenOrders===null)S.seenOrders=new Set(Object.keys(S.data.orders||{}));
   const orders=visibleOrders(),sells=Store.all('sellRequests'),wss=Store.all('wholesalers');
   const tabs=[['orders','Orders',orders.filter(o=>o.status==='new'||o.status==='accepted').length,'orders'],['customers','Customers',0,'customers'],['visitors','Visitors',Store.all('visitors').filter(v=>Date.now()-(v.firstAt||0)<864e5).length,'customers'],['parts','Retail catalog',0,'parts'],['wparts','Wholesale catalog',0,'parts'],['sell','Sell requests',sells.filter(s=>s.status==='new').length,'sell'],['partners','Partners',wss.filter(w=>w.status==='pending').length,'partners'],['porders','Partner orders',Store.all('porders').filter(o=>o.status==='new').length,'partners'],['plistings','Partner listings',Store.all('plistings').filter(l=>l.status==='pending').length,'partners'],['pshops','Shop pages',Store.all('pbrand').filter(b=>b.status==='pending').length,'partners'],['staff','Staff',0,'staff'],['settings','Settings',0,'settings']].filter(x=>can(x[3]));

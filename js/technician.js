@@ -1,4 +1,4 @@
-/* Auto Engineer — "Mohammed", the AI Technician (Retail room).
+/* Partamo — "Mohammed", the AI Technician (Retail room).
    He greets the customer and registers their car one question at a time:
    model, year, fuel, engine size, gearbox, where the car was first sold, VIN and mileage.
    Cars are kept on the phone (localStorage 'ae:garage') and sent to the visitor record

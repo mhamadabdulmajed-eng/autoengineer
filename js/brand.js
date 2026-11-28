@@ -1,9 +1,9 @@
 /* =====================================================================
-   Auto Engineer — partner SHOP PAGES and PRICE LISTS
+   Partamo — partner SHOP PAGES and PRICE LISTS
    Partner (owner) builds "My shop page": logo, cover, name, about, details  →  'pbrand' (draft)
-   Auto Engineer approves  →  'pshop' (published, public page #store/<slug>)
+   Partamo approves  →  'pshop' (published, public page #store/<slug>)
    Partner uploads a price list (part number, name, price IQD, qty)  →  pstock + plistings (pending)
-   Customers order through Auto Engineer; contact details stay private.
+   Customers order through Partamo; contact details stay private.
    ===================================================================== */
 const MAKES = ['Toyota','Lexus','Nissan','Hyundai','Kia','Mitsubishi','Honda','Mazda','Chevrolet','Ford','GMC','Mercedes-Benz','BMW','Land Rover','Isuzu','Suzuki'];
 const PSERV = {delivery: 'Delivery', install: 'Fitting / installation', warranty: 'Warranty', order: 'Order on request', wholesale: 'Wholesale', used: 'Used parts'};
@@ -34,9 +34,9 @@ function myBrand(){ return Store.get('pbrand', 'pb_' + S.partner.id); }
 function ptBrand(){
   const p = S.partner, b = myBrand() || {}, sh = (Store.get('pshop', 'sh_' + p.id)) || shopOf(p.id), st = b.status || 'draft';
   const v = k => esc(b[k] ?? ''), mk = new Set(b.makes || []), sv = new Set(b.services || []), sc = new Set(b.sections || []);
-  $('#ptBody').innerHTML = `<div class="panel"><div class="pt-row"><div><h3>🏪 ${t('My shop page')}</h3><p class="sub" style="margin:4px 0 0">${t('Build your own shop page on autoengineeriq.com: your logo, name and story. Customers find your shop and order your parts through Auto Engineer. Every change is checked by Auto Engineer before it is published.')}</p></div>
+  $('#ptBody').innerHTML = `<div class="panel"><div class="pt-row"><div><h3>🏪 ${t('My shop page')}</h3><p class="sub" style="margin:4px 0 0">${t('Build your own shop page on autoengineeriq.com: your logo, name and story. Customers find your shop and order your parts through Partamo. Every change is checked by Partamo before it is published.')}</p></div>
       <span class="pst ${st === 'approved' ? 'received' : st === 'pending' ? 'new' : st === 'rejected' ? 'rejected' : ''}">${t(BRAND_ST[st] || st)}</span></div>
-    ${b.reply && st === 'rejected' ? `<p class="err">${t('Auto Engineer')}: ${esc(b.reply)}</p>` : ''}
+    ${b.reply && st === 'rejected' ? `<p class="err">${t('Partamo')}: ${esc(b.reply)}</p>` : ''}
     ${sh && sh.slug ? `<div class="box" style="margin-top:10px">🌐 ${t('Your page is live')}: <a href="${shopUrl(sh.slug)}" target="_blank" rel="noopener" class="ltr">${esc(shopUrl(sh.slug))}</a> <button class="linkbtn" id="brShare">📤 ${t('Share')}</button>${st === 'pending' ? `<br><span class="mini">${t('Your latest changes are waiting for approval; customers still see the published version.')}</span>` : ''}</div>` : ''}</div>
   <form id="brF" class="panel form">
     <div class="br-head"><label class="br-cover" style="${b.cover ? `background-image:url(${b.cover})` : ''}">${b.cover ? '' : `<span>🖼 ${t('Add a cover photo (your shop, shelves or team)')}</span>`}<input type="file" accept="image/*" id="brCov" hidden></label>
@@ -50,7 +50,7 @@ function ptBrand(){
     <label style="display:block;margin-top:10px">${t('Your own brands or the brands you distribute')}<input name="ownBrands" value="${v('ownBrands')}" placeholder="${esc(t('e.g. our own oil brand, Mobil, Bosch'))}"></label>
     <h4 style="margin:16px 0 6px">${t('Car brands you specialise in')}</h4><div class="br-chips">${MAKES.map(m => `<label class="chip"><input type="checkbox" name="mk" value="${m}" ${mk.has(m) ? 'checked' : ''}> ${m}</label>`).join('')}</div>
     <h4 style="margin:16px 0 6px">${t('Services')}</h4><div class="br-chips">${Object.entries(PSERV).map(([k, l]) => `<label class="chip"><input type="checkbox" name="sv" value="${k}" ${sv.has(k) ? 'checked' : ''}> ${t(l)}</label>`).join('')}</div>
-    <h4 style="margin:18px 0 4px">🔒 ${t('Private details')}</h4><p class="mini" style="margin:0 0 8px">${t('Only Auto Engineer sees these. Customers always order through Auto Engineer.')}</p>
+    <h4 style="margin:18px 0 4px">🔒 ${t('Private details')}</h4><p class="mini" style="margin:0 0 8px">${t('Only Partamo sees these. Customers always order through Partamo.')}</p>
     <div class="grid2"><label>${t('Owner / manager name')}<input name="owner" value="${v('owner') || esc(p.owner || '')}"></label><label>${t('Shop phone')}<input name="phone" dir="ltr" value="${v('phone') || esc(p.phone || '')}"></label>
       <label>${t('Google Maps link')}<input name="maps" dir="ltr" value="${v('maps')}" placeholder="https://maps.google.com/…"></label><label>${t('Team size')}<input name="team" type="number" min="1" dir="ltr" value="${v('team')}"></label>
       <label>${t('Instagram')}<input name="ig" dir="ltr" value="${v('ig')}" placeholder="@yourshop"></label><label>${t('Facebook / TikTok')}<input name="fb" dir="ltr" value="${v('fb')}"></label>
@@ -80,7 +80,7 @@ const d0 = s => String(s || '');
 /* ---- price list upload: part number, name, price (IQD), qty  →  my stock + website items (pending) ---- */
 function ptPriceList(){
   if(ro()) return; const st = {raw: null, cols: null, items: []};
-  pModal(`<h3>📄 ${t('Upload price list')}</h3><p class="sub">${t('Excel or CSV with a heading row: Part number, Name, Price (IQD), Qty. Or paste it from Excel. Every item is checked by Auto Engineer before it is shown.')}</p>
+  pModal(`<h3>📄 ${t('Upload price list')}</h3><p class="sub">${t('Excel or CSV with a heading row: Part number, Name, Price (IQD), Qty. Or paste it from Excel. Every item is checked by Partamo before it is shown.')}</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><label class="btn red" style="cursor:pointer">📄 ${t('Choose Excel / CSV')}<input type="file" id="plF" accept=".xlsx,.xls,.csv,.txt" hidden></label><span class="mini" id="plFile" style="align-self:center"></span></div>
     <textarea id="plT" class="sel" rows="6" dir="ltr" style="width:100%;font-family:monospace" placeholder="PartNo\tName\tPrice\tQty\n04465-0K290\tBrake pads\t85000\t4"></textarea>
     <div class="grid2" style="margin-top:10px"><label>${t('Condition')}<select id="plC" class="sel">${Object.entries(PCOND).map(([k, v]) => `<option value="${k}">${t(v)}</option>`).join('')}</select></label><span></span></div>
@@ -122,7 +122,7 @@ function storeHeader(s){ const mk = s.makes || [], sv = s.services || [], sc = s
   return `<div class="store-head"><div class="store-cover" style="${s.cover ? `background-image:url(${s.cover})` : ''}"></div>
     <div class="store-id">${s.logo ? `<img class="store-logo" src="${s.logo}" alt="">` : `<div class="store-logo ph">${esc((s.name || s.shop || '?').slice(0, 1))}</div>`}
       <div><h1>${esc(s.name || s.shop || '')}</h1>${s.tagline ? `<p class="store-tag">${esc(s.tagline)}</p>` : ''}
-        <p class="store-meta"><b class="store-ver">✓ ${t('Verified partner of Auto Engineer')}</b>${s.city ? ' · 📍 ' + esc(s.city) + (s.area ? ', ' + esc(s.area) : '') : ''}${s.hours ? ' · 🕘 ' + esc(s.hours) : ''}${s.since ? ' · ' + t('Since {y}', {y: esc(s.since)}) : ''}</p></div></div>
+        <p class="store-meta"><b class="store-ver">✓ ${t('Verified partner of Partamo')}</b>${s.city ? ' · 📍 ' + esc(s.city) + (s.area ? ', ' + esc(s.area) : '') : ''}${s.hours ? ' · 🕘 ' + esc(s.hours) : ''}${s.since ? ' · ' + t('Since {y}', {y: esc(s.since)}) : ''}</p></div></div>
     ${s.about ? `<p class="store-about">${esc(s.about)}</p>` : ''}
     ${sc.length ? `<div class="br-chips static" style="margin-bottom:8px">${sc.map(x => `<span class="chip">${esc(secName(x))}</span>`).join('')}</div>` : ''}
     ${ob.length ? `<p class="mini" style="margin:0 0 8px">🏷️ ${t('Brands')}: ${ob.map(x => `<b>${esc(x)}</b>`).join(' · ')}</p>` : ''}
@@ -138,7 +138,7 @@ async function renderStore(){
   const L = (await loadListings()).filter(l => l.pid === s.pid && (+l.qty || 0) > 0);
   el.innerHTML = `${storeHeader(s)}
     <div class="store-bar"><input type="search" id="stQ" placeholder="${esc(t('Search this shop: part number or name'))}"><span class="mini">${t('{n} parts', {n: L.length})}</span><button class="btn sm ghost" id="stShare">📤 ${t('Share')}</button></div>
-    <div id="stGrid"></div><p class="mini" style="text-align:center;margin:18px 0">${t('You order through Auto Engineer: we confirm the part, the price and the delivery with you.')}</p>`;
+    <div id="stGrid"></div><p class="mini" style="text-align:center;margin:18px 0">${t('You order through Partamo: we confirm the part, the price and the delivery with you.')}</p>`;
   const CL = {genuine: 'New genuine', aftermarket: 'New aftermarket', used: 'Used'};
   const draw = () => { const q = ($('#stQ').value || '').trim().toLowerCase(), qk = q.replace(/[^a-z0-9]/g, ''); const inB = new Set(S.basket.map(b => b.listingId));
     const rows = L.filter(l => !q || (qk && pk2(l.partNo).toLowerCase().includes(qk)) || [l.name, l.nameAr, l.nameKu, l.note, l.brand].some(x => String(x || '').toLowerCase().includes(q))).slice(0, 300);
@@ -150,7 +150,7 @@ async function renderStore(){
     if(ex) ex.qty = Math.min(+l.qty || 1, ex.qty + 1); else S.basket.push({key: rid(6), partId: null, listingId: l.id, pid: l.pid, shop: l.shop, partNo: l.partNo, name: l.name, fit: '', qty: 1, price: +l.price, room: 'retail'});
     saveBasket(); b.classList.add('done'); b.textContent = '✓ ' + t('Added'); toast(t('Added: {x}', {x: l.name})); };
   $('#stShare').onclick = () => { const u = shopUrl(s.slug); if(navigator.share) navigator.share({title: s.name, url: u}).catch(() => {}); else { navigator.clipboard && navigator.clipboard.writeText(u); toast(t('Copied')); } };
-  document.title = (s.name || 'Shop') + ' — Auto Engineer';
+  document.title = (s.name || 'Shop') + ' — Partamo';
 }
 
 /* ================= STAFF: shop pages (approve / publish) ================= */
@@ -176,9 +176,9 @@ function brandReview(id){
   $('#brOk').onclick = async () => { const slug = slugify($('#brSlug').value); if((await loadShops(true)).some(x => x.slug === slug && x.pid !== b.pid)){ toast(t('This page address is already used. Choose another.')); return; }
     const pub = {pid: b.pid, slug, name: b.name, tagline: b.tagline || '', about: b.about || '', city: b.city || '', area: b.area || '', hours: b.hours || '', since: b.since || '', makes: b.makes || [], services: b.services || [], sections: b.sections || [], ownBrands: b.ownBrands || '', logo: b.logo || '', cover: b.cover || '', hidden: false, publishedAt: Date.now()};
     try{ await Store.set('pshop', 'sh_' + b.pid, pub); const d = clone(b); delete d.id; d.status = 'approved'; d.reply = ''; d.reviewedAt = Date.now(); await Store.set('pbrand', id, d); shopCache = null;
-      closeModal(); toast(t('Published')); notify(`${t('Auto Engineer')}: ${t('Your shop page is live')} — ${shopUrl(slug)}`); }catch(x){ toast(t('Could not save')); } };
+      closeModal(); toast(t('Published')); notify(`${t('Partamo')}: ${t('Your shop page is live')} — ${shopUrl(slug)}`); }catch(x){ toast(t('Could not save')); } };
   $('#brRej').onclick = async () => { const d = clone(b); delete d.id; d.status = 'rejected'; d.reply = $('#brReply').value.trim(); d.reviewedAt = Date.now();
-    try{ await Store.set('pbrand', id, d); closeModal(); notify(`${t('Auto Engineer')}: ${t('Your shop page needs changes')}${d.reply ? ' — ' + d.reply : ''}`); }catch(x){ toast(t('Could not save')); } };
+    try{ await Store.set('pbrand', id, d); closeModal(); notify(`${t('Partamo')}: ${t('Your shop page needs changes')}${d.reply ? ' — ' + d.reply : ''}`); }catch(x){ toast(t('Could not save')); } };
   if($('#brHide')) $('#brHide').onclick = async () => { const s = clone(sh); delete s.id; s.hidden = true; await Store.set('pshop', 'sh_' + b.pid, s); shopCache = null; closeModal(); toast(t('Page unpublished')); };
 }
 window.ptBrand = ptBrand; window.renderStore = renderStore; window.adminPShops = adminPShops; window.loadShops = loadShops; window.shopOf = shopOf; window.bulkSet = bulkSet;
@@ -201,7 +201,7 @@ async function renderShops(){
   await storeReady; const all = await loadShopDir(); if(current !== 'shops') return;
   const cities = [...new Set(all.map(s => s.city).filter(Boolean))].sort(), brands = [...new Set(all.flatMap(s => s.allBrands))].sort((a, b) => a.localeCompare(b)), makes = [...new Set(all.flatMap(s => s.makes))];
   const secs = wsSections().filter(x => all.some(s => s.sections.includes(x)));
-  el.innerHTML = `<div class="page-head"><div><span class="eyebrow">${t('Verified partner shops')}</span><h1>${t('Shops & brands')}</h1><p>${t('Trusted shops and companies selling on Auto Engineer. Choose a shop or a brand, add parts to your basket and order. Every order is confirmed by Auto Engineer.')}</p></div></div>
+  el.innerHTML = `<div class="page-head"><div><span class="eyebrow">${t('Verified partner shops')}</span><h1>${t('Shops & brands')}</h1><p>${t('Trusted shops and companies selling on Partamo. Choose a shop or a brand, add parts to your basket and order. Every order is confirmed by Partamo.')}</p></div></div>
     <div class="dir-bar"><input type="search" id="dirQ" placeholder="${esc(t('Search a shop, brand or city'))}" value="${esc(DIR.q)}">
       ${brands.length || makes.length ? `<select class="sel" id="dirB"><option value="">${t('All brands')}</option>${makes.length ? `<optgroup label="${esc(t('Car brands'))}">${makes.map(b => `<option value="${esc(b)}" ${DIR.brand === b ? 'selected' : ''}>🚗 ${esc(b)}</option>`).join('')}</optgroup>` : ''}${brands.length ? `<optgroup label="${esc(t('Part and product brands'))}">${brands.map(b => `<option value="${esc(b)}" ${DIR.brand === b ? 'selected' : ''}>🏷️ ${esc(b)}</option>`).join('')}</optgroup>` : ''}</select>` : ''}
       ${cities.length > 1 ? `<select class="sel" id="dirC"><option value="">${t('All cities')}</option>${cities.map(c => `<option value="${esc(c)}" ${DIR.city === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>` : ''}</div>
@@ -223,7 +223,7 @@ async function renderShops(){
   if($('#dirB')) $('#dirB').onchange = e => { DIR.brand = e.target.value; draw(); };
   if($('#dirC')) $('#dirC').onchange = e => { DIR.city = e.target.value; draw(); };
   if($('#dirS')) $('#dirS').onclick = e => { const c = e.target.closest('[data-sec]'); if(!c) return; DIR.sec = c.dataset.sec; $$('#dirS .chip').forEach(b => b.classList.toggle('on', b === c)); draw(); };
-  document.title = t('Shops & brands') + ' — Auto Engineer';
+  document.title = t('Shops & brands') + ' — Partamo';
 }
 /* small strip of shops on the home page and in the Retail room */
 async function drawShopStrip(boxId){ const box = $('#' + boxId); if(!box) return; const all = await loadShopDir().catch(() => []); if(!$('#' + boxId)) return;

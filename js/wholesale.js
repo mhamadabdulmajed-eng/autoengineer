@@ -1,5 +1,5 @@
 /* =====================================================================
-   Auto Engineer — WHOLESALE catalog (separate from retail)
+   Partamo — WHOLESALE catalog (separate from retail)
    Its own part numbers, names, stock and prices ('wparts'). Shown only to staff and to
    signed-in partner shops in the wholesale room; the retail shop never sees it.
    ===================================================================== */

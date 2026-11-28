@@ -1,4 +1,4 @@
-/* Auto Engineer — Retail room "exploded car": an SUV made of real, separate spare parts.
+/* Partamo — Retail room "exploded car": an SUV made of real, separate spare parts.
    It comes apart into labelled parts and goes back together inside the Retail page header.
    One tap on the car toggles it; tapping a part's label searches for that part.            */
 (function () {

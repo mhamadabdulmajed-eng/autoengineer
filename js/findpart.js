@@ -1,4 +1,4 @@
-/* Auto Engineer — FIND MY PART: for customers who don't know the part number.
+/* Partamo — FIND MY PART: for customers who don't know the part number.
    1) choose Toyota + year (VIN optional)  2) plain-word search in our own catalog
    3) not found → description + photos → arrives in Staff › Orders as a "Find my part" order. */
 'use strict';

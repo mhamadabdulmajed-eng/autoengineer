@@ -1,5 +1,5 @@
 /* =====================================================================
-   Auto Engineer — daily stock update (Staff › Parts › Daily stock update)
+   Partamo — daily stock update (Staff › Parts › Daily stock update)
    Upload an Excel/CSV or paste "part number  quantity" lines. Every matching part gets the
    quantity. Partner shops see the exact quantity; retail customers see In stock / On order.
    ===================================================================== */
